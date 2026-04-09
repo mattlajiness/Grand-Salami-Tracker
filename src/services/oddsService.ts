@@ -25,7 +25,7 @@ export interface OddsResponse {
 export async function fetchMLBOdds(): Promise<OddsResponse[]> {
   const apiKey = (import.meta as any).env.VITE_ODDS_API_KEY;
   if (!apiKey) {
-    console.warn('VITE_ODDS_API_KEY is not set');
+    console.warn('VITE_ODDS_API_KEY is not set. Betting lines will not be available.');
     return [];
   }
 

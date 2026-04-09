@@ -39,30 +39,58 @@ export default function App() {
         fetchMLBGames(),
         fetchMLBOdds().catch(err => {
           console.error('Odds API Error:', err);
+          if (err.message === 'INVALID_API_KEY') {
+            toast.error('Invalid Odds API Key. Please check your settings.');
+          } else {
+            toast.error('Failed to fetch betting lines.');
+          }
           return [];
         })
       ]);
 
+      if (!mlbData || mlbData.length === 0) {
+        setGames([]);
+        return;
+      }
+
       // Merge odds into games
-      const mergedGames = (mlbData || []).map(game => {
+      console.log(`Fetched ${mlbData.length} games and ${oddsData.length} betting lines.`);
+      
+      const mergedGames = mlbData.map(game => {
         const awayName = game.teams.away.team.name;
         const homeName = game.teams.home.team.name;
 
         // Find matching game in odds data
-        // We check if the team names are contained in each other to handle "Chicago Cubs" vs "Cubs" etc.
         const match = oddsData.find(o => {
           const oAway = o.away_team.toLowerCase();
           const oHome = o.home_team.toLowerCase();
           const gAway = awayName.toLowerCase();
           const gHome = homeName.toLowerCase();
 
+          // Try exact match first
+          if (oAway === gAway && oHome === gHome) return true;
+
+          // Try matching by the last word (team nickname)
+          const gAwayNick = gAway.split(' ').pop() || '';
+          const gHomeNick = gHome.split(' ').pop() || '';
+          const oAwayNick = oAway.split(' ').pop() || '';
+          const oHomeNick = oHome.split(' ').pop() || '';
+
+          if (gAwayNick && oAwayNick && gAwayNick === oAwayNick && 
+              gHomeNick && oHomeNick && gHomeNick === oHomeNick) {
+            return true;
+          }
+
+          // Fallback to inclusion
           return (oAway.includes(gAway) || gAway.includes(oAway)) && 
                  (oHome.includes(gHome) || gHome.includes(oHome));
         });
 
         let overUnder: number | undefined;
         if (match && match.bookmakers.length > 0) {
-          const market = match.bookmakers[0].markets.find(m => m.key === 'totals');
+          // Look for totals market in any bookmaker
+          const bookmaker = match.bookmakers.find(b => b.markets.some(m => m.key === 'totals')) || match.bookmakers[0];
+          const market = bookmaker.markets.find(m => m.key === 'totals');
           if (market && market.outcomes.length > 0) {
             overUnder = market.outcomes[0].point;
           }
@@ -75,6 +103,7 @@ export default function App() {
       setLastUpdated(new Date());
     } catch (error) {
       console.error('Error in loadData:', error);
+      toast.error('Error loading game data.');
     } finally {
       setIsRefreshing(false);
     }
