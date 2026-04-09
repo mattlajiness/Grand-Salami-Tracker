@@ -3,12 +3,15 @@ import { fetchMLBGames, MLBGame } from './services/mlbService';
 import { GrandSalamiHeader } from './components/GrandSalamiHeader';
 import { GameLog } from './components/GameLog';
 import { WagerTracker } from './components/WagerTracker';
+import { InfoSection } from './components/InfoSection';
 import { RefreshCw, Calendar, Sun, Moon } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'motion/react';
 import { Toaster, toast } from 'sonner';
+import { useAuth } from './contexts/AuthContext';
 
 export default function App() {
+  const { loading: authLoading } = useAuth();
   const [games, setGames] = useState<MLBGame[]>([]);
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
@@ -74,6 +77,22 @@ export default function App() {
     : 0;
 
   const isFinished = games.length > 0 && finalCount === games.length;
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative w-16 h-16">
+            <div className="absolute inset-0 border-4 border-slate-800 rounded-full" />
+            <div className="absolute inset-0 border-4 border-salami-red rounded-full border-t-transparent animate-spin" />
+          </div>
+          <span className="text-[10px] font-mono font-black text-slate-500 uppercase tracking-[0.3em] animate-pulse">
+            Authenticating...
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-salami-bg dark:bg-slate-950 pb-12 transition-colors duration-300">
@@ -179,14 +198,28 @@ export default function App() {
               </div>
             </div>
           )}
+
+          <InfoSection />
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="mt-12 py-8 border-t border-slate-200 dark:border-slate-800 text-center">
-        <p className="text-xs text-slate-400 font-mono">
-          DATA PROVIDED BY MLB STATS API • UPDATES EVERY 60S
-        </p>
+      <footer className="mt-12 py-12 border-t border-slate-200 dark:border-slate-800 text-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="flex items-center gap-6 text-[10px] font-mono font-black text-slate-400 uppercase tracking-[0.2em]">
+            <a href="#how-it-works" className="hover:text-salami-red transition-colors">How it works</a>
+            <span className="w-1 h-1 rounded-full bg-slate-700" />
+            <a href="https://www.mlb.com" target="_blank" rel="noreferrer" className="hover:text-salami-red transition-colors">MLB.com</a>
+            <span className="w-1 h-1 rounded-full bg-slate-700" />
+            <span className="text-slate-600">v1.0.4</span>
+          </div>
+          <p className="text-[10px] text-slate-500 font-mono tracking-widest">
+            DATA PROVIDED BY MLB STATS API • UPDATES EVERY 60S
+          </p>
+          <p className="text-[9px] text-slate-600 font-mono mt-2">
+            © {new Date().getFullYear()} GRAND SALAMI TRACKER • FOR ENTERTAINMENT PURPOSES ONLY
+          </p>
+        </div>
       </footer>
     </div>
   );

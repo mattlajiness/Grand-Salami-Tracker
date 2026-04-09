@@ -1,6 +1,7 @@
 import { motion } from 'motion/react';
-import { Activity, Trophy, Sun, Moon, RefreshCw, Calendar } from 'lucide-react';
+import { Activity, Trophy, Sun, Moon, RefreshCw, Calendar, HelpCircle, LogIn, LogOut, User as UserIcon } from 'lucide-react';
 import { format } from 'date-fns';
+import { useAuth } from '../contexts/AuthContext';
 
 interface GrandSalamiHeaderProps {
   currentTotal: number;
@@ -25,6 +26,8 @@ export function GrandSalamiHeader({
   isRefreshing,
   lastUpdated
 }: GrandSalamiHeaderProps) {
+  const { user, signIn, signOut } = useAuth();
+
   return (
     <div className="dashboard-card p-6 mb-6 bg-slate-900 text-white border-none shadow-2xl">
       <div className="stitching-top opacity-50" />
@@ -52,6 +55,40 @@ export function GrandSalamiHeader({
         </div>
 
         <div className="flex items-center gap-3">
+          {user ? (
+            <div className="flex items-center gap-2">
+              <div className="hidden md:flex flex-col items-end mr-2">
+                <span className="text-[10px] font-black text-white uppercase tracking-tighter leading-none">{user.displayName}</span>
+                <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest mt-0.5">Pro Member</span>
+              </div>
+              <button 
+                onClick={() => signOut()}
+                className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition-all active:scale-95 group"
+                title="Sign Out"
+              >
+                <LogOut className="w-3.5 h-3.5 text-slate-400 group-hover:text-salami-red" />
+              </button>
+            </div>
+          ) : (
+            <button 
+              onClick={() => signIn()}
+              className="flex items-center gap-2 px-3 py-1.5 bg-salami-red hover:bg-red-700 rounded-lg transition-all text-[9px] font-black uppercase tracking-widest text-white shadow-lg shadow-red-900/20 active:scale-95"
+            >
+              <LogIn className="w-3 h-3" />
+              Sign In
+            </button>
+          )}
+
+          <button 
+            onClick={() => {
+              document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition-all text-[9px] font-mono font-black uppercase tracking-widest text-slate-300"
+          >
+            <HelpCircle className="w-3 h-3 text-salami-red" />
+            How it works
+          </button>
+
           <div className="hidden sm:flex items-center gap-2 text-[9px] font-mono text-slate-400 bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700">
             <Calendar className="w-3 h-3 text-salami-red" />
             {format(new Date(), 'MMM dd').toUpperCase()}

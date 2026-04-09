@@ -1,8 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
-import { Target, TrendingUp, TrendingDown, AlertCircle, CheckCircle2, XCircle, Bell, BellOff } from 'lucide-react';
+import { Target, TrendingUp, TrendingDown, AlertCircle, CheckCircle2, XCircle, Bell, BellOff, Save, Cloud } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { toast } from 'sonner';
+import { useAuth } from '../contexts/AuthContext';
+import { db, handleFirestoreError, OperationType } from '../firebase';
+import { doc, setDoc, getDoc, Timestamp } from 'firebase/firestore';
+import { format } from 'date-fns';
 
 interface WagerTrackerProps {
   currentTotal: number;
@@ -12,25 +16,77 @@ interface WagerTrackerProps {
 }
 
 export function WagerTracker({ currentTotal, playedInnings, totalExpectedInnings, isFinished }: WagerTrackerProps) {
-  const [betLine, setBetLine] = useState<number | ''>(() => {
-    const saved = localStorage.getItem('salami_bet_line');
-    return saved ? parseFloat(saved) : '';
-  });
-  const [betType, setBetType] = useState<'over' | 'under'>(() => {
-    const saved = localStorage.getItem('salami_bet_type');
-    return (saved as 'over' | 'under') || 'over';
-  });
-  const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
-    return localStorage.getItem('salami_notifications') !== 'false';
-  });
+  const { user, profile, updateProfile } = useAuth();
+  const [betLine, setBetLine] = useState<number | ''>('');
+  const [betType, setBetType] = useState<'over' | 'under'>('over');
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSynced, setLastSynced] = useState<Date | null>(null);
+
+  const notificationsEnabled = profile?.notificationsEnabled ?? true;
 
   const lastNotifiedStatus = useRef<string | null>(null);
+  const today = format(new Date(), 'yyyy-MM-dd');
 
+  // Load from Firestore or LocalStorage
   useEffect(() => {
-    if (betLine !== '') localStorage.setItem('salami_bet_line', betLine.toString());
-    localStorage.setItem('salami_bet_type', betType);
-    localStorage.setItem('salami_notifications', notificationsEnabled.toString());
-  }, [betLine, betType, notificationsEnabled]);
+    const loadWager = async () => {
+      if (user) {
+        setIsSyncing(true);
+        try {
+          const wagerDoc = doc(db, 'users', user.uid, 'wagers', today);
+          const snap = await getDoc(wagerDoc);
+          if (snap.exists()) {
+            const data = snap.data();
+            setBetLine(data.line);
+            setBetType(data.side.toLowerCase() as 'over' | 'under');
+            setLastSynced(new Date());
+          }
+        } catch (error) {
+          handleFirestoreError(error, OperationType.GET, `users/${user.uid}/wagers/${today}`);
+        } finally {
+          setIsSyncing(false);
+        }
+      } else {
+        const savedLine = localStorage.getItem('salami_bet_line');
+        const savedType = localStorage.getItem('salami_bet_type');
+        if (savedLine) setBetLine(parseFloat(savedLine));
+        if (savedType) setBetType(savedType as 'over' | 'under');
+      }
+    };
+    loadWager();
+  }, [user, today]);
+
+  // Save to Firestore or LocalStorage
+  useEffect(() => {
+    const saveWager = async () => {
+      if (betLine === '') return;
+
+      if (user) {
+        setIsSyncing(true);
+        try {
+          const wagerDoc = doc(db, 'users', user.uid, 'wagers', today);
+          await setDoc(wagerDoc, {
+            userId: user.uid,
+            line: betLine,
+            side: betType.toUpperCase(),
+            date: today,
+            createdAt: Timestamp.now()
+          });
+          setLastSynced(new Date());
+        } catch (error) {
+          handleFirestoreError(error, OperationType.WRITE, `users/${user.uid}/wagers/${today}`);
+        } finally {
+          setIsSyncing(false);
+        }
+      } else {
+        localStorage.setItem('salami_bet_line', betLine.toString());
+        localStorage.setItem('salami_bet_type', betType);
+      }
+    };
+
+    const timeout = setTimeout(saveWager, 1000);
+    return () => clearTimeout(timeout);
+  }, [betLine, betType, user, today]);
 
   const projectedTotal = playedInnings >= 1 
     ? Math.round((currentTotal / playedInnings) * totalExpectedInnings) 
@@ -106,7 +162,12 @@ export function WagerTracker({ currentTotal, playedInnings, totalExpectedInnings
     if (!notificationsEnabled && "Notification" in window) {
       Notification.requestPermission();
     }
-    setNotificationsEnabled(!notificationsEnabled);
+    if (user) {
+      updateProfile({ notificationsEnabled: !notificationsEnabled });
+    } else {
+      localStorage.setItem('salami_notifications', (!notificationsEnabled).toString());
+      window.location.reload(); // Simple way to refresh local state for this demo
+    }
   };
 
   return (
@@ -114,10 +175,20 @@ export function WagerTracker({ currentTotal, playedInnings, totalExpectedInnings
       <div className="stitching-top" />
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="font-black text-slate-800 dark:text-white flex items-center gap-2 uppercase tracking-tighter">
-            <Target className="w-4 h-4 text-salami-red" />
-            Wager Tracker
-          </h3>
+          <div className="flex flex-col">
+            <h3 className="font-black text-slate-800 dark:text-white flex items-center gap-2 uppercase tracking-tighter">
+              <Target className="w-4 h-4 text-salami-red" />
+              Wager Tracker
+            </h3>
+            {user && (
+              <div className="flex items-center gap-1 mt-1">
+                <Cloud className={cn("w-2.5 h-2.5", isSyncing ? "text-blue-500 animate-pulse" : "text-green-500")} />
+                <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest">
+                  {isSyncing ? 'Syncing...' : lastSynced ? `Synced ${format(lastSynced, 'HH:mm')}` : 'Cloud Active'}
+                </span>
+              </div>
+            )}
+          </div>
             <button 
               onClick={toggleNotifications}
               className={cn(

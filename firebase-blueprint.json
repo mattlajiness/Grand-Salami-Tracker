@@ -1,0 +1,40 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Stores user preferences and notification settings.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "notificationsEnabled": { "type": "boolean", "description": "Whether the user wants to receive alerts." },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Wager": {
+      "title": "User Wager",
+      "description": "Stores a user's specific Grand Salami bet.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "The UID of the owner" },
+        "line": { "type": "number", "description": "The run total line (e.g. 120.5)" },
+        "side": { "type": "string", "enum": ["OVER", "UNDER"] },
+        "date": { "type": "string", "format": "date", "description": "The date of the slate (YYYY-MM-DD)" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "line", "side", "date"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile and settings"
+    },
+    "/users/{userId}/wagers/{wagerId}": {
+      "schema": "Wager",
+      "description": "User's saved wagers"
+    }
+  }
+}
