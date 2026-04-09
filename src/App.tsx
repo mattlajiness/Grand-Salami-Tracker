@@ -149,7 +149,7 @@ export default function App() {
     } finally {
       setIsRefreshing(false);
     }
-  }, []);
+  }, [manualKey, oddsCache]);
 
   useEffect(() => {
     loadData();

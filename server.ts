@@ -2,6 +2,10 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
+import dotenv from "dotenv";
+
+// Load environment variables from .env file
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,13 +17,12 @@ async function startServer() {
   // API Route to proxy Odds API requests
   app.get("/api/odds", async (req, res) => {
     let apiKey = process.env.VITE_ODDS_API_KEY || req.headers['x-api-key'] as string;
+    const source = process.env.VITE_ODDS_API_KEY ? "env" : (req.headers['x-api-key'] ? "header" : "none");
     
-    // Fallback for debugging if the environment variable isn't propagating correctly
-    if (!apiKey) {
-      console.warn("VITE_ODDS_API_KEY missing from process.env and headers.");
-    }
+    console.log(`Odds API request received. Key source: ${source}`);
 
     if (!apiKey) {
+      console.error("Odds API Key missing from both env and headers.");
       return res.status(500).json({ error: "VITE_ODDS_API_KEY is not configured on the server." });
     }
 
@@ -33,17 +36,24 @@ async function startServer() {
       
       if (oddsResponse.ok) {
         data = await oddsResponse.json();
+        console.log(`Fetched ${data.length} items from odds endpoint.`);
+      } else {
+        console.error(`Odds endpoint failed with status: ${oddsResponse.status}`);
       }
 
       // If we got nothing or few lines, try scores endpoint which often has lines for active games
       if (!data || data.length < 5) {
+        console.log("Few lines found, trying scores endpoint fallback...");
         const scoresResponse = await fetch(scoresUrl);
         if (scoresResponse.ok) {
           const scoresData = await scoresResponse.json();
+          console.log(`Fetched ${scoresData.length} items from scores endpoint.`);
           // Merge or prefer scores data if it has more info
           if (scoresData && scoresData.length > data.length) {
             data = scoresData;
           }
+        } else {
+          console.error(`Scores endpoint failed with status: ${scoresResponse.status}`);
         }
       }
 
