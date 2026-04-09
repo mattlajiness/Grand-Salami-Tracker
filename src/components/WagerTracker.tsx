@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Target, TrendingUp, TrendingDown, AlertCircle, CheckCircle2, XCircle, Bell, BellOff, Save, Cloud } from 'lucide-react';
+import { Target, TrendingUp, TrendingDown, AlertCircle, CheckCircle2, XCircle, Bell, BellOff, Save, Cloud, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { toast } from 'sonner';
@@ -88,9 +88,11 @@ export function WagerTracker({ currentTotal, playedInnings, totalExpectedInnings
     return () => clearTimeout(timeout);
   }, [betLine, betType, user, today]);
 
-  const projectedTotal = playedInnings >= 1 
+  const projectedTotal = playedInnings > 0.25 
     ? Math.round((currentTotal / playedInnings) * totalExpectedInnings) 
     : null;
+
+  const isStabilizing = playedInnings > 0 && playedInnings < 3;
 
   const completionPercentage = totalExpectedInnings > 0 
     ? Math.round((playedInnings / totalExpectedInnings) * 100) 
@@ -106,16 +108,13 @@ export function WagerTracker({ currentTotal, playedInnings, totalExpectedInnings
       return won ? 'WON' : 'LOST';
     }
 
-    // If very early in the slate, don't show "Behind" or "Danger" based on projection yet
-    const isEarly = completionPercentage < 15;
+    if (projectedTotal === null) return 'CALIBRATING';
 
     if (betType === 'over') {
       if (currentTotal > line) return 'WINNING';
-      if (isEarly) return 'ON TRACK';
       return projectedTotal > line ? 'ON TRACK' : 'BEHIND';
     } else {
       if (currentTotal > line) return 'LOST';
-      if (isEarly) return 'ON TRACK';
       return projectedTotal < line ? 'ON TRACK' : 'DANGER';
     }
   };
@@ -257,6 +256,8 @@ export function WagerTracker({ currentTotal, playedInnings, totalExpectedInnings
                     ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-400" 
                     : status === 'DANGER' || status === 'BEHIND'
                     ? "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400"
+                    : status === 'CALIBRATING'
+                    ? "bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400"
                     : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400"
                 )}>
                   <div className="flex items-center gap-3">
@@ -264,6 +265,8 @@ export function WagerTracker({ currentTotal, playedInnings, totalExpectedInnings
                       <CheckCircle2 className="w-6 h-6" />
                     ) : status === 'LOST' ? (
                       <XCircle className="w-6 h-6" />
+                    ) : status === 'CALIBRATING' ? (
+                      <RefreshCw className="w-6 h-6 animate-spin" />
                     ) : (
                       <AlertCircle className="w-6 h-6" />
                     )}
@@ -280,9 +283,16 @@ export function WagerTracker({ currentTotal, playedInnings, totalExpectedInnings
                     <span className="text-[10px] font-mono font-black uppercase tracking-widest block opacity-70">
                       Projected
                     </span>
-                    <span className="text-xl font-mono font-black">
-                      {projectedTotal !== null ? projectedTotal : '--'}
-                    </span>
+                    <div className="flex flex-col items-end">
+                      <span className="text-xl font-mono font-black">
+                        {projectedTotal !== null ? projectedTotal : '--'}
+                      </span>
+                      {isStabilizing && (
+                        <span className="text-[7px] font-mono text-amber-500 font-bold animate-pulse">
+                          STABILIZING...
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
