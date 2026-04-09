@@ -22,9 +22,14 @@ export interface OddsResponse {
   }[];
 }
 
-export async function fetchMLBOdds(): Promise<OddsResponse[]> {
+export async function fetchMLBOdds(manualKey?: string): Promise<OddsResponse[]> {
   try {
-    const response = await fetch('/api/odds');
+    const headers: Record<string, string> = {};
+    if (manualKey) {
+      headers['x-api-key'] = manualKey;
+    }
+
+    const response = await fetch('/api/odds', { headers });
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       if (response.status === 401 || errorData.error?.includes('API_KEY')) {

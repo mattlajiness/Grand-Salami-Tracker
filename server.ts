@@ -12,13 +12,11 @@ async function startServer() {
 
   // API Route to proxy Odds API requests
   app.get("/api/odds", async (req, res) => {
-    let apiKey = process.env.VITE_ODDS_API_KEY;
+    let apiKey = process.env.VITE_ODDS_API_KEY || req.headers['x-api-key'] as string;
     
     // Fallback for debugging if the environment variable isn't propagating correctly
     if (!apiKey) {
-      console.warn("VITE_ODDS_API_KEY missing from process.env, checking for fallback...");
-      // If you have a key you want to hardcode for testing, you could put it here temporarily
-      // apiKey = "YOUR_KEY_HERE"; 
+      console.warn("VITE_ODDS_API_KEY missing from process.env and headers.");
     }
 
     if (!apiKey) {

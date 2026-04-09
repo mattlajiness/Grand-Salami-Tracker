@@ -26,6 +26,7 @@ export default function App() {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasOddsKey, setHasOddsKey] = useState(false);
+  const [manualKey, setManualKey] = useState(() => localStorage.getItem('salami_manual_odds_key') || '');
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('salami_theme');
     if (saved) return saved === 'dark';
@@ -41,6 +42,14 @@ export default function App() {
     localStorage.setItem('salami_theme', isDarkMode ? 'dark' : 'light');
   }, [isDarkMode]);
 
+  useEffect(() => {
+    if (manualKey) {
+      localStorage.setItem('salami_manual_odds_key', manualKey);
+    } else {
+      localStorage.removeItem('salami_manual_odds_key');
+    }
+  }, [manualKey]);
+
   const loadData = useCallback(async () => {
     setIsRefreshing(true);
     try {
@@ -52,7 +61,7 @@ export default function App() {
 
       const [mlbData, oddsData] = await Promise.all([
         fetchMLBGames(),
-        fetchMLBOdds().catch(err => {
+        fetchMLBOdds(manualKey).catch(err => {
           console.error('Odds API Error:', err);
           if (err.message === 'INVALID_API_KEY') {
             toast.error('Invalid Odds API Key. Please check your settings.');
@@ -209,6 +218,8 @@ export default function App() {
               isRefreshing={isRefreshing}
               lastUpdated={lastUpdated}
               hasOddsKey={hasOddsKey}
+              manualKey={manualKey}
+              setManualKey={setManualKey}
             />
 
           {games.length === 0 && !isRefreshing ? (
