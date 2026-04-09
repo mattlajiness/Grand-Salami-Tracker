@@ -118,16 +118,16 @@ export function WagerTracker({ currentTotal, playedInnings, totalExpectedInnings
             <Target className="w-4 h-4 text-salami-red" />
             Wager Tracker
           </h3>
-          <button 
-            onClick={toggleNotifications}
-            className={cn(
-              "p-2 rounded-lg border transition-all",
-              notificationsEnabled 
-                ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-600 dark:text-green-400" 
-                : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500"
-            )}
-            title={notificationsEnabled ? "Notifications Enabled" : "Notifications Disabled"}
-          >
+            <button 
+              onClick={toggleNotifications}
+              className={cn(
+                "p-2 rounded-lg border transition-all",
+                notificationsEnabled 
+                  ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-600 dark:text-green-400" 
+                  : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500"
+              )}
+              title={notificationsEnabled ? "Notifications Enabled" : "Notifications Disabled"}
+            >
             {notificationsEnabled ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
           </button>
         </div>

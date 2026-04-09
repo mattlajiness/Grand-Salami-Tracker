@@ -58,17 +58,6 @@ export function GrandSalamiHeader({
           </div>
           
           <button 
-            onClick={() => {
-              localStorage.clear();
-              window.location.reload();
-            }}
-            className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition-all active:scale-95"
-            title="Force Update"
-          >
-            <RefreshCw className="w-3.5 h-3.5 text-green-400" />
-          </button>
-
-          <button 
             onClick={() => setIsDarkMode(!isDarkMode)}
             className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition-all active:scale-95"
           >
