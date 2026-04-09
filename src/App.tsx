@@ -25,6 +25,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [hasOddsKey, setHasOddsKey] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('salami_theme');
     if (saved) return saved === 'dark';
@@ -41,11 +42,14 @@ export default function App() {
   }, [isDarkMode]);
 
   const loadData = useCallback(async () => {
-    const apiKey = (import.meta as any).env.VITE_ODDS_API_KEY;
-    console.log('Odds API Key status:', apiKey ? `Loaded (starts with ${apiKey.substring(0, 4)}...)` : 'Missing');
-    
     setIsRefreshing(true);
     try {
+      // Check config status
+      fetch('/api/config')
+        .then(res => res.json())
+        .then(data => setHasOddsKey(data.hasOddsKey))
+        .catch(() => setHasOddsKey(false));
+
       const [mlbData, oddsData] = await Promise.all([
         fetchMLBGames(),
         fetchMLBOdds().catch(err => {
@@ -204,7 +208,7 @@ export default function App() {
               onRefresh={loadData}
               isRefreshing={isRefreshing}
               lastUpdated={lastUpdated}
-              hasOddsKey={!!(import.meta as any).env.VITE_ODDS_API_KEY}
+              hasOddsKey={hasOddsKey}
             />
 
           {games.length === 0 && !isRefreshing ? (

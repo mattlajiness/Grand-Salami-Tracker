@@ -23,18 +23,11 @@ export interface OddsResponse {
 }
 
 export async function fetchMLBOdds(): Promise<OddsResponse[]> {
-  const apiKey = (import.meta as any).env.VITE_ODDS_API_KEY;
-  if (!apiKey) {
-    console.warn('VITE_ODDS_API_KEY is not set. Betting lines will not be available.');
-    return [];
-  }
-
-  const url = `https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?apiKey=${apiKey}&regions=us&markets=totals&oddsFormat=decimal`;
-
   try {
-    const response = await fetch(url);
+    const response = await fetch('/api/odds');
     if (!response.ok) {
-      if (response.status === 401) {
+      const errorData = await response.json().catch(() => ({}));
+      if (response.status === 401 || errorData.error?.includes('API_KEY')) {
         throw new Error('INVALID_API_KEY');
       }
       throw new Error(`Odds API Error: ${response.status}`);
