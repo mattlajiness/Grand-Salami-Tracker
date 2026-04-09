@@ -1,0 +1,79 @@
+/**
+ * MLB Stats API Types (Simplified)
+ */
+
+export interface MLBGame {
+  gamePk: number;
+  status: {
+    abstractGameState: 'Live' | 'Final' | 'Preview';
+    codedGameState: string;
+    detailedState: string;
+    statusCode: string;
+  };
+  teams: {
+    away: {
+      score?: number;
+      team: {
+        id: number;
+        name: string;
+      };
+    };
+    home: {
+      score?: number;
+      team: {
+        id: number;
+        name: string;
+      };
+    };
+  };
+  linescore?: {
+    currentInning?: number;
+    currentInningOrdinal?: string;
+    inningState?: string;
+    inningHalf?: string;
+    isTopInning?: boolean;
+  };
+  gameDate: string;
+}
+
+export interface MLBScheduleResponse {
+  dates: {
+    date: string;
+    games: MLBGame[];
+  }[];
+}
+
+export async function fetchMLBGames(date?: string): Promise<MLBGame[]> {
+  const url = new URL('https://statsapi.mlb.com/api/v1/schedule/games/?sportId=1');
+  url.searchParams.append('hydrate', 'linescore');
+  url.searchParams.append('_t', Date.now().toString()); // Cache buster
+  if (date) {
+    url.searchParams.append('date', date);
+  }
+  
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+    const response = await fetch(url.toString(), { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (!response.ok) throw new Error(`MLB API Error: ${response.status}`);
+    
+    const data: MLBScheduleResponse = await response.json();
+    
+    if (!data || !data.dates || data.dates.length === 0) {
+      console.warn('No games found for this date');
+      return [];
+    }
+
+    return data.dates[0].games || [];
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.error('MLB API Request timed out');
+    } else {
+      console.error('Error fetching MLB games:', error);
+    }
+    return [];
+  }
+}

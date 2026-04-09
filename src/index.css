@@ -1,0 +1,73 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  --color-salami-red: #e11d48;
+  --color-salami-dark: #0f172a;
+  --color-salami-bg: #f1f5f9;
+  --color-field-green: #15803d;
+  --color-dirt-brown: #92400e;
+}
+
+@layer base {
+  body {
+    @apply bg-salami-bg text-salami-dark font-sans transition-colors duration-300;
+    background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  .dark body {
+    @apply bg-slate-950 text-slate-100;
+    background-image: radial-gradient(#1e293b 1px, transparent 1px);
+  }
+}
+
+@layer components {
+  .dashboard-card {
+    @apply bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden relative transition-all duration-300;
+  }
+
+  .dark .dashboard-card {
+    @apply bg-slate-900 border-slate-800 shadow-2xl;
+  }
+  
+  .stitching-top {
+    background-image: radial-gradient(circle, var(--color-salami-red) 2px, transparent 2px);
+    background-size: 12px 12px;
+    height: 4px;
+    width: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    opacity: 0.3;
+  }
+
+  .baseball-scoreboard {
+    @apply font-mono font-black tracking-tighter bg-slate-900 text-salami-red px-4 py-2 rounded-lg border-2 border-slate-700 shadow-inner;
+    text-shadow: 0 0 10px rgba(225, 29, 72, 0.5);
+  }
+
+  .dark .baseball-scoreboard {
+    @apply bg-black border-slate-900;
+  }
+  
+  .data-label {
+    @apply text-[10px] font-mono uppercase tracking-widest text-slate-500 font-bold;
+  }
+
+  .dark .data-label {
+    @apply text-slate-400;
+  }
+  
+  .data-value {
+    @apply font-mono font-bold text-slate-900 transition-colors duration-300;
+  }
+
+  .dark .data-value {
+    @apply text-white;
+  }
+}
+
