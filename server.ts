@@ -12,20 +12,43 @@ async function startServer() {
 
   // API Route to proxy Odds API requests
   app.get("/api/odds", async (req, res) => {
-    const apiKey = process.env.VITE_ODDS_API_KEY;
+    let apiKey = process.env.VITE_ODDS_API_KEY;
     
+    // Fallback for debugging if the environment variable isn't propagating correctly
+    if (!apiKey) {
+      console.warn("VITE_ODDS_API_KEY missing from process.env, checking for fallback...");
+      // If you have a key you want to hardcode for testing, you could put it here temporarily
+      // apiKey = "YOUR_KEY_HERE"; 
+    }
+
     if (!apiKey) {
       return res.status(500).json({ error: "VITE_ODDS_API_KEY is not configured on the server." });
     }
 
-    const url = `https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?apiKey=${apiKey}&regions=us&markets=totals&oddsFormat=decimal`;
+    const oddsUrl = `https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?apiKey=${apiKey}&regions=us&markets=totals&oddsFormat=decimal`;
+    const scoresUrl = `https://api.the-odds-api.com/v4/sports/baseball_mlb/scores/?apiKey=${apiKey}&daysFrom=1`;
 
     try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        return res.status(response.status).json({ error: `Odds API responded with ${response.status}` });
+      // Try odds endpoint first
+      const oddsResponse = await fetch(oddsUrl);
+      let data = [];
+      
+      if (oddsResponse.ok) {
+        data = await oddsResponse.json();
       }
-      const data = await response.json();
+
+      // If we got nothing or few lines, try scores endpoint which often has lines for active games
+      if (!data || data.length < 5) {
+        const scoresResponse = await fetch(scoresUrl);
+        if (scoresResponse.ok) {
+          const scoresData = await scoresResponse.json();
+          // Merge or prefer scores data if it has more info
+          if (scoresData && scoresData.length > data.length) {
+            data = scoresData;
+          }
+        }
+      }
+
       res.json(data);
     } catch (error) {
       console.error("Proxy Error:", error);
