@@ -15,9 +15,6 @@ interface GrandSalamiHeaderProps {
   onRefresh: () => void;
   isRefreshing: boolean;
   lastUpdated: Date;
-  hasOddsKey: boolean;
-  manualKey: string;
-  setManualKey: (key: string) => void;
 }
 
 export function GrandSalamiHeader({ 
@@ -29,14 +26,10 @@ export function GrandSalamiHeader({
   setIsDarkMode,
   onRefresh,
   isRefreshing,
-  lastUpdated,
-  hasOddsKey,
-  manualKey,
-  setManualKey
+  lastUpdated
 }: GrandSalamiHeaderProps) {
   const { user, signIn, signOut } = useAuth();
   const [relativeTime, setRelativeTime] = useState(formatDistanceToNow(lastUpdated, { addSuffix: true }));
-  const [isKeyInputVisible, setIsKeyInputVisible] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -105,53 +98,6 @@ export function GrandSalamiHeader({
             <HelpCircle className="w-3 h-3 text-salami-red" />
             How it works
           </button>
-
-          <div className="hidden sm:flex items-center gap-2 text-[9px] font-mono text-slate-400 bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700">
-            <div className={cn("w-1.5 h-1.5 rounded-full", (hasOddsKey || manualKey) ? "bg-green-500" : "bg-yellow-500")} />
-            ODDS API: {(hasOddsKey || manualKey) ? "CONNECTED" : "KEY MISSING"}
-            {!(hasOddsKey || manualKey) && (
-              <button 
-                onClick={() => setIsKeyInputVisible(!isKeyInputVisible)}
-                className="ml-1 text-salami-red hover:underline"
-              >
-                {isKeyInputVisible ? "[CLOSE]" : "[FIX]"}
-              </button>
-            )}
-          </div>
-
-          <AnimatePresence>
-            {isKeyInputVisible && (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="absolute top-full right-0 mt-2 z-50 bg-slate-900 border border-slate-700 rounded-lg p-3 shadow-2xl w-64"
-              >
-                <p className="text-[10px] font-mono text-slate-400 mb-2 uppercase tracking-widest">Enter Odds API Key</p>
-                <div className="flex gap-2">
-                  <input 
-                    type="password"
-                    value={manualKey}
-                    onChange={(e) => setManualKey(e.target.value)}
-                    placeholder="Paste key here..."
-                    className="flex-1 bg-slate-800 border border-slate-600 rounded px-2 py-1 text-[10px] font-mono text-white focus:outline-none focus:border-salami-red"
-                  />
-                  <button 
-                    onClick={() => {
-                      setIsKeyInputVisible(false);
-                      onRefresh();
-                    }}
-                    className="bg-salami-red text-white text-[10px] font-bold px-2 py-1 rounded hover:bg-red-600 transition-colors"
-                  >
-                    SAVE
-                  </button>
-                </div>
-                <p className="text-[8px] font-mono text-slate-500 mt-2 leading-tight">
-                  Use this if the environment variable isn't propagating. Key is saved locally.
-                </p>
-              </motion.div>
-            )}
-          </AnimatePresence>
 
           <div className="hidden sm:flex items-center gap-2 text-[9px] font-mono text-slate-400 bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700">
             <Calendar className="w-3 h-3 text-salami-red" />

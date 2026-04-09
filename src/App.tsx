@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
 import { fetchMLBGames, MLBGame } from './services/mlbService';
-import { fetchMLBOdds, OddsResponse } from './services/oddsService';
 import { GrandSalamiHeader } from './components/GrandSalamiHeader';
 import { GameLog } from './components/GameLog';
 import { WagerTracker } from './components/WagerTracker';
@@ -13,20 +12,10 @@ import { useAuth } from './contexts/AuthContext';
 
 export default function App() {
   const { loading: authLoading } = useAuth();
-  const [games, setGames] = useState<(MLBGame & { overUnder?: number })[]>([]);
-  const [oddsCache, setOddsCache] = useState<Record<number, number>>(() => {
-    const saved = localStorage.getItem('salami_odds_cache');
-    return saved ? JSON.parse(saved) : {};
-  });
-
-  useEffect(() => {
-    localStorage.setItem('salami_odds_cache', JSON.stringify(oddsCache));
-  }, [oddsCache]);
+  const [games, setGames] = useState<MLBGame[]>([]);
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [hasOddsKey, setHasOddsKey] = useState(false);
-  const [manualKey, setManualKey] = useState(() => localStorage.getItem('salami_manual_odds_key') || '');
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('salami_theme');
     if (saved) return saved === 'dark';
@@ -42,106 +31,17 @@ export default function App() {
     localStorage.setItem('salami_theme', isDarkMode ? 'dark' : 'light');
   }, [isDarkMode]);
 
-  useEffect(() => {
-    if (manualKey) {
-      localStorage.setItem('salami_manual_odds_key', manualKey);
-    } else {
-      localStorage.removeItem('salami_manual_odds_key');
-    }
-  }, [manualKey]);
-
   const loadData = useCallback(async () => {
     setIsRefreshing(true);
     try {
-      // Check config status
-      fetch('/api/config')
-        .then(res => res.json())
-        .then(data => setHasOddsKey(data.hasOddsKey))
-        .catch(() => setHasOddsKey(false));
-
-      const [mlbData, oddsData] = await Promise.all([
-        fetchMLBGames(),
-        fetchMLBOdds(manualKey).catch(err => {
-          console.error('Odds API Error:', err);
-          if (err.message === 'INVALID_API_KEY') {
-            toast.error('Invalid Odds API Key. Please check your settings.');
-          } else {
-            toast.error('Failed to fetch betting lines.');
-          }
-          return [];
-        })
-      ]);
+      const mlbData = await fetchMLBGames();
 
       if (!mlbData || mlbData.length === 0) {
         setGames([]);
         return;
       }
 
-      // Update odds cache with new data
-      const newCache = { ...oddsCache };
-      let updatedCache = false;
-
-      // Merge odds into games
-      console.log(`Fetched ${mlbData.length} games and ${oddsData.length} betting lines.`);
-      
-      const mergedGames = mlbData.map(game => {
-        const awayName = game.teams.away.team.name;
-        const homeName = game.teams.home.team.name;
-
-        // Check cache first
-        let overUnder = oddsCache[game.gamePk];
-
-        // If not in cache, try to find in new odds data
-        if (overUnder === undefined) {
-          const match = oddsData.find(o => {
-            const oAway = o.away_team.toLowerCase();
-            const oHome = o.home_team.toLowerCase();
-            const gAway = awayName.toLowerCase();
-            const gHome = homeName.toLowerCase();
-
-            // Try exact match first
-            if (oAway === gAway && oHome === gHome) return true;
-
-            // Try matching by the last word (team nickname)
-            const gAwayNick = gAway.split(' ').pop() || '';
-            const gHomeNick = gHome.split(' ').pop() || '';
-            const oAwayNick = oAway.split(' ').pop() || '';
-            const oHomeNick = oHome.split(' ').pop() || '';
-
-            if (gAwayNick && oAwayNick && gAwayNick === oAwayNick && 
-                gHomeNick && oHomeNick && gHomeNick === oHomeNick) {
-              return true;
-            }
-
-            // Fallback to inclusion
-            return (oAway.includes(gAway) || gAway.includes(oAway)) && 
-                   (oHome.includes(gHome) || gHome.includes(oHome));
-          });
-
-          if (match && match.bookmakers && match.bookmakers.length > 0) {
-            // Aggressively look for totals market in ANY bookmaker
-            for (const bookmaker of match.bookmakers) {
-              if (bookmaker.markets) {
-                const market = bookmaker.markets.find(m => m.key === 'totals');
-                if (market && market.outcomes && market.outcomes.length > 0) {
-                  overUnder = market.outcomes[0].point;
-                  newCache[game.gamePk] = overUnder;
-                  updatedCache = true;
-                  break; // Found it!
-                }
-              }
-            }
-          }
-        }
-
-        return { ...game, overUnder };
-      });
-
-      if (updatedCache) {
-        setOddsCache(newCache);
-      }
-
-      setGames(mergedGames);
+      setGames(mlbData);
       setLastUpdated(new Date());
     } catch (error) {
       console.error('Error in loadData:', error);
@@ -149,7 +49,7 @@ export default function App() {
     } finally {
       setIsRefreshing(false);
     }
-  }, [manualKey, oddsCache]);
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -217,9 +117,6 @@ export default function App() {
               onRefresh={loadData}
               isRefreshing={isRefreshing}
               lastUpdated={lastUpdated}
-              hasOddsKey={hasOddsKey}
-              manualKey={manualKey}
-              setManualKey={setManualKey}
             />
 
           {games.length === 0 && !isRefreshing ? (

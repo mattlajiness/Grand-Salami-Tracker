@@ -32,6 +32,32 @@ export interface MLBGame {
     inningState?: string;
     inningHalf?: string;
     isTopInning?: boolean;
+    innings: {
+      num: number;
+      ordinalNum: string;
+      home: { runs?: number; hits?: number; errors?: number };
+      away: { runs?: number; hits?: number; errors?: number };
+    }[];
+    teams: {
+      home: { runs?: number; hits?: number; errors?: number };
+      away: { runs?: number; hits?: number; errors?: number };
+    };
+    defense?: {
+      pitcher?: { id: number; fullName: string };
+      batter?: { id: number; fullName: string };
+    };
+    offense?: {
+      batter?: { id: number; fullName: string };
+      onDeck?: { id: number; fullName: string };
+      inHole?: { id: number; fullName: string };
+      pitcher?: { id: number; fullName: string };
+      first?: { id: number; fullName: string };
+      second?: { id: number; fullName: string };
+      third?: { id: number; fullName: string };
+    };
+    balls?: number;
+    strikes?: number;
+    outs?: number;
   };
   gameDate: string;
 }
@@ -45,7 +71,7 @@ export interface MLBScheduleResponse {
 
 export async function fetchMLBGames(date?: string): Promise<MLBGame[]> {
   const url = new URL('https://statsapi.mlb.com/api/v1/schedule/games/?sportId=1');
-  url.searchParams.append('hydrate', 'linescore');
+  url.searchParams.append('hydrate', 'linescore,team');
   url.searchParams.append('_t', Date.now().toString()); // Cache buster
   if (date) {
     url.searchParams.append('date', date);
