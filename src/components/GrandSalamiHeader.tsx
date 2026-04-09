@@ -12,7 +12,6 @@ interface GrandSalamiHeaderProps {
   onRefresh: () => void;
   isRefreshing: boolean;
   lastUpdated: Date;
-  version?: string;
 }
 
 export function GrandSalamiHeader({ 
@@ -24,8 +23,7 @@ export function GrandSalamiHeader({
   setIsDarkMode,
   onRefresh,
   isRefreshing,
-  lastUpdated,
-  version = "v1.1.0"
+  lastUpdated
 }: GrandSalamiHeaderProps) {
   return (
     <div className="dashboard-card p-6 mb-6 bg-slate-900 text-white border-none shadow-2xl">
@@ -48,7 +46,6 @@ export function GrandSalamiHeader({
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
               <span className="font-black tracking-tighter text-white text-lg leading-none">GRAND SALAMI</span>
-              <span className="bg-[#002D72] text-[8px] text-white px-1 rounded font-bold">{version}</span>
             </div>
             <span className="text-[8px] font-mono text-salami-red font-black tracking-[0.4em] mt-0.5 uppercase">Live Tracker</span>
           </div>

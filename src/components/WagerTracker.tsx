@@ -32,9 +32,9 @@ export function WagerTracker({ currentTotal, playedInnings, totalExpectedInnings
     localStorage.setItem('salami_notifications', notificationsEnabled.toString());
   }, [betLine, betType, notificationsEnabled]);
 
-  const projectedTotal = playedInnings > 0 
+  const projectedTotal = playedInnings >= 1 
     ? Math.round((currentTotal / playedInnings) * totalExpectedInnings) 
-    : currentTotal;
+    : null;
 
   const completionPercentage = totalExpectedInnings > 0 
     ? Math.round((playedInnings / totalExpectedInnings) * 100) 
@@ -210,7 +210,7 @@ export function WagerTracker({ currentTotal, playedInnings, totalExpectedInnings
                       Projected
                     </span>
                     <span className="text-xl font-mono font-black">
-                      {projectedTotal}
+                      {projectedTotal !== null ? projectedTotal : '--'}
                     </span>
                   </div>
                 </div>
@@ -231,12 +231,14 @@ export function WagerTracker({ currentTotal, playedInnings, totalExpectedInnings
                     <motion.div 
                       className={cn(
                         "h-full transition-all duration-1000",
-                        (betType === 'over' ? projectedTotal > parseFloat(betLine.toString()) : projectedTotal < parseFloat(betLine.toString()))
-                          ? "bg-green-500"
-                          : "bg-red-500"
+                        projectedTotal === null 
+                          ? "bg-slate-300 dark:bg-slate-700"
+                          : (betType === 'over' ? projectedTotal > parseFloat(betLine.toString()) : projectedTotal < parseFloat(betLine.toString()))
+                            ? "bg-green-500"
+                            : "bg-red-500"
                       )}
                       initial={{ width: 0 }}
-                      animate={{ width: `${Math.min((projectedTotal / (parseFloat(betLine.toString()) * 1.2 || 200)) * 100, 100)}%` }}
+                      animate={{ width: `${projectedTotal === null ? 0 : Math.min((projectedTotal / (parseFloat(betLine.toString()) * 1.2 || 200)) * 100, 100)}%` }}
                     />
                   </div>
                   <p className="text-[9px] font-mono text-slate-400 text-center uppercase tracking-widest">

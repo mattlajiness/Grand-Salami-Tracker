@@ -1,4 +1,3 @@
-// Heartbeat v1.1.5 - Deployment Timestamp Update
 import { useEffect, useState, useCallback } from 'react';
 import { fetchMLBGames, MLBGame } from './services/mlbService';
 import { GrandSalamiHeader } from './components/GrandSalamiHeader';
@@ -92,7 +91,6 @@ export default function App() {
               onRefresh={loadData}
               isRefreshing={isRefreshing}
               lastUpdated={lastUpdated}
-              version="v1.1.5"
             />
 
           {games.length === 0 && !isRefreshing ? (
@@ -187,10 +185,7 @@ export default function App() {
       {/* Footer */}
       <footer className="mt-12 py-8 border-t border-slate-200 dark:border-slate-800 text-center">
         <p className="text-xs text-slate-400 font-mono">
-          DATA PROVIDED BY MLB STATS API • UPDATES EVERY 60S • v1.1.5
-        </p>
-        <p className="text-[8px] text-slate-500 font-mono mt-1 uppercase tracking-widest">
-          Build Time: {new Date().toLocaleString()}
+          DATA PROVIDED BY MLB STATS API • UPDATES EVERY 60S
         </p>
       </footer>
     </div>
