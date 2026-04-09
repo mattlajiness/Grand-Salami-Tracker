@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, Fragment } from 'react';
 import { MLBGame } from '../services/mlbService';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -166,7 +166,7 @@ export function GameLog({ games }: GameLogProps) {
                     const isExpanded = expandedGameId === game.gamePk;
 
                     return (
-                      <motion.div key={game.gamePk} className="contents">
+                      <Fragment key={game.gamePk}>
                         <motion.tr
                           initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
@@ -264,7 +264,7 @@ export function GameLog({ games }: GameLogProps) {
                             </motion.tr>
                           )}
                         </AnimatePresence>
-                      </motion.div>
+                      </Fragment>
                     );
                   })}
                 </tbody>
