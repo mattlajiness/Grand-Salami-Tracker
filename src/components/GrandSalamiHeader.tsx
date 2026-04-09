@@ -43,7 +43,7 @@ export function GrandSalamiHeader({
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-salami-red to-transparent" />
       
       {/* Top Controls Row */}
-      <div className="flex items-center justify-between mb-8 pb-6 border-b border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-6 border-b border-slate-800">
         <div className="flex items-center gap-3">
           <div className="relative w-10 h-10 flex items-center justify-center">
             <div className="absolute inset-0 bg-white rounded-full border border-slate-200" />
@@ -63,7 +63,7 @@ export function GrandSalamiHeader({
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-end gap-2 sm:gap-3">
           {user ? (
             <div className="flex items-center gap-2">
               <div className="hidden md:flex flex-col items-end mr-2">
@@ -133,7 +133,7 @@ export function GrandSalamiHeader({
           </div>
           
           <div className="flex items-end gap-4">
-            <div className="baseball-scoreboard text-6xl md:text-8xl min-w-[160px] text-center">
+            <div className="baseball-scoreboard text-5xl sm:text-7xl md:text-8xl min-w-[140px] sm:min-w-[160px] text-center">
               {currentTotal.toString().padStart(3, '0')}
             </div>
             <div className="pb-2">
@@ -171,30 +171,41 @@ export function GrandSalamiHeader({
         </div>
       </div>
       
-      <div className="mt-8 pt-6 border-t border-slate-800 flex items-center gap-6">
-        <div className="flex items-center gap-2 text-[10px] font-mono text-slate-500 font-bold">
-          <div className="relative flex items-center justify-center w-3 h-3">
-            <Activity className="w-3 h-3 text-salami-red relative z-10" />
-            <motion.div 
-              animate={{ scale: [1, 2, 1], opacity: [0.5, 0, 0.5] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="absolute inset-0 bg-salami-red rounded-full"
-            />
+      <div className="mt-8 pt-6 border-t border-slate-800 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+        <div className="flex items-center justify-between sm:justify-start gap-4">
+          <div className="flex items-center gap-2 text-[10px] font-mono text-slate-500 font-bold">
+            <div className="relative flex items-center justify-center w-3 h-3">
+              <Activity className="w-3 h-3 text-salami-red relative z-10" />
+              <motion.div 
+                animate={{ scale: [1, 2, 1], opacity: [0.5, 0, 0.5] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="absolute inset-0 bg-salami-red rounded-full"
+              />
+            </div>
+            <span className="tracking-widest">REAL-TIME FEED</span>
+            <div className="flex items-center gap-1.5 text-[8px] text-slate-600 ml-2 bg-slate-800/50 px-2 py-0.5 rounded border border-slate-700/50">
+              <Clock className="w-2.5 h-2.5" />
+              <span>{relativeTime.toUpperCase()}</span>
+            </div>
           </div>
-          <span className="tracking-widest">REAL-TIME FEED</span>
-          <div className="flex items-center gap-1.5 text-[8px] text-slate-600 ml-2 bg-slate-800/50 px-2 py-0.5 rounded border border-slate-700/50">
-            <Clock className="w-2.5 h-2.5" />
-            <span>{relativeTime.toUpperCase()}</span>
+          
+          <div className="flex sm:hidden items-center gap-2">
+            <span className="text-[10px] font-mono font-black text-slate-400">
+              {Math.round((finalCount / (gameCount || 1)) * 100)}%
+            </span>
+            <span className="text-[8px] font-mono text-slate-600 uppercase">CLOSED</span>
           </div>
         </div>
-        <div className="h-2 flex-1 bg-slate-800 rounded-full overflow-hidden border border-slate-700 shadow-inner">
+
+        <div className="w-full sm:flex-1 h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700 shadow-inner">
           <motion.div 
             className="h-full bg-gradient-to-r from-salami-red to-red-400 shadow-[0_0_10px_rgba(225,29,72,0.4)]"
             initial={{ width: 0 }}
             animate={{ width: `${(finalCount / (gameCount || 1)) * 100}%` }}
           />
         </div>
-        <div className="flex items-center gap-2">
+
+        <div className="hidden sm:flex items-center gap-2">
           <span className="text-[10px] font-mono font-black text-slate-400">
             {Math.round((finalCount / (gameCount || 1)) * 100)}%
           </span>

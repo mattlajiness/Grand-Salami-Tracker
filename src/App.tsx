@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { fetchMLBGames, MLBGame } from './services/mlbService';
+import { fetchMLBOdds, OddsResponse } from './services/oddsService';
 import { GrandSalamiHeader } from './components/GrandSalamiHeader';
 import { GameLog } from './components/GameLog';
 import { WagerTracker } from './components/WagerTracker';
@@ -12,7 +13,7 @@ import { useAuth } from './contexts/AuthContext';
 
 export default function App() {
   const { loading: authLoading } = useAuth();
-  const [games, setGames] = useState<MLBGame[]>([]);
+  const [games, setGames] = useState<(MLBGame & { overUnder?: number })[]>([]);
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -34,8 +35,43 @@ export default function App() {
   const loadData = useCallback(async () => {
     setIsRefreshing(true);
     try {
-      const data = await fetchMLBGames();
-      setGames(data || []);
+      const [mlbData, oddsData] = await Promise.all([
+        fetchMLBGames(),
+        fetchMLBOdds().catch(err => {
+          console.error('Odds API Error:', err);
+          return [];
+        })
+      ]);
+
+      // Merge odds into games
+      const mergedGames = (mlbData || []).map(game => {
+        const awayName = game.teams.away.team.name;
+        const homeName = game.teams.home.team.name;
+
+        // Find matching game in odds data
+        // We check if the team names are contained in each other to handle "Chicago Cubs" vs "Cubs" etc.
+        const match = oddsData.find(o => {
+          const oAway = o.away_team.toLowerCase();
+          const oHome = o.home_team.toLowerCase();
+          const gAway = awayName.toLowerCase();
+          const gHome = homeName.toLowerCase();
+
+          return (oAway.includes(gAway) || gAway.includes(oAway)) && 
+                 (oHome.includes(gHome) || gHome.includes(oHome));
+        });
+
+        let overUnder: number | undefined;
+        if (match && match.bookmakers.length > 0) {
+          const market = match.bookmakers[0].markets.find(m => m.key === 'totals');
+          if (market && market.outcomes.length > 0) {
+            overUnder = market.outcomes[0].point;
+          }
+        }
+
+        return { ...game, overUnder };
+      });
+
+      setGames(mergedGames);
       setLastUpdated(new Date());
     } catch (error) {
       console.error('Error in loadData:', error);
@@ -141,6 +177,8 @@ export default function App() {
                   playedInnings={playedInnings}
                   totalExpectedInnings={totalExpectedInnings}
                   isFinished={isFinished}
+                  gameCount={games.length}
+                  finalCount={finalCount}
                 />
 
                 {/* Quick Stats */}

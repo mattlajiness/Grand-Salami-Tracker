@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Target, TrendingUp, TrendingDown, AlertCircle, CheckCircle2, XCircle, Bell, BellOff, Save, Cloud, RefreshCw } from 'lucide-react';
+import { Target, TrendingUp, TrendingDown, AlertCircle, CheckCircle2, XCircle, Bell, BellOff, Save, Cloud, RefreshCw, Activity } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { toast } from 'sonner';
@@ -13,9 +13,18 @@ interface WagerTrackerProps {
   playedInnings: number;
   totalExpectedInnings: number;
   isFinished: boolean;
+  gameCount: number;
+  finalCount: number;
 }
 
-export function WagerTracker({ currentTotal, playedInnings, totalExpectedInnings, isFinished }: WagerTrackerProps) {
+export function WagerTracker({ 
+  currentTotal, 
+  playedInnings, 
+  totalExpectedInnings, 
+  isFinished,
+  gameCount,
+  finalCount
+}: WagerTrackerProps) {
   const { user, profile, updateProfile } = useAuth();
   const [betLine, setBetLine] = useState<number | ''>('');
   const [betType, setBetType] = useState<'over' | 'under'>('over');
@@ -96,6 +105,12 @@ export function WagerTracker({ currentTotal, playedInnings, totalExpectedInnings
 
   const completionPercentage = totalExpectedInnings > 0 
     ? Math.round((playedInnings / totalExpectedInnings) * 100) 
+    : 0;
+
+  const remainingInnings = totalExpectedInnings - playedInnings;
+  const currentPace = playedInnings > 0 ? (currentTotal / playedInnings) * 9 : 0;
+  const requiredPace = (betLine !== '' && remainingInnings > 0) 
+    ? ((parseFloat(betLine.toString()) - currentTotal) / remainingInnings) * 9
     : 0;
 
   const getStatus = () => {
@@ -204,7 +219,7 @@ export function WagerTracker({ currentTotal, playedInnings, totalExpectedInnings
 
         <div className="space-y-6">
           {/* Inputs */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="data-label">Bet Line (O/U)</label>
               <input
@@ -295,6 +310,51 @@ export function WagerTracker({ currentTotal, playedInnings, totalExpectedInnings
                     </div>
                   </div>
                 </div>
+
+                {/* Pace Comparison */}
+                {!isFinished && betLine !== '' && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg p-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Activity className="w-3 h-3 text-slate-400" />
+                        <span className="text-[8px] font-mono font-black text-slate-500 uppercase tracking-widest">
+                          Current Pace
+                        </span>
+                      </div>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-sm font-mono font-black text-slate-900 dark:text-white">
+                          {currentPace.toFixed(2)}
+                        </span>
+                        <span className="text-[7px] font-mono text-slate-500 uppercase">R/G</span>
+                      </div>
+                    </div>
+
+                    <div className={cn(
+                      "border rounded-lg p-3 transition-colors",
+                      betType === 'over' 
+                        ? (currentPace >= requiredPace ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800" : "bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800")
+                        : (currentPace <= requiredPace ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800" : "bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800")
+                    )}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <TrendingUp className={cn("w-3 h-3", betType === 'over' ? "text-salami-red" : "text-slate-400")} />
+                        <span className="text-[8px] font-mono font-black text-slate-500 uppercase tracking-widest">
+                          {betType === 'over' ? 'Target Pace' : 'Max Pace'}
+                        </span>
+                      </div>
+                      <div className="flex items-baseline gap-1">
+                        <span className={cn(
+                          "text-sm font-mono font-black",
+                          betType === 'over' 
+                            ? (currentPace >= requiredPace ? "text-green-600" : "text-amber-600")
+                            : (currentPace <= requiredPace ? "text-green-600" : "text-red-600")
+                        )}>
+                          {Math.max(0, requiredPace).toFixed(2)}
+                        </span>
+                        <span className="text-[7px] font-mono text-slate-500 uppercase">R/G</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Projection Bar */}
                 <div className="space-y-2">
