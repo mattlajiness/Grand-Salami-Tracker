@@ -72,8 +72,8 @@ export function GameLog({ games }: GameLogProps) {
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-12 gap-4 items-center">
-                      <div className="col-span-7 space-y-2">
+                    <div className="grid grid-cols-12 gap-2 items-center">
+                      <div className="col-span-6 space-y-2">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <img 
@@ -82,7 +82,7 @@ export function GameLog({ games }: GameLogProps) {
                               className="w-5 h-5 object-contain"
                               referrerPolicy="no-referrer"
                             />
-                            <span className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate max-w-[100px]">
+                            <span className="text-[11px] font-bold text-slate-700 dark:text-slate-200 truncate max-w-[80px]">
                               {game.teams.away.team.name.split(' ').pop()}
                             </span>
                           </div>
@@ -98,7 +98,7 @@ export function GameLog({ games }: GameLogProps) {
                               className="w-5 h-5 object-contain"
                               referrerPolicy="no-referrer"
                             />
-                            <span className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate max-w-[100px]">
+                            <span className="text-[11px] font-bold text-slate-700 dark:text-slate-200 truncate max-w-[80px]">
                               {game.teams.home.team.name.split(' ').pop()}
                             </span>
                           </div>
@@ -108,19 +108,19 @@ export function GameLog({ games }: GameLogProps) {
                         </div>
                       </div>
 
-                      <div className="col-span-2 flex flex-col items-center border-l border-slate-100 dark:border-slate-800">
+                      <div className="col-span-3 flex flex-col items-center border-l border-slate-100 dark:border-slate-800/50">
                         <span className="text-lg font-mono font-black text-salami-red leading-none">{total}</span>
-                        <span className="text-[6px] font-mono text-slate-400 font-bold mt-1">TOTAL</span>
+                        <span className="text-[7px] font-mono text-slate-400 font-black mt-1 uppercase tracking-tighter">Total</span>
                       </div>
 
-                      <div className="col-span-3 flex flex-col items-center border-l border-slate-100 dark:border-slate-800">
+                      <div className="col-span-3 flex flex-col items-center border-l border-slate-100 dark:border-slate-800/50">
                         <span className={cn(
-                          "text-sm font-mono font-black leading-none",
+                          "text-lg font-mono font-black leading-none",
                           game.overUnder ? "text-slate-900 dark:text-white" : "text-slate-400"
                         )}>
                           {game.overUnder ?? '--'}
                         </span>
-                        <span className="text-[6px] font-mono text-slate-400 font-bold mt-1">O/U LINE</span>
+                        <span className="text-[7px] font-mono text-slate-400 font-black mt-1 uppercase tracking-tighter">O/U Line</span>
                       </div>
                     </div>
                   </motion.div>

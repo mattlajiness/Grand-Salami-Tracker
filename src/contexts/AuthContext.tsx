@@ -28,34 +28,65 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setUser(user);
-      if (user) {
-        // Listen to profile changes
-        const userDoc = doc(db, 'users', user.uid);
-        const unsubProfile = onSnapshot(userDoc, (docSnap) => {
+    let unsubProfile: (() => void) | undefined;
+
+    // Safety timeout to prevent indefinite loading
+    const timeoutId = setTimeout(() => {
+      setLoading(prev => {
+        if (prev) {
+          console.warn('Auth loading timed out after 8s');
+          return false;
+        }
+        return prev;
+      });
+    }, 8000);
+
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      
+      // Clean up previous profile listener
+      if (unsubProfile) {
+        unsubProfile();
+        unsubProfile = undefined;
+      }
+
+      if (currentUser) {
+        const userDoc = doc(db, 'users', currentUser.uid);
+        unsubProfile = onSnapshot(userDoc, (docSnap) => {
           if (docSnap.exists()) {
             setProfile(docSnap.data() as UserProfile);
           } else {
             // Create initial profile
             const initialProfile: UserProfile = {
-              uid: user.uid,
-              email: user.email || '',
-              displayName: user.displayName || '',
+              uid: currentUser.uid,
+              email: currentUser.email || '',
+              displayName: currentUser.displayName || '',
               notificationsEnabled: true,
               createdAt: Timestamp.now(),
             };
-            setDoc(userDoc, initialProfile);
+            setDoc(userDoc, initialProfile).catch(err => {
+              console.error('Error creating initial profile:', err);
+            });
           }
+          setLoading(false);
+          clearTimeout(timeoutId);
+        }, (error) => {
+          console.error('Profile Snapshot Error:', error);
+          setLoading(false);
+          clearTimeout(timeoutId);
         });
-        return () => unsubProfile();
       } else {
         setProfile(null);
+        setLoading(false);
+        clearTimeout(timeoutId);
       }
-      setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      if (unsubProfile) unsubProfile();
+      clearTimeout(timeoutId);
+    };
   }, []);
 
   const updateProfile = async (data: Partial<UserProfile>) => {
