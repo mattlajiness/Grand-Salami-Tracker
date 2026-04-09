@@ -1,6 +1,7 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Activity, Trophy, Sun, Moon, RefreshCw, Calendar, HelpCircle, LogIn, LogOut, User as UserIcon } from 'lucide-react';
-import { format } from 'date-fns';
+import { Activity, Trophy, Sun, Moon, RefreshCw, Calendar, HelpCircle, LogIn, LogOut, User as UserIcon, Clock } from 'lucide-react';
+import { format, formatDistanceToNow } from 'date-fns';
 import { useAuth } from '../contexts/AuthContext';
 
 interface GrandSalamiHeaderProps {
@@ -27,6 +28,14 @@ export function GrandSalamiHeader({
   lastUpdated
 }: GrandSalamiHeaderProps) {
   const { user, signIn, signOut } = useAuth();
+  const [relativeTime, setRelativeTime] = useState(formatDistanceToNow(lastUpdated, { addSuffix: true }));
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRelativeTime(formatDistanceToNow(lastUpdated, { addSuffix: true }));
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [lastUpdated]);
 
   return (
     <div className="dashboard-card p-6 mb-6 bg-slate-900 text-white border-none shadow-2xl">
@@ -164,9 +173,19 @@ export function GrandSalamiHeader({
       
       <div className="mt-8 pt-6 border-t border-slate-800 flex items-center gap-6">
         <div className="flex items-center gap-2 text-[10px] font-mono text-slate-500 font-bold">
-          <Activity className="w-3 h-3 text-salami-red" />
+          <div className="relative flex items-center justify-center w-3 h-3">
+            <Activity className="w-3 h-3 text-salami-red relative z-10" />
+            <motion.div 
+              animate={{ scale: [1, 2, 1], opacity: [0.5, 0, 0.5] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="absolute inset-0 bg-salami-red rounded-full"
+            />
+          </div>
           <span className="tracking-widest">REAL-TIME FEED</span>
-          <span className="text-[8px] text-slate-600 ml-2">UPDATED: {format(lastUpdated, 'HH:mm:ss')}</span>
+          <div className="flex items-center gap-1.5 text-[8px] text-slate-600 ml-2 bg-slate-800/50 px-2 py-0.5 rounded border border-slate-700/50">
+            <Clock className="w-2.5 h-2.5" />
+            <span>{relativeTime.toUpperCase()}</span>
+          </div>
         </div>
         <div className="h-2 flex-1 bg-slate-800 rounded-full overflow-hidden border border-slate-700 shadow-inner">
           <motion.div 
