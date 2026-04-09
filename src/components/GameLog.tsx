@@ -1,7 +1,7 @@
 import { MLBGame } from '../services/mlbService';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
-import { Activity } from 'lucide-react';
+import { Activity, RefreshCw } from 'lucide-react';
 
 interface GameLogProps {
   games: (MLBGame & { overUnder?: number })[];
@@ -18,7 +18,13 @@ export function GameLog({ games }: GameLogProps) {
             Daily Scorecard
           </h2>
         </div>
-        <div className="flex gap-6 text-[10px] font-mono text-slate-500 font-bold">
+        <div className="flex gap-4 text-[10px] font-mono text-slate-500 font-bold items-center">
+          <button 
+            onClick={() => window.location.reload()} 
+            className="flex items-center gap-1 hover:text-salami-red transition-colors"
+          >
+            <RefreshCw className="w-3 h-3" /> REFRESH ODDS
+          </button>
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]" /> FINAL
           </div>

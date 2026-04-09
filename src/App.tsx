@@ -14,6 +14,14 @@ import { useAuth } from './contexts/AuthContext';
 export default function App() {
   const { loading: authLoading } = useAuth();
   const [games, setGames] = useState<(MLBGame & { overUnder?: number })[]>([]);
+  const [oddsCache, setOddsCache] = useState<Record<number, number>>(() => {
+    const saved = localStorage.getItem('salami_odds_cache');
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  useEffect(() => {
+    localStorage.setItem('salami_odds_cache', JSON.stringify(oddsCache));
+  }, [oddsCache]);
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -33,6 +41,9 @@ export default function App() {
   }, [isDarkMode]);
 
   const loadData = useCallback(async () => {
+    const apiKey = (import.meta as any).env.VITE_ODDS_API_KEY;
+    console.log('Odds API Key status:', apiKey ? `Loaded (starts with ${apiKey.substring(0, 4)}...)` : 'Missing');
+    
     setIsRefreshing(true);
     try {
       const [mlbData, oddsData] = await Promise.all([
@@ -53,6 +64,10 @@ export default function App() {
         return;
       }
 
+      // Update odds cache with new data
+      const newCache = { ...oddsCache };
+      let updatedCache = false;
+
       // Merge odds into games
       console.log(`Fetched ${mlbData.length} games and ${oddsData.length} betting lines.`);
       
@@ -60,44 +75,58 @@ export default function App() {
         const awayName = game.teams.away.team.name;
         const homeName = game.teams.home.team.name;
 
-        // Find matching game in odds data
-        const match = oddsData.find(o => {
-          const oAway = o.away_team.toLowerCase();
-          const oHome = o.home_team.toLowerCase();
-          const gAway = awayName.toLowerCase();
-          const gHome = homeName.toLowerCase();
+        // Check cache first
+        let overUnder = oddsCache[game.gamePk];
 
-          // Try exact match first
-          if (oAway === gAway && oHome === gHome) return true;
+        // If not in cache, try to find in new odds data
+        if (overUnder === undefined) {
+          const match = oddsData.find(o => {
+            const oAway = o.away_team.toLowerCase();
+            const oHome = o.home_team.toLowerCase();
+            const gAway = awayName.toLowerCase();
+            const gHome = homeName.toLowerCase();
 
-          // Try matching by the last word (team nickname)
-          const gAwayNick = gAway.split(' ').pop() || '';
-          const gHomeNick = gHome.split(' ').pop() || '';
-          const oAwayNick = oAway.split(' ').pop() || '';
-          const oHomeNick = oHome.split(' ').pop() || '';
+            // Try exact match first
+            if (oAway === gAway && oHome === gHome) return true;
 
-          if (gAwayNick && oAwayNick && gAwayNick === oAwayNick && 
-              gHomeNick && oHomeNick && gHomeNick === oHomeNick) {
-            return true;
-          }
+            // Try matching by the last word (team nickname)
+            const gAwayNick = gAway.split(' ').pop() || '';
+            const gHomeNick = gHome.split(' ').pop() || '';
+            const oAwayNick = oAway.split(' ').pop() || '';
+            const oHomeNick = oHome.split(' ').pop() || '';
 
-          // Fallback to inclusion
-          return (oAway.includes(gAway) || gAway.includes(oAway)) && 
-                 (oHome.includes(gHome) || gHome.includes(oHome));
-        });
+            if (gAwayNick && oAwayNick && gAwayNick === oAwayNick && 
+                gHomeNick && oHomeNick && gHomeNick === oHomeNick) {
+              return true;
+            }
 
-        let overUnder: number | undefined;
-        if (match && match.bookmakers.length > 0) {
-          // Look for totals market in any bookmaker
-          const bookmaker = match.bookmakers.find(b => b.markets.some(m => m.key === 'totals')) || match.bookmakers[0];
-          const market = bookmaker.markets.find(m => m.key === 'totals');
-          if (market && market.outcomes.length > 0) {
-            overUnder = market.outcomes[0].point;
+            // Fallback to inclusion
+            return (oAway.includes(gAway) || gAway.includes(oAway)) && 
+                   (oHome.includes(gHome) || gHome.includes(oHome));
+          });
+
+          if (match && match.bookmakers && match.bookmakers.length > 0) {
+            // Aggressively look for totals market in ANY bookmaker
+            for (const bookmaker of match.bookmakers) {
+              if (bookmaker.markets) {
+                const market = bookmaker.markets.find(m => m.key === 'totals');
+                if (market && market.outcomes && market.outcomes.length > 0) {
+                  overUnder = market.outcomes[0].point;
+                  newCache[game.gamePk] = overUnder;
+                  updatedCache = true;
+                  break; // Found it!
+                }
+              }
+            }
           }
         }
 
         return { ...game, overUnder };
       });
+
+      if (updatedCache) {
+        setOddsCache(newCache);
+      }
 
       setGames(mergedGames);
       setLastUpdated(new Date());
@@ -175,6 +204,7 @@ export default function App() {
               onRefresh={loadData}
               isRefreshing={isRefreshing}
               lastUpdated={lastUpdated}
+              hasOddsKey={!!(import.meta as any).env.VITE_ODDS_API_KEY}
             />
 
           {games.length === 0 && !isRefreshing ? (

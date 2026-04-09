@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { Activity, Trophy, Sun, Moon, RefreshCw, Calendar, HelpCircle, LogIn, LogOut, User as UserIcon, Clock } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { useAuth } from '../contexts/AuthContext';
+import { cn } from '../lib/utils';
 
 interface GrandSalamiHeaderProps {
   currentTotal: number;
@@ -14,6 +15,7 @@ interface GrandSalamiHeaderProps {
   onRefresh: () => void;
   isRefreshing: boolean;
   lastUpdated: Date;
+  hasOddsKey: boolean;
 }
 
 export function GrandSalamiHeader({ 
@@ -25,7 +27,8 @@ export function GrandSalamiHeader({
   setIsDarkMode,
   onRefresh,
   isRefreshing,
-  lastUpdated
+  lastUpdated,
+  hasOddsKey
 }: GrandSalamiHeaderProps) {
   const { user, signIn, signOut } = useAuth();
   const [relativeTime, setRelativeTime] = useState(formatDistanceToNow(lastUpdated, { addSuffix: true }));
@@ -97,6 +100,11 @@ export function GrandSalamiHeader({
             <HelpCircle className="w-3 h-3 text-salami-red" />
             How it works
           </button>
+
+          <div className="hidden sm:flex items-center gap-2 text-[9px] font-mono text-slate-400 bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700">
+            <div className={cn("w-1.5 h-1.5 rounded-full", hasOddsKey ? "bg-green-500" : "bg-yellow-500")} />
+            ODDS API: {hasOddsKey ? "CONNECTED" : "KEY MISSING"}
+          </div>
 
           <div className="hidden sm:flex items-center gap-2 text-[9px] font-mono text-slate-400 bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700">
             <Calendar className="w-3 h-3 text-salami-red" />
