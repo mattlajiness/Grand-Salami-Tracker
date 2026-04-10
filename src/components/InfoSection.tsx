@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 
 export function InfoSection() {
   return (
-    <div id="how-it-works" className="mt-12 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+    <div id="how-it-works" className="mt-12 space-y-8">
       <div className="flex items-center gap-4 mb-2">
         <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
         <div className="flex items-center gap-2 px-4 py-1 bg-slate-100 dark:bg-slate-900 rounded-full border border-slate-200 dark:border-slate-800">
@@ -48,14 +48,14 @@ export function InfoSection() {
       </div>
 
       {/* Pro Tips / Strategy */}
-      <div className="dashboard-card p-8 bg-slate-900 text-white border-none shadow-2xl relative overflow-hidden">
+      <div className="dashboard-card p-8 bg-white dark:bg-slate-900 border-slate-200 dark:border-none shadow-2xl relative overflow-hidden transition-colors duration-300">
         <div className="stitching-top opacity-30" />
         <div className="absolute top-0 right-0 w-64 h-64 bg-salami-red/5 rounded-full -mr-32 -mt-32 blur-3xl" />
         
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-6">
             <Target className="w-6 h-6 text-salami-red" />
-            <h3 className="font-black uppercase tracking-tighter text-2xl">Bettor's Strategy Guide</h3>
+            <h3 className="font-black uppercase tracking-tighter text-2xl text-slate-900 dark:text-white">Bettor's Strategy Guide</h3>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
