@@ -64,13 +64,13 @@ export default function App() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="relative w-16 h-16">
-            <div className="absolute inset-0 border-4 border-slate-200 dark:border-slate-800 rounded-full" />
+            <div className="absolute inset-0 border-4 border-slate-800 rounded-full" />
             <div className="absolute inset-0 border-4 border-salami-red rounded-full border-t-transparent animate-spin" />
           </div>
-          <span className="text-[10px] font-mono font-black text-slate-400 dark:text-slate-600 uppercase tracking-[0.3em] animate-pulse">
+          <span className="text-[10px] font-mono font-black text-slate-600 uppercase tracking-[0.3em] animate-pulse">
             Authenticating...
           </span>
         </div>
@@ -79,8 +79,8 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-12 transition-colors duration-300">
-      <Toaster position="top-center" richColors theme="light" />
+    <div className="min-h-screen bg-slate-950 pb-12 transition-colors duration-300">
+      <Toaster position="top-center" richColors theme="dark" />
       
       <main className="max-w-5xl mx-auto px-4 pt-8">
         <div className="space-y-6">
@@ -97,10 +97,10 @@ export default function App() {
 
           {games.length === 0 && !isRefreshing ? (
             <div className="dashboard-card p-12 text-center">
-              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-200">
-                <Calendar className="w-8 h-8 text-slate-400" />
+              <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-700">
+                <Calendar className="w-8 h-8 text-slate-500" />
               </div>
-              <h3 className="text-slate-900 font-black text-xl mb-2">No Games Scheduled</h3>
+              <h3 className="text-white font-black text-xl mb-2">No Games Scheduled</h3>
               <p className="text-slate-500 font-mono text-xs uppercase tracking-widest">
                 There are no MLB games found for today's slate.
               </p>
@@ -134,19 +134,19 @@ export default function App() {
         </div>
       </main>
 
-      <footer className="mt-12 py-12 border-t border-slate-200 text-center">
+      <footer className="mt-12 py-12 border-t border-slate-800 text-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="flex items-center gap-6 text-[10px] font-mono font-black text-slate-400 uppercase tracking-[0.2em]">
+          <div className="flex items-center gap-6 text-[10px] font-mono font-black text-slate-500 uppercase tracking-[0.2em]">
             <a href="#how-it-works" className="hover:text-salami-red transition-colors">How it works</a>
-            <span className="w-1 h-1 rounded-full bg-slate-700" />
+            <span className="w-1 h-1 rounded-full bg-slate-800" />
             <a href="https://www.mlb.com" target="_blank" rel="noreferrer" className="hover:text-salami-red transition-colors">MLB.com</a>
-            <span className="w-1 h-1 rounded-full bg-slate-700" />
-            <span className="text-slate-600">v1.1.3</span>
+            <span className="w-1 h-1 rounded-full bg-slate-800" />
+            <span className="text-slate-700">v1.1.3</span>
           </div>
-          <p className="text-[10px] text-slate-500 font-mono tracking-widest">
+          <p className="text-[10px] text-slate-600 font-mono tracking-widest">
             DATA PROVIDED BY MLB STATS API • UPDATES EVERY 60S
           </p>
-          <p className="text-[9px] text-slate-600 font-mono mt-2">
+          <p className="text-[9px] text-slate-700 font-mono mt-2">
             © {new Date().getFullYear()} GRAND SALAMI TRACKER • FOR ENTERTAINMENT PURPOSES ONLY
           </p>
         </div>

@@ -188,12 +188,12 @@ export function WagerTracker({
   };
 
   return (
-    <div className="dashboard-card border-slate-200 shadow-xl transition-all duration-300">
+    <div className="dashboard-card border-slate-800 shadow-2xl transition-all duration-300">
       <div className="stitching-top" />
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex flex-col">
-            <h3 className="font-mono font-black text-slate-900 flex items-center gap-2 uppercase tracking-tighter">
+            <h3 className="font-mono font-black text-white flex items-center gap-2 uppercase tracking-tighter">
               <Target className="w-4 h-4 text-salami-red" />
               Wager Tracker
             </h3>
@@ -211,8 +211,8 @@ export function WagerTracker({
               className={cn(
                 "p-2 rounded-lg border transition-all",
                 notificationsEnabled 
-                  ? "bg-green-50 border-green-200 text-green-600" 
-                  : "bg-slate-50 border-slate-200 text-slate-400"
+                  ? "bg-green-500/10 border-green-500/20 text-green-500" 
+                  : "bg-slate-800 border-slate-700 text-slate-500"
               )}
               title={notificationsEnabled ? "Notifications Enabled" : "Notifications Disabled"}
             >
@@ -231,17 +231,17 @@ export function WagerTracker({
                 value={betLine}
                 onChange={(e) => setBetLine(e.target.value === '' ? '' : parseFloat(e.target.value))}
                 placeholder="e.g. 120.5"
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-salami-red/20 focus:border-salami-red transition-all"
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 font-mono font-bold text-white focus:outline-none focus:ring-2 focus:ring-salami-red/20 focus:border-salami-red transition-all"
               />
             </div>
             <div className="space-y-2">
               <label className="data-label">Option</label>
-              <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
+              <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800">
                 <button
                   onClick={() => setBetType('over')}
                   className={cn(
                     "flex-1 py-1.5 rounded-md text-[10px] font-black transition-all uppercase tracking-widest",
-                    betType === 'over' ? "bg-white text-salami-red shadow-sm" : "text-slate-500 hover:text-slate-700"
+                    betType === 'over' ? "bg-slate-800 text-salami-red shadow-sm" : "text-slate-500 hover:text-slate-400"
                   )}
                 >
                   Over
@@ -250,7 +250,7 @@ export function WagerTracker({
                   onClick={() => setBetType('under')}
                   className={cn(
                     "flex-1 py-1.5 rounded-md text-[10px] font-black transition-all uppercase tracking-widest",
-                    betType === 'under' ? "bg-white text-salami-red shadow-sm" : "text-slate-500 hover:text-slate-700"
+                    betType === 'under' ? "bg-slate-800 text-salami-red shadow-sm" : "text-slate-500 hover:text-slate-400"
                   )}
                 >
                   Under
@@ -271,12 +271,12 @@ export function WagerTracker({
                 <div className={cn(
                   "p-4 rounded-xl border-2 flex items-center justify-between",
                   status === 'WON' || status === 'WINNING' || status === 'ON TRACK' 
-                    ? "bg-green-50 border-green-200 text-green-700" 
+                    ? "bg-green-500/10 border-green-500/20 text-green-500" 
                     : status === 'DANGER' || status === 'BEHIND'
-                    ? "bg-amber-50 border-amber-200 text-amber-700"
+                    ? "bg-amber-500/10 border-amber-500/20 text-amber-500"
                     : status === 'CALIBRATING'
-                    ? "bg-slate-50 border-slate-200 text-slate-500"
-                    : "bg-red-50 border-red-200 text-red-700"
+                    ? "bg-slate-800 border-slate-700 text-slate-400"
+                    : "bg-red-500/10 border-red-500/20 text-red-500"
                 )}>
                   <div className="flex items-center gap-3">
                     {status === 'WON' || status === 'WINNING' || status === 'ON TRACK' ? (
@@ -320,8 +320,8 @@ export function WagerTracker({
                     <div className={cn(
                       "border rounded-lg p-3 transition-colors",
                       betType === 'over'
-                        ? (currentPace >= linePace ? "bg-green-50 border-green-200" : "bg-amber-50 border-amber-200")
-                        : (currentPace <= linePace ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200")
+                        ? (currentPace >= linePace ? "bg-green-500/10 border-green-500/20" : "bg-amber-500/10 border-amber-500/20")
+                        : (currentPace <= linePace ? "bg-green-500/10 border-green-500/20" : "bg-red-500/10 border-red-500/20")
                     )}>
                       <div className="flex items-center gap-2 mb-1">
                         <Activity className={cn("w-3 h-3", betType === 'over' ? (currentPace >= linePace ? "text-green-500" : "text-amber-500") : (currentPace <= linePace ? "text-green-500" : "text-red-500"))} />
@@ -333,8 +333,8 @@ export function WagerTracker({
                         <span className={cn(
                           "text-sm font-mono font-black",
                           betType === 'over'
-                            ? (currentPace >= linePace ? "text-green-600" : "text-amber-600")
-                            : (currentPace <= linePace ? "text-green-600" : "text-red-600")
+                            ? (currentPace >= linePace ? "text-green-500" : "text-amber-500")
+                            : (currentPace <= linePace ? "text-green-500" : "text-red-500")
                         )}>
                           {currentPace.toFixed(2)}
                         </span>
@@ -342,15 +342,15 @@ export function WagerTracker({
                       </div>
                     </div>
 
-                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+                    <div className="bg-slate-950 border border-slate-800 rounded-lg p-3">
                       <div className="flex items-center gap-2 mb-1">
-                        <TrendingUp className="w-3 h-3 text-slate-400" />
+                        <TrendingUp className="w-3 h-3 text-slate-600" />
                         <span className="text-[8px] font-mono font-black text-slate-500 uppercase tracking-widest">
                           {betType === 'over' ? 'Target Pace' : 'Max Pace'}
                         </span>
                       </div>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-sm font-mono font-black text-slate-900">
+                        <span className="text-sm font-mono font-black text-white">
                           {linePace.toFixed(2)}
                         </span>
                         <span className="text-[7px] font-mono text-slate-500 uppercase">R/G</span>
@@ -361,7 +361,7 @@ export function WagerTracker({
 
                 {/* Live Threshold */}
                 {!isFinished && betLine !== '' && remainingInnings > 0 && (
-                  <div className="bg-slate-100 rounded-lg p-3 border border-slate-200">
+                  <div className="bg-slate-950 rounded-lg p-3 border border-slate-800">
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">
                         <RefreshCw className="w-3 h-3 text-salami-red" />
@@ -384,7 +384,7 @@ export function WagerTracker({
                         }
                       </p>
                       <div className="text-right">
-                        <span className="text-lg font-mono font-black text-slate-900">
+                        <span className="text-lg font-mono font-black text-white">
                           {Math.max(0, requiredPace).toFixed(2)}
                         </span>
                         <span className="text-[7px] font-mono text-slate-500 uppercase block">R/G</span>
@@ -397,20 +397,20 @@ export function WagerTracker({
                 <div className="space-y-2">
                   <div className="flex justify-between items-end">
                     <span className="data-label">Projection vs Line</span>
-                    <span className="text-[10px] font-mono font-bold text-slate-400">
+                    <span className="text-[10px] font-mono font-bold text-slate-600">
                       LINE: {betLine}
                     </span>
                   </div>
-                  <div className="h-4 bg-slate-100 rounded-full overflow-hidden border border-slate-200 relative">
+                  <div className="h-4 bg-slate-950 rounded-full overflow-hidden border border-slate-800 relative">
                     <div 
-                      className="absolute top-0 h-full bg-slate-300/50 border-r-2 border-slate-400 z-10"
+                      className="absolute top-0 h-full bg-slate-800/50 border-r-2 border-slate-700 z-10"
                       style={{ left: `${Math.min((parseFloat(betLine.toString()) / (projectedTotal || 200)) * 100, 100)}%` }}
                     />
                     <motion.div 
                       className={cn(
                         "h-full transition-all duration-1000",
                         projectedTotal === null 
-                          ? "bg-slate-300"
+                          ? "bg-slate-800"
                           : (betType === 'over' ? projectedTotal > parseFloat(betLine.toString()) : projectedTotal < parseFloat(betLine.toString()))
                             ? "bg-green-500"
                             : "bg-red-500"
@@ -419,7 +419,7 @@ export function WagerTracker({
                       animate={{ width: `${projectedTotal === null ? 0 : Math.min((projectedTotal / (parseFloat(betLine.toString()) * 1.2 || 200)) * 100, 100)}%` }}
                     />
                   </div>
-                  <p className="text-[9px] font-mono text-slate-400 text-center uppercase tracking-widest">
+                  <p className="text-[9px] font-mono text-slate-600 text-center uppercase tracking-widest">
                     Projected based on {completionPercentage}% slate completion
                   </p>
                 </div>
@@ -428,8 +428,8 @@ export function WagerTracker({
           </AnimatePresence>
 
           {betLine === '' && (
-            <div className="p-8 text-center border-2 border-dashed border-slate-200 rounded-xl">
-              <p className="text-xs text-slate-400 font-mono uppercase tracking-widest">
+            <div className="p-8 text-center border-2 border-dashed border-slate-800 rounded-xl">
+              <p className="text-xs text-slate-600 font-mono uppercase tracking-widest">
                 Enter your wager details above to track your bet live
               </p>
             </div>
