@@ -1,43 +1,21 @@
 /**
- * Google Analytics 4 (GA4) Initialization
+ * Google Analytics 4 (GA4) Helpers
  */
 
 export function initGA() {
-  // Use the provided ID directly for reliability
-  const measurementId = 'G-BZ69JY3ECN';
-
-  if (!measurementId) {
-    console.log('Analytics: No Measurement ID found. Skipping initialization.');
-    return;
-  }
-
-  // Inject Google Tag script
-  const script = document.createElement('script');
-  script.async = true;
-  script.src = `https://www.googletagmanager.com/gtag/js?id=${measurementId}`;
-  document.head.appendChild(script);
-
-  // Initialize gtag
-  window.dataLayer = window.dataLayer || [];
-  function gtag(...args: any[]) {
-    window.dataLayer.push(args);
-  }
-  window.gtag = gtag;
-
-  gtag('js', new Date());
-  gtag('config', measurementId, {
-    page_path: window.location.pathname,
-  });
-
-  console.log(`Analytics: Initialized with ID ${measurementId}`);
+  // Already initialized in index.html
+  console.log('Analytics: Using GA initialized in index.html');
 }
 
 /**
  * Track a custom event
  */
 export function trackEvent(eventName: string, params?: Record<string, any>) {
-  if (window.gtag) {
-    window.gtag('event', eventName, params);
+  if (typeof window !== 'undefined' && (window as any).gtag) {
+    console.log(`Analytics: Tracking event "${eventName}"`, params);
+    (window as any).gtag('event', eventName, params);
+  } else {
+    console.warn(`Analytics: gtag not found. Could not track "${eventName}"`);
   }
 }
 
