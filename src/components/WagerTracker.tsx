@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { doc, setDoc, getDoc, Timestamp } from 'firebase/firestore';
 import { format } from 'date-fns';
+import { trackEvent } from '../lib/analytics';
 
 interface WagerTrackerProps {
   currentTotal: number;
@@ -70,6 +71,7 @@ export function WagerTracker({
     const saveWager = async () => {
       if (betLine === '') return;
 
+      trackEvent('save_wager', { line: betLine, side: betType });
       if (user) {
         setIsSyncing(true);
         try {
@@ -176,6 +178,7 @@ export function WagerTracker({
   };
 
   const toggleNotifications = () => {
+    trackEvent('toggle_notifications', { enabled: !notificationsEnabled });
     if (!notificationsEnabled && "Notification" in window) {
       Notification.requestPermission();
     }

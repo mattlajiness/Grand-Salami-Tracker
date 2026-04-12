@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../lib/utils';
 import { toast } from 'sonner';
 import { MLBGame } from '../services/mlbService';
+import { trackEvent } from '../lib/analytics';
 
 interface GrandSalamiHeaderProps {
   currentTotal: number;
@@ -57,10 +58,13 @@ export function GrandSalamiHeader({
 
   const handleSignIn = async () => {
     setIsSigningIn(true);
+    trackEvent('login_attempt', { method: 'google' });
     try {
       await signIn();
+      trackEvent('login_success');
     } catch (error) {
       console.error('Sign in error:', error);
+      trackEvent('login_error', { error: String(error) });
       toast.error('Sign in failed. Please try again.');
     } finally {
       setIsSigningIn(false);
@@ -212,7 +216,10 @@ export function GrandSalamiHeader({
           )}
           
           <button 
-            onClick={onRefresh}
+            onClick={() => {
+              trackEvent('refresh_data');
+              onRefresh();
+            }}
             disabled={isRefreshing}
             className={cn(
               "p-2 rounded-lg border transition-all disabled:opacity-50 active:scale-95 relative overflow-hidden",

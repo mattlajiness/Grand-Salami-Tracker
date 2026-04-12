@@ -4,6 +4,10 @@ import App from './App.tsx';
 import './index.css';
 import { AuthProvider } from './contexts/AuthContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { initGA } from './lib/analytics';
+
+// Initialize Analytics
+initGA();
 
 console.log('MLB Grand Salami Tracker v1.1.0 Initialized');
 
