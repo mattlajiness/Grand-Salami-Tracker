@@ -3,7 +3,8 @@
  */
 
 export function initGA() {
-  const measurementId = import.meta.env.VITE_GA_MEASUREMENT_ID;
+  // Use the provided ID directly for reliability
+  const measurementId = 'G-BZ69JY3ECN';
 
   if (!measurementId) {
     console.log('Analytics: No Measurement ID found. Skipping initialization.');
