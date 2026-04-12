@@ -5,10 +5,11 @@ import { GameLog } from './components/GameLog';
 import { WagerTracker } from './components/WagerTracker';
 import { RunTrends } from './components/RunTrends';
 import { InfoSection } from './components/InfoSection';
-import { Calendar } from 'lucide-react';
+import { Calendar, Share2 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { useAuth } from './contexts/AuthContext';
 import { format, subDays } from 'date-fns';
+import { AnimatePresence } from 'motion/react';
 
 export default function App() {
   const { loading: authLoading } = useAuth();

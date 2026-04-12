@@ -197,15 +197,15 @@ export function GrandSalamiHeader({
           </div>
 
           {weatherSummary && (
-            <div className="hidden lg:flex items-center gap-3 px-3 py-1.5 rounded-full border border-slate-700 bg-slate-800/50">
+            <div className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border border-slate-700 bg-slate-800/50">
               <div className="flex items-center gap-1.5">
                 <Thermometer className="w-3 h-3 text-salami-red" />
-                <span className="text-[9px] font-mono font-black text-slate-300">{weatherSummary.avgTemp}° AVG</span>
+                <span className="text-[8px] sm:text-[9px] font-mono font-black text-slate-300">{weatherSummary.avgTemp}° AVG</span>
               </div>
               {weatherSummary.highWindGames > 0 && (
-                <div className="flex items-center gap-1.5 border-l border-slate-700 pl-3">
+                <div className="flex items-center gap-1.5 border-l border-slate-700 pl-2 sm:pl-3">
                   <Wind className="w-3 h-3 text-blue-400" />
-                  <span className="text-[9px] font-mono font-black text-slate-300">{weatherSummary.highWindGames} WINDY</span>
+                  <span className="text-[8px] sm:text-[9px] font-mono font-black text-slate-300">{weatherSummary.highWindGames} WINDY</span>
                 </div>
               )}
             </div>

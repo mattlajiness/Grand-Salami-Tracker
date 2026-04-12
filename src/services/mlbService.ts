@@ -17,12 +17,22 @@ export interface MLBGame {
         id: number;
         name: string;
       };
+      probablePitcher?: {
+        id: number;
+        fullName: string;
+        era?: string;
+      };
     };
     home: {
       score?: number;
       team: {
         id: number;
         name: string;
+      };
+      probablePitcher?: {
+        id: number;
+        fullName: string;
+        era?: string;
       };
     };
   };
@@ -81,7 +91,7 @@ export interface MLBScheduleResponse {
 
 export async function fetchMLBGames(date?: string, startDate?: string, endDate?: string): Promise<MLBGame[]> {
   const url = new URL('https://statsapi.mlb.com/api/v1/schedule/games/?sportId=1');
-  url.searchParams.append('hydrate', 'linescore,team,weather,venue');
+  url.searchParams.append('hydrate', 'linescore,team,weather,venue,probablePitcher');
   url.searchParams.append('_t', Date.now().toString()); // Cache buster
   
   if (startDate && endDate) {
@@ -107,12 +117,35 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
       return [];
     }
 
-    // If it's a range, we might want all games from all dates
+    let games: MLBGame[] = [];
     if (startDate && endDate) {
-      return data.dates.flatMap(d => (d.games || []).map(g => ({ ...g, officialDate: d.date })));
+      games = data.dates.flatMap(d => (d.games || []).map(g => ({ ...g, officialDate: d.date })));
+    } else {
+      games = (data.dates[0].games || []).map(g => ({ ...g, officialDate: data.dates[0].date }));
     }
 
-    return (data.dates[0].games || []).map(g => ({ ...g, officialDate: data.dates[0].date }));
+    // Enrich with pitcher stats
+    const pitcherIds = new Set<number>();
+    games.forEach(game => {
+      if (game.teams.away.probablePitcher?.id) pitcherIds.add(game.teams.away.probablePitcher.id);
+      if (game.teams.home.probablePitcher?.id) pitcherIds.add(game.teams.home.probablePitcher.id);
+    });
+
+    if (pitcherIds.size > 0) {
+      const statsMap = await fetchPitcherStats(Array.from(pitcherIds));
+      games = games.map(game => {
+        const newGame = { ...game };
+        if (newGame.teams.away.probablePitcher?.id) {
+          newGame.teams.away.probablePitcher.era = statsMap[newGame.teams.away.probablePitcher.id];
+        }
+        if (newGame.teams.home.probablePitcher?.id) {
+          newGame.teams.home.probablePitcher.era = statsMap[newGame.teams.home.probablePitcher.id];
+        }
+        return newGame;
+      });
+    }
+
+    return games;
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
       console.error('MLB API Request timed out');
@@ -121,4 +154,36 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
     }
     return [];
   }
+}
+
+async function fetchPitcherStats(pitcherIds: number[]): Promise<Record<number, string>> {
+  const statsMap: Record<number, string> = {};
+  
+  // Batch in groups of 50 (MLB API limit is usually around here)
+  const batches = [];
+  for (let i = 0; i < pitcherIds.length; i += 50) {
+    batches.push(pitcherIds.slice(i, i + 50));
+  }
+
+  await Promise.all(batches.map(async (batch) => {
+    try {
+      const url = `https://statsapi.mlb.com/api/v1/people?personIds=${batch.join(',')}&hydrate=stats(group=[pitching],type=[season])`;
+      const response = await fetch(url);
+      if (!response.ok) return;
+      
+      const data = await response.json();
+      if (data.people) {
+        data.people.forEach((person: any) => {
+          const era = person.stats?.[0]?.splits?.[0]?.stat?.era;
+          if (era) {
+            statsMap[person.id] = era;
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching pitcher stats batch:', error);
+    }
+  }));
+
+  return statsMap;
 }

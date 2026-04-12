@@ -101,6 +101,12 @@ export function GameLog({ games }: GameLogProps) {
                               <span className="text-[11px] font-bold text-slate-300 truncate max-w-[100px]">
                                 {game.teams.away.team.name.split(' ').pop()}
                               </span>
+                              {game.teams.away.probablePitcher && (
+                                <span className="text-[8px] font-mono text-slate-500 truncate max-w-[80px]">
+                                  {game.teams.away.probablePitcher.fullName.split(' ').pop()}
+                                  {game.teams.away.probablePitcher.era && ` (${game.teams.away.probablePitcher.era})`}
+                                </span>
+                              )}
                             </div>
                             <span className="font-mono font-black text-sm text-white">
                               {game.teams.away.score ?? '-'}
@@ -117,6 +123,12 @@ export function GameLog({ games }: GameLogProps) {
                               <span className="text-[11px] font-bold text-slate-300 truncate max-w-[100px]">
                                 {game.teams.home.team.name.split(' ').pop()}
                               </span>
+                              {game.teams.home.probablePitcher && (
+                                <span className="text-[8px] font-mono text-slate-500 truncate max-w-[80px]">
+                                  {game.teams.home.probablePitcher.fullName.split(' ').pop()}
+                                  {game.teams.home.probablePitcher.era && ` (${game.teams.home.probablePitcher.era})`}
+                                </span>
+                              )}
                             </div>
                             <span className="font-mono font-black text-sm text-white">
                               {game.teams.home.score ?? '-'}
@@ -133,11 +145,11 @@ export function GameLog({ games }: GameLogProps) {
                             <div className="flex items-center gap-2 pt-1 border-t border-slate-800 w-full justify-center">
                               <div className="flex items-center gap-1">
                                 <Thermometer className="w-2.5 h-2.5 text-salami-red" />
-                                <span className="text-[9px] font-mono font-bold text-slate-400">{game.weather.temp}°</span>
+                                <span className="text-[10px] font-mono font-black text-slate-300">{game.weather.temp}°</span>
                               </div>
                               <div className="flex items-center gap-1">
                                 <Wind className="w-2.5 h-2.5 text-blue-400" />
-                                <span className="text-[9px] font-mono font-bold text-slate-600">{(game.weather.wind || '').split(' ')[0]}</span>
+                                <span className="text-[10px] font-mono font-bold text-slate-500">{(game.weather.wind || '').split(' ')[0]}</span>
                               </div>
                             </div>
                           )}
@@ -203,7 +215,15 @@ export function GameLog({ games }: GameLogProps) {
                                       referrerPolicy="no-referrer"
                                     />
                                   </div>
-                                  <span className="font-bold text-slate-200 tracking-tight">{game.teams.away.team.name}</span>
+                                  <div className="flex flex-col">
+                                    <span className="font-bold text-slate-200 tracking-tight leading-none">{game.teams.away.team.name}</span>
+                                    {game.teams.away.probablePitcher && (
+                                      <span className="text-[9px] font-mono text-slate-500 mt-1 uppercase tracking-widest">
+                                        P: {game.teams.away.probablePitcher.fullName}
+                                        {game.teams.away.probablePitcher.era && ` (${game.teams.away.probablePitcher.era} ERA)`}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                                 <span className={cn(
                                   "font-mono font-black text-lg",
@@ -222,7 +242,15 @@ export function GameLog({ games }: GameLogProps) {
                                       referrerPolicy="no-referrer"
                                     />
                                   </div>
-                                  <span className="font-bold text-slate-200 tracking-tight">{game.teams.home.team.name}</span>
+                                  <div className="flex flex-col">
+                                    <span className="font-bold text-slate-200 tracking-tight leading-none">{game.teams.home.team.name}</span>
+                                    {game.teams.home.probablePitcher && (
+                                      <span className="text-[9px] font-mono text-slate-500 mt-1 uppercase tracking-widest">
+                                        P: {game.teams.home.probablePitcher.fullName}
+                                        {game.teams.home.probablePitcher.era && ` (${game.teams.home.probablePitcher.era} ERA)`}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                                 <span className={cn(
                                   "font-mono font-black text-lg",
