@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Activity, Trophy, Sun, Moon, RefreshCw, Calendar, HelpCircle, LogIn, LogOut, User as UserIcon, Clock, Wind, Thermometer } from 'lucide-react';
+import { Activity, Trophy, Sun, Moon, RefreshCw, Calendar, HelpCircle, LogIn, LogOut, User as UserIcon, Clock, Wind, Thermometer, Check } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../lib/utils';
@@ -67,6 +67,19 @@ export function GrandSalamiHeader({
     }
   };
 
+  const [showCheck, setShowCheck] = useState(false);
+
+  useEffect(() => {
+    if (isRefreshing) {
+      setShowCheck(false);
+    } else {
+      // When refreshing stops, show checkmark briefly
+      setShowCheck(true);
+      const timer = setTimeout(() => setShowCheck(false), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [isRefreshing]);
+
   return (
     <div className="dashboard-card p-6 mb-6 border-none shadow-2xl transition-colors duration-300 bg-slate-900 text-white">
       <div className="stitching-top opacity-50" />
@@ -75,15 +88,62 @@ export function GrandSalamiHeader({
       {/* Top Controls Row */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-6 border-b border-slate-800">
         <div className="flex items-center gap-3">
-          <div className="relative w-10 h-10 flex items-center justify-center">
-            <div className="absolute inset-0 rounded-full border bg-slate-800 border-slate-700" />
-            <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full p-1">
-              <path d="M 30 10 Q 50 50 30 90" fill="none" stroke="#e11d48" strokeWidth="3" strokeDasharray="4 4" />
-              <path d="M 70 10 Q 50 50 70 90" fill="none" stroke="#e11d48" strokeWidth="3" strokeDasharray="4 4" />
+          <div className="relative w-10 h-10 flex items-center justify-center group">
+            {/* The Baseball Body */}
+            <div className="absolute inset-0 rounded-full bg-white border-2 border-slate-200 shadow-[inset_0_-2px_4px_rgba(0,0,0,0.1)] group-hover:scale-110 transition-transform duration-500" />
+            
+            {/* The Seams and Salami */}
+            <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full p-1.5 z-10 group-hover:rotate-12 transition-transform duration-500">
+              {/* Left Seam */}
+              <path 
+                d="M 28 15 Q 48 50 28 85" 
+                fill="none" 
+                stroke="#e11d48" 
+                strokeWidth="4" 
+                strokeDasharray="3 3" 
+                strokeLinecap="round"
+              />
+              {/* Right Seam */}
+              <path 
+                d="M 72 15 Q 52 50 72 85" 
+                fill="none" 
+                stroke="#e11d48" 
+                strokeWidth="4" 
+                strokeDasharray="3 3" 
+                strokeLinecap="round"
+              />
+              
+              {/* The Salami Log */}
+              <g transform="rotate(-15 50 50)">
+                {/* Main Log Body */}
+                <rect 
+                  x="22" 
+                  y="38" 
+                  width="56" 
+                  height="24" 
+                  rx="12" 
+                  fill="#fb7185" 
+                  className="shadow-sm"
+                />
+                {/* Salami Texture (Fat Spots) */}
+                <circle cx="32" cy="46" r="2" fill="white" fillOpacity="0.7" />
+                <circle cx="42" cy="54" r="1.5" fill="white" fillOpacity="0.6" />
+                <circle cx="52" cy="44" r="2.2" fill="white" fillOpacity="0.8" />
+                <circle cx="64" cy="52" r="1.8" fill="white" fillOpacity="0.5" />
+                {/* Salami Casing Detail */}
+                <rect 
+                  x="22" 
+                  y="38" 
+                  width="56" 
+                  height="24" 
+                  rx="12" 
+                  fill="none" 
+                  stroke="#be123c" 
+                  strokeWidth="1" 
+                  strokeOpacity="0.3"
+                />
+              </g>
             </svg>
-            <div className="relative z-10 w-6 h-6 rotate-12">
-              <img src="https://cdn-icons-png.flaticon.com/512/3143/3143643.png" alt="" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
-            </div>
           </div>
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
@@ -154,13 +214,49 @@ export function GrandSalamiHeader({
           <button 
             onClick={onRefresh}
             disabled={isRefreshing}
-            className="p-2 rounded-lg border transition-all disabled:opacity-50 active:scale-95 bg-slate-800 hover:bg-slate-700 border-slate-700"
+            className={cn(
+              "p-2 rounded-lg border transition-all disabled:opacity-50 active:scale-95 relative overflow-hidden",
+              isRefreshing ? "bg-slate-800 border-salami-red/50" : "bg-slate-800 hover:bg-slate-700 border-slate-700",
+              showCheck && !isRefreshing ? "border-green-500/50" : ""
+            )}
           >
-            <RefreshCw className={cn(
-              "w-3.5 h-3.5",
-              isRefreshing ? 'animate-spin' : '',
-              "text-white"
-            )} />
+            <AnimatePresence mode="wait">
+              {isRefreshing ? (
+                <motion.div
+                  key="refreshing"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  className="relative"
+                >
+                  <RefreshCw className="w-3.5 h-3.5 text-salami-red animate-spin" />
+                  <motion.div
+                    animate={{ scale: [1, 1.5, 1], opacity: [0.3, 0, 0.3] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                    className="absolute inset-0 bg-salami-red rounded-full -z-10"
+                  />
+                </motion.div>
+              ) : showCheck ? (
+                <motion.div
+                  key="check"
+                  initial={{ opacity: 0, scale: 0.5, y: 5 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.5 }}
+                  className="flex items-center justify-center"
+                >
+                  <Check className="w-3.5 h-3.5 text-green-400" />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="idle"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <RefreshCw className="w-3.5 h-3.5 text-white" />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </button>
         </div>
       </div>

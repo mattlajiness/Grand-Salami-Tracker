@@ -69,6 +69,7 @@ export interface MLBGame {
     id: number;
   };
   gameDate: string;
+  officialDate?: string;
 }
 
 export interface MLBScheduleResponse {
@@ -78,11 +79,15 @@ export interface MLBScheduleResponse {
   }[];
 }
 
-export async function fetchMLBGames(date?: string): Promise<MLBGame[]> {
+export async function fetchMLBGames(date?: string, startDate?: string, endDate?: string): Promise<MLBGame[]> {
   const url = new URL('https://statsapi.mlb.com/api/v1/schedule/games/?sportId=1');
   url.searchParams.append('hydrate', 'linescore,team,weather,venue');
   url.searchParams.append('_t', Date.now().toString()); // Cache buster
-  if (date) {
+  
+  if (startDate && endDate) {
+    url.searchParams.append('startDate', startDate);
+    url.searchParams.append('endDate', endDate);
+  } else if (date) {
     url.searchParams.append('date', date);
   }
   
@@ -98,11 +103,16 @@ export async function fetchMLBGames(date?: string): Promise<MLBGame[]> {
     const data: MLBScheduleResponse = await response.json();
     
     if (!data || !data.dates || data.dates.length === 0) {
-      console.warn('No games found for this date');
+      console.warn('No games found for this period');
       return [];
     }
 
-    return data.dates[0].games || [];
+    // If it's a range, we might want all games from all dates
+    if (startDate && endDate) {
+      return data.dates.flatMap(d => (d.games || []).map(g => ({ ...g, officialDate: d.date })));
+    }
+
+    return (data.dates[0].games || []).map(g => ({ ...g, officialDate: data.dates[0].date }));
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
       console.error('MLB API Request timed out');

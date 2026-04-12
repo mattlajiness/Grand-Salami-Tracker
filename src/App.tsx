@@ -3,22 +3,34 @@ import { fetchMLBGames, MLBGame } from './services/mlbService';
 import { GrandSalamiHeader } from './components/GrandSalamiHeader';
 import { GameLog } from './components/GameLog';
 import { WagerTracker } from './components/WagerTracker';
+import { RunTrends } from './components/RunTrends';
 import { InfoSection } from './components/InfoSection';
 import { Calendar } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { useAuth } from './contexts/AuthContext';
+import { format, subDays } from 'date-fns';
 
 export default function App() {
   const { loading: authLoading } = useAuth();
   const [games, setGames] = useState<MLBGame[]>([]);
+  const [historicalGames, setHistoricalGames] = useState<MLBGame[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const loadData = useCallback(async () => {
     setIsRefreshing(true);
     try {
-      const mlbData = await fetchMLBGames();
+      const today = format(new Date(), 'yyyy-MM-dd');
+      const fiveDaysAgo = format(subDays(new Date(), 6), 'yyyy-MM-dd');
+      const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+
+      const [mlbData, historyData] = await Promise.all([
+        fetchMLBGames(today),
+        fetchMLBGames(undefined, fiveDaysAgo, yesterday)
+      ]);
+
       setGames(mlbData || []);
+      setHistoricalGames(historyData || []);
       setLastUpdated(new Date());
     } catch (error) {
       console.error('Error in loadData:', error);
@@ -113,11 +125,11 @@ export default function App() {
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
+              <div className="order-2 lg:order-1 lg:col-span-2">
                 <GameLog games={games} />
               </div>
               
-              <div className="space-y-6">
+              <div className="order-1 lg:order-2 space-y-6">
                 <WagerTracker 
                   currentTotal={currentTotal}
                   playedInnings={stats.playedInnings}
@@ -125,6 +137,22 @@ export default function App() {
                   isFinished={stats.isFinished}
                   gameCount={games.length}
                   finalCount={stats.finalCount}
+                />
+
+                {/* Desktop Run Trends */}
+                <div className="hidden lg:block">
+                  <RunTrends 
+                    historicalGames={historicalGames}
+                    currentTotal={currentTotal}
+                  />
+                </div>
+              </div>
+
+              {/* Mobile Run Trends - Placed under the GameLog (Scoreboard) */}
+              <div className="order-3 lg:hidden">
+                <RunTrends 
+                  historicalGames={historicalGames}
+                  currentTotal={currentTotal}
                 />
               </div>
             </div>

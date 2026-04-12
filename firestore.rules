@@ -47,11 +47,11 @@ service cloud.firestore {
     }
 
     function isValidWager(data, userId) {
-      return data.keys().hasAll(['userId', 'line', 'side', 'date']) &&
-             data.userId == userId &&
-             data.line is number && data.line > 0 &&
+      return data.userId == userId &&
+             data.line is number &&
              data.side in ['OVER', 'UNDER'] &&
-             data.date is string && data.date.matches("^\\d{4}-\\d{2}-\\d{2}$");
+             data.date is string &&
+             data.date.matches("^\\d{4}-\\d{2}-\\d{2}$");
     }
 
     // ===============================================================
@@ -59,16 +59,13 @@ service cloud.firestore {
     // ===============================================================
 
     match /users/{userId} {
-      // Users can only see their own profile
       allow read: if isOwner(userId);
-      
-      allow create: if isOwner(userId) && isValidUser(request.resource.data);
-      allow update: if isOwner(userId) && isValidUser(request.resource.data);
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
       
       match /wagers/{wagerId} {
         allow read: if isOwner(userId);
-        allow create: if isOwner(userId) && isValidWager(request.resource.data, userId);
-        allow update: if isOwner(userId) && isValidWager(request.resource.data, userId);
+        allow create, update: if isOwner(userId) && isValidWager(request.resource.data, userId);
         allow delete: if isOwner(userId);
       }
     }
