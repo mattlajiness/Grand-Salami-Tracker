@@ -5,6 +5,7 @@ import { GameLog } from './components/GameLog';
 import { WagerTracker } from './components/WagerTracker';
 import { RunTrends } from './components/RunTrends';
 import { InfoSection } from './components/InfoSection';
+import { LogoExport } from './components/LogoExport';
 import { Calendar, Share2 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { useAuth } from './contexts/AuthContext';
@@ -18,6 +19,8 @@ export default function App() {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  
+  const isLogoMode = new URLSearchParams(window.location.search).get('logo') === 'true';
 
   const loadHistoricalData = useCallback(async () => {
     try {
@@ -97,6 +100,10 @@ export default function App() {
       isFinished: final === games.length
     };
   }, [games]);
+
+  if (isLogoMode) {
+    return <LogoExport />;
+  }
 
   if (authLoading) {
     return (
@@ -191,9 +198,11 @@ export default function App() {
           <div className="flex items-center gap-6 text-[10px] font-mono font-black text-slate-500 uppercase tracking-[0.2em]">
             <a href="#how-it-works" className="hover:text-salami-red transition-colors">How it works</a>
             <span className="w-1 h-1 rounded-full bg-slate-800" />
+            <a href="https://twitter.com/Salamipace" target="_blank" rel="noreferrer" className="hover:text-[#1DA1F2] transition-colors">Twitter</a>
+            <span className="w-1 h-1 rounded-full bg-slate-800" />
             <a href="https://www.mlb.com" target="_blank" rel="noreferrer" className="hover:text-salami-red transition-colors">MLB.com</a>
             <span className="w-1 h-1 rounded-full bg-slate-800" />
-            <span className="text-slate-700">v1.1.3</span>
+            <span className="text-slate-700">v1.1.4</span>
           </div>
           <p className="text-[10px] text-slate-600 font-mono tracking-widest">
             DATA PROVIDED BY MLB STATS API • UPDATES EVERY 60S

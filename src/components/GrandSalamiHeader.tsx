@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Activity, Trophy, Sun, Moon, RefreshCw, Calendar, HelpCircle, LogIn, LogOut, User as UserIcon, Clock, Wind, Thermometer, Check } from 'lucide-react';
+import { Activity, Trophy, Sun, Moon, RefreshCw, Calendar, HelpCircle, LogIn, LogOut, User as UserIcon, Clock, Wind, Thermometer, Check, Twitter } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../lib/utils';
@@ -199,6 +199,17 @@ export function GrandSalamiHeader({
             <Calendar className="w-3 h-3 text-salami-red" />
             {format(new Date(), 'MMM dd').toUpperCase()}
           </div>
+
+          <a 
+            href="https://twitter.com/Salamipace" 
+            target="_blank" 
+            rel="noreferrer"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all text-[9px] font-mono font-black uppercase tracking-widest bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300 group"
+            title="Follow @Salamipace"
+          >
+            <Twitter className="w-3 h-3 text-[#1DA1F2] group-hover:scale-110 transition-transform" />
+            <span className="hidden md:inline">@Salamipace</span>
+          </a>
 
           {weatherSummary && (
             <div className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border border-slate-700 bg-slate-800/50">
