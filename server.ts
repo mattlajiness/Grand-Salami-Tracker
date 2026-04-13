@@ -3,6 +3,7 @@ import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
+import { TwitterApi } from "twitter-api-v2";
 
 // Load environment variables from .env file
 dotenv.config();
@@ -13,6 +14,8 @@ const __dirname = path.dirname(__filename);
 async function startServer() {
   const app = express();
   const PORT = 3000;
+
+  app.use(express.json());
 
   // API routes go here
   app.get("/api/health", (req, res) => {

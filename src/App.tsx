@@ -13,7 +13,7 @@ import { format, subDays } from 'date-fns';
 import { AnimatePresence } from 'motion/react';
 
 export default function App() {
-  const { loading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [games, setGames] = useState<MLBGame[]>([]);
   const [historicalGames, setHistoricalGames] = useState<MLBGame[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
@@ -100,6 +100,9 @@ export default function App() {
       isFinished: final === games.length
     };
   }, [games]);
+
+  // DEBUG: Temporarily allowing all logged in users to see the panel to verify it works
+  const isAdmin = !!user;
 
   if (isLogoMode) {
     return <LogoExport />;

@@ -21,9 +21,14 @@ export function GameLog({ games }: GameLogProps) {
       <div className="px-6 py-5 border-b border-slate-800 bg-slate-900/50 flex items-center justify-between relative z-10">
         <div className="flex items-center gap-3">
           <div className="w-2 h-8 bg-salami-red rounded-full" />
-          <h2 className="font-mono font-black text-white uppercase tracking-tighter text-xl">
-            Daily Scorecard
-          </h2>
+          <div className="flex flex-col">
+            <h2 className="font-mono font-black text-white uppercase tracking-tighter text-xl">
+              Daily Scorecard
+            </h2>
+            <span className="text-[8px] font-mono text-slate-500 uppercase tracking-[0.2em] mt-0.5">
+              Click any game for live diamond & box score
+            </span>
+          </div>
         </div>
         <div className="flex gap-4 text-[10px] font-mono text-slate-500 font-bold items-center">
           <div className="flex items-center gap-2">
@@ -80,6 +85,7 @@ export function GameLog({ games }: GameLogProps) {
                             : game.status.detailedState.toUpperCase()}
                         </div>
                         <div className="flex items-center gap-2">
+                          <span className="text-[8px] font-mono text-slate-500 font-black uppercase tracking-widest mr-1">Details</span>
                           <span className="text-[9px] font-mono text-slate-400 font-bold">
                             {game.status.abstractGameState === 'Preview' 
                               ? new Date(game.gameDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -304,7 +310,10 @@ export function GameLog({ games }: GameLogProps) {
                                     ? new Date(game.gameDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                                     : game.status.abstractGameState === 'Live' ? "IN PROGRESS" : "FINAL"}
                                 </div>
-                                {isExpanded ? <ChevronUp className="w-3 h-3 text-slate-400" /> : <ChevronDown className="w-3 h-3 text-slate-400" />}
+                                <div className="flex items-center gap-1 group-hover:text-salami-red transition-colors">
+                                  <span className="text-[8px] font-mono text-slate-500 font-black uppercase tracking-widest">Details</span>
+                                  {isExpanded ? <ChevronUp className="w-3 h-3 text-slate-400 group-hover:text-salami-red" /> : <ChevronDown className="w-3 h-3 text-slate-400 group-hover:text-salami-red" />}
+                                </div>
                               </div>
                             </div>
                           </td>
