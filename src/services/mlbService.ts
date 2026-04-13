@@ -112,16 +112,21 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
     
     const data: MLBScheduleResponse = await response.json();
     
-    if (!data || !data.dates || data.dates.length === 0) {
+    if (!data || !data.dates || !Array.isArray(data.dates) || data.dates.length === 0) {
       console.warn('No games found for this period');
       return [];
     }
 
     let games: MLBGame[] = [];
-    if (startDate && endDate) {
-      games = data.dates.flatMap(d => (d.games || []).map(g => ({ ...g, officialDate: d.date })));
-    } else {
-      games = (data.dates[0].games || []).map(g => ({ ...g, officialDate: data.dates[0].date }));
+    try {
+      if (startDate && endDate) {
+        games = data.dates.flatMap(d => (d.games || []).map(g => ({ ...g, officialDate: d.date })));
+      } else if (data.dates[0]) {
+        games = (data.dates[0].games || []).map(g => ({ ...g, officialDate: data.dates[0].date }));
+      }
+    } catch (e) {
+      console.error('Error parsing MLB games data:', e);
+      return [];
     }
 
     // Enrich with pitcher stats
@@ -168,11 +173,16 @@ async function fetchPitcherStats(pitcherIds: number[]): Promise<Record<number, s
   await Promise.all(batches.map(async (batch) => {
     try {
       const url = `https://statsapi.mlb.com/api/v1/people?personIds=${batch.join(',')}&hydrate=stats(group=[pitching],type=[season])`;
-      const response = await fetch(url);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      
       if (!response.ok) return;
       
       const data = await response.json();
-      if (data.people) {
+      if (data && data.people) {
         data.people.forEach((person: any) => {
           const era = person.stats?.[0]?.splits?.[0]?.stat?.era;
           if (era) {

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Target, TrendingUp, TrendingDown, AlertCircle, CheckCircle2, XCircle, Bell, BellOff, Save, Cloud, RefreshCw, Activity } from 'lucide-react';
+import { Target, TrendingUp, TrendingDown, AlertCircle, CheckCircle2, XCircle, Bell, BellOff, Save, Cloud, RefreshCw, Activity, Trophy, Frown, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { toast } from 'sonner';
@@ -8,6 +8,7 @@ import { db, handleFirestoreError, OperationType } from '../firebase';
 import { doc, setDoc, getDoc, Timestamp } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { trackEvent } from '../lib/analytics';
+import confetti from 'canvas-confetti';
 
 interface WagerTrackerProps {
   currentTotal: number;
@@ -35,6 +36,7 @@ export function WagerTracker({
   const notificationsEnabled = profile?.notificationsEnabled ?? true;
 
   const lastNotifiedStatus = useRef<string | null>(null);
+  const [showResultModal, setShowResultModal] = useState<boolean>(false);
   const today = format(new Date(), 'yyyy-MM-dd');
 
   // Load from Firestore or LocalStorage
@@ -141,22 +143,57 @@ export function WagerTracker({
 
   const status = getStatus();
 
+  const playSound = (type: 'win' | 'loss') => {
+    const audio = new Audio(
+      type === 'win' 
+        ? 'https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3' // Success chime
+        : 'https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3' // Subtle error/loss
+    );
+    audio.volume = 0.4;
+    audio.play().catch(e => console.log('Audio play blocked:', e));
+  };
+
+  const triggerWinCelebration = () => {
+    const duration = 5 * 1000;
+    const animationEnd = Date.now() + duration;
+    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+    const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+    const interval: any = setInterval(function() {
+      const timeLeft = animationEnd - Date.now();
+
+      if (timeLeft <= 0) {
+        return clearInterval(interval);
+      }
+
+      const particleCount = 50 * (timeLeft / duration);
+      confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+      confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+    }, 250);
+  };
+
   // Notification Logic
   useEffect(() => {
     if (!notificationsEnabled || !status || betLine === '') return;
 
     // Only notify on terminal states or significant changes
     if (status === 'WON' && lastNotifiedStatus.current !== 'WON') {
+      playSound('win');
+      triggerWinCelebration();
+      setShowResultModal(true);
       toast.success('WAGER WON! 🏆', {
         description: `Final Total: ${currentTotal} (Line: ${betLine})`,
-        duration: 10000,
+        duration: 15000,
       });
       sendBrowserNotification('WAGER WON! 🏆', `Final Total: ${currentTotal} (Line: ${betLine})`);
       lastNotifiedStatus.current = 'WON';
     } else if (status === 'LOST' && lastNotifiedStatus.current !== 'LOST') {
+      playSound('loss');
+      setShowResultModal(true);
       toast.error('WAGER LOST ❌', {
         description: `Total: ${currentTotal} (Line: ${betLine})`,
-        duration: 10000,
+        duration: 15000,
       });
       sendBrowserNotification('WAGER LOST ❌', `Total: ${currentTotal} (Line: ${betLine})`);
       lastNotifiedStatus.current = 'LOST';
@@ -193,6 +230,74 @@ export function WagerTracker({
   return (
     <div className="dashboard-card border-slate-800 shadow-2xl transition-all duration-300">
       <div className="stitching-top" />
+      
+      {/* Result Modal Overlay */}
+      <AnimatePresence>
+        {showResultModal && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm"
+            onClick={() => setShowResultModal(false)}
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className={cn(
+                "max-w-md w-full dashboard-card p-8 text-center relative overflow-hidden",
+                status === 'WON' ? "border-green-500/50" : "border-red-500/50"
+              )}
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="stitching-top" />
+              
+              <div className={cn(
+                "w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6",
+                status === 'WON' ? "bg-green-500/20 text-green-500" : "bg-red-500/20 text-red-500"
+              )}>
+                {status === 'WON' ? <Trophy className="w-10 h-10" /> : <Frown className="w-10 h-10" />}
+              </div>
+
+              <h2 className="text-3xl font-black text-white uppercase tracking-tighter mb-2">
+                {status === 'WON' ? 'Wager Won!' : 'Wager Lost'}
+              </h2>
+              
+              <p className="text-slate-400 font-mono text-xs uppercase tracking-widest mb-8">
+                {status === 'WON' 
+                  ? "The slate finished in your favor. Great call!" 
+                  : "The slate didn't go your way this time."
+                }
+              </p>
+
+              <div className="bg-slate-950 rounded-xl p-6 border border-slate-800 mb-8">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-left">
+                    <span className="text-[10px] font-mono font-black text-slate-500 uppercase block">Your Line</span>
+                    <span className="text-2xl font-mono font-black text-white">{betLine}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] font-mono font-black text-slate-500 uppercase block">Final Total</span>
+                    <span className={cn(
+                      "text-2xl font-mono font-black",
+                      status === 'WON' ? "text-green-500" : "text-red-500"
+                    )}>{currentTotal}</span>
+                  </div>
+                </div>
+              </div>
+
+              <button 
+                onClick={() => setShowResultModal(false)}
+                className="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white font-black uppercase tracking-widest rounded-xl transition-all border border-slate-700"
+              >
+                Close Summary
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex flex-col">

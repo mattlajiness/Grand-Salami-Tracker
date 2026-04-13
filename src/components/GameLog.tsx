@@ -52,7 +52,8 @@ export function GameLog({ games }: GameLogProps) {
             {/* Mobile View: Card List */}
             <div className="block md:hidden divide-y divide-slate-800">
               {games.map((game, index) => {
-                const total = (game.teams.away.score || 0) + (game.teams.home.score || 0);
+                if (!game || !game.teams) return null;
+                const total = (game.teams.away?.score || 0) + (game.teams.home?.score || 0);
                 const isExpanded = expandedGameId === game.gamePk;
 
                 return (
@@ -188,7 +189,8 @@ export function GameLog({ games }: GameLogProps) {
                 </thead>
                 <tbody className="divide-y divide-slate-800">
                   {games.map((game, index) => {
-                    const total = (game.teams.away.score || 0) + (game.teams.home.score || 0);
+                    if (!game || !game.teams) return null;
+                    const total = (game.teams.away?.score || 0) + (game.teams.home?.score || 0);
                     const isExpanded = expandedGameId === game.gamePk;
 
                     return (

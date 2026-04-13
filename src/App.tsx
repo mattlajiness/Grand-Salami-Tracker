@@ -17,46 +17,69 @@ export default function App() {
   const [historicalGames, setHistoricalGames] = useState<MLBGame[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
-  const loadData = useCallback(async () => {
+  const loadHistoricalData = useCallback(async () => {
+    try {
+      const fiveDaysAgo = format(subDays(new Date(), 6), 'yyyy-MM-dd');
+      const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+      const historyData = await fetchMLBGames(undefined, fiveDaysAgo, yesterday);
+      setHistoricalGames(historyData || []);
+    } catch (error) {
+      console.error('Error loading historical data:', error);
+    }
+  }, []);
+
+  const loadLiveData = useCallback(async () => {
     setIsRefreshing(true);
     try {
       const today = format(new Date(), 'yyyy-MM-dd');
-      const fiveDaysAgo = format(subDays(new Date(), 6), 'yyyy-MM-dd');
-      const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
-
-      const [mlbData, historyData] = await Promise.all([
-        fetchMLBGames(today),
-        fetchMLBGames(undefined, fiveDaysAgo, yesterday)
-      ]);
-
+      const mlbData = await fetchMLBGames(today);
       setGames(mlbData || []);
-      setHistoricalGames(historyData || []);
       setLastUpdated(new Date());
     } catch (error) {
-      console.error('Error in loadData:', error);
-      toast.error('Error loading game data.');
+      console.error('Error in loadLiveData:', error);
+      toast.error('Error loading live game data.');
     } finally {
       setIsRefreshing(false);
+      setIsInitialLoad(false);
     }
   }, []);
 
   useEffect(() => {
-    loadData();
-    const interval = setInterval(loadData, 60000);
+    loadHistoricalData();
+    loadLiveData();
+    
+    const interval = setInterval(loadLiveData, 60000);
     return () => clearInterval(interval);
-  }, [loadData]);
+  }, [loadHistoricalData, loadLiveData]);
 
-  const currentTotal = useMemo(() => games.reduce((acc, game) => {
-    return acc + (game.teams.away.score || 0) + (game.teams.home.score || 0);
-  }, 0), [games]);
+  const currentTotal = useMemo(() => {
+    if (!Array.isArray(games)) return 0;
+    return games.reduce((acc, game) => {
+      const awayScore = game?.teams?.away?.score || 0;
+      const homeScore = game?.teams?.home?.score || 0;
+      return acc + awayScore + homeScore;
+    }, 0);
+  }, [games]);
 
   const stats = useMemo(() => {
-    const final = games.filter(g => g.status.abstractGameState === 'Final').length;
-    const live = games.filter(g => g.status.abstractGameState === 'Live').length;
+    if (!Array.isArray(games) || games.length === 0) {
+      return {
+        finalCount: 0,
+        liveCount: 0,
+        totalExpectedInnings: 0,
+        playedInnings: 0,
+        isFinished: false
+      };
+    }
+
+    const final = games.filter(g => g?.status?.abstractGameState === 'Final').length;
+    const live = games.filter(g => g?.status?.abstractGameState === 'Live').length;
     
     const totalExpected = games.length * 9;
     const played = games.reduce((acc, game) => {
+      if (!game?.status) return acc;
       if (game.status.abstractGameState === 'Final') return acc + 9;
       if (game.status.abstractGameState === 'Live') {
         const inning = game.linescore?.currentInning || 1;
@@ -71,7 +94,7 @@ export default function App() {
       liveCount: live,
       totalExpectedInnings: totalExpected,
       playedInnings: played,
-      isFinished: games.length > 0 && final === games.length
+      isFinished: final === games.length
     };
   }, [games]);
 
@@ -102,13 +125,13 @@ export default function App() {
             gameCount={games.length}
             finalCount={stats.finalCount}
             liveCount={stats.liveCount}
-            onRefresh={loadData}
+            onRefresh={loadLiveData}
             isRefreshing={isRefreshing}
             lastUpdated={lastUpdated}
             games={games}
           />
 
-          {games.length === 0 && !isRefreshing ? (
+          {games.length === 0 && !isRefreshing && !isInitialLoad ? (
             <div className="dashboard-card p-12 text-center">
               <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-700">
                 <Calendar className="w-8 h-8 text-slate-500" />
@@ -118,7 +141,7 @@ export default function App() {
                 There are no MLB games found for today's slate.
               </p>
               <button 
-                onClick={loadData}
+                onClick={loadLiveData}
                 className="mt-6 px-6 py-2 bg-salami-red text-white rounded-full font-black text-[10px] uppercase tracking-widest hover:bg-red-700 transition-colors"
               >
                 Check Again
