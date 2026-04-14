@@ -74,12 +74,12 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId) && isValidUser(request.resource.data);
-      allow update: if isOwner(userId) && isValidUser(request.resource.data) && fieldUnchanged('createdAt');
+      allow update: if isOwner(userId) && isValidUser(request.resource.data);
       
       match /wagers/{wagerId} {
         allow read: if isOwner(userId);
         allow create: if isOwner(userId) && isValidWager(request.resource.data, userId);
-        allow update: if isOwner(userId) && isValidWager(request.resource.data, userId) && fieldUnchanged('createdAt');
+        allow update: if isOwner(userId) && isValidWager(request.resource.data, userId);
         allow delete: if isOwner(userId);
       }
     }
