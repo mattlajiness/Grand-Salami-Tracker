@@ -33,6 +33,8 @@ export function GrandSalamiHeader({
   const [relativeTime, setRelativeTime] = useState(formatDistanceToNow(lastUpdated, { addSuffix: true }));
   const [isSigningIn, setIsSigningIn] = useState(false);
 
+  const isAdmin = user?.email?.toLowerCase() === 'mattlajiness@gmail.com';
+
   const weatherSummary = useMemo(() => {
     if (!games || !games.length) return null;
     const gamesWithWeather = games.filter(g => g?.weather?.temp && g?.weather?.wind);
@@ -162,7 +164,12 @@ export function GrandSalamiHeader({
             <div className="flex items-center gap-2">
               <div className="hidden md:flex flex-col items-end mr-2">
                 <span className="text-[10px] font-black uppercase tracking-tighter leading-none text-white">{user.displayName}</span>
-                <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest mt-0.5">Pro Member</span>
+                <span className={cn(
+                  "text-[8px] font-mono uppercase tracking-widest mt-0.5",
+                  isAdmin ? "text-blue-400 font-black" : "text-slate-500"
+                )}>
+                  {isAdmin ? 'ADMIN ACCESS' : 'PRO MEMBER'}
+                </span>
               </div>
               <button 
                 onClick={() => signOut()}

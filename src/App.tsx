@@ -6,6 +6,7 @@ import { WagerTracker } from './components/WagerTracker';
 import { RunTrends } from './components/RunTrends';
 import { InfoSection } from './components/InfoSection';
 import { LogoExport } from './components/LogoExport';
+import { UserAdminPanel } from './components/UserAdminPanel';
 import { Calendar, Share2 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { useAuth } from './contexts/AuthContext';
@@ -101,8 +102,7 @@ export default function App() {
     };
   }, [games]);
 
-  // DEBUG: Temporarily allowing all logged in users to see the panel to verify it works
-  const isAdmin = !!user;
+  const isAdmin = user?.email?.toLowerCase() === 'mattlajiness@gmail.com';
 
   if (isLogoMode) {
     return <LogoExport />;
@@ -164,6 +164,10 @@ export default function App() {
               </div>
               
               <div className="order-1 lg:order-2 space-y-6">
+                {isAdmin && (
+                  <UserAdminPanel />
+                )}
+
                 <WagerTracker 
                   currentTotal={currentTotal}
                   playedInnings={stats.playedInnings}

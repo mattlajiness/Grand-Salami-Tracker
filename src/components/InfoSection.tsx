@@ -1,9 +1,59 @@
-import { HelpCircle, Info, Calculator, Target, Zap } from 'lucide-react';
+import { HelpCircle, Info, Calculator, Target, Zap, Bell, History, UserPlus } from 'lucide-react';
 import { motion } from 'motion/react';
 
 export function InfoSection() {
   return (
     <div id="how-it-works" className="mt-12 space-y-8">
+      {/* Why Sign Up Section */}
+      <div className="dashboard-card p-8 bg-gradient-to-br from-slate-900 to-slate-950 border-blue-500/20 shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full -mr-32 -mt-32 blur-3xl" />
+        
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-6">
+            <UserPlus className="w-6 h-6 text-blue-400" />
+            <h3 className="font-black uppercase tracking-tighter text-2xl text-white">Why Create an Account?</h3>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+            <div className="space-y-3">
+              <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
+                <Bell className="w-5 h-5 text-blue-400" />
+              </div>
+              <div>
+                <h4 className="text-sm font-black text-white uppercase tracking-widest mb-1">Live Notifications</h4>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Get alerted when the Grand Salami pace shifts significantly or when the slate hits critical milestones.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center border border-purple-500/20">
+                <Target className="w-5 h-5 text-purple-400" />
+              </div>
+              <div>
+                <h4 className="text-sm font-black text-white uppercase tracking-widest mb-1">Personal Tracker</h4>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Save your specific wagers and track your personal ROI against the live Grand Salami projections.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center border border-green-500/20">
+                <History className="w-5 h-5 text-green-400" />
+              </div>
+              <div>
+                <h4 className="text-sm font-black text-white uppercase tracking-widest mb-1">Historical Data</h4>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Access deep historical trends for different slate sizes to help you spot value in the daily lines.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="flex items-center gap-4 mb-2">
         <div className="h-px flex-1 bg-slate-800" />
         <div className="flex items-center gap-2 px-4 py-1 bg-slate-900 rounded-full border border-slate-800">
