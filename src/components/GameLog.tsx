@@ -10,15 +10,21 @@ interface GameLogProps {
 
 export function GameLog({ games }: GameLogProps) {
   const [expandedGameId, setExpandedGameId] = useState<number | null>(null);
+  const [filter, setFilter] = useState<'All' | 'Live' | 'Final' | 'Preview'>('All');
 
   const toggleGame = (gameId: number) => {
     setExpandedGameId(expandedGameId === gameId ? null : gameId);
   };
 
+  const filteredGames = games.filter(game => {
+    if (filter === 'All') return true;
+    return game.status.abstractGameState === filter;
+  });
+
   return (
     <div className="dashboard-card border-slate-800 shadow-xl transition-all duration-300">
       <div className="stitching-top" />
-      <div className="px-6 py-5 border-b border-slate-800 bg-slate-900/50 flex items-center justify-between relative z-10">
+      <div className="px-6 py-5 border-b border-slate-800 bg-slate-900/50 flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
         <div className="flex items-center gap-3">
           <div className="w-2 h-8 bg-salami-red rounded-full" />
           <div className="flex flex-col">
@@ -30,33 +36,43 @@ export function GameLog({ games }: GameLogProps) {
             </span>
           </div>
         </div>
-        <div className="flex gap-4 text-[10px] font-mono text-slate-500 font-bold items-center">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]" /> FINAL
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-salami-red shadow-[0_0_5px_rgba(225,29,72,0.5)] animate-pulse" /> LIVE
-          </div>
-          <div className="flex items-center gap-2 text-slate-300">
-            <div className="w-2 h-2 rounded-full bg-slate-300" /> PREVIEW
-          </div>
+
+        <div className="flex items-center gap-2 bg-slate-950 p-1 rounded-lg border border-slate-800">
+          {(['All', 'Live', 'Final', 'Preview'] as const).map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={cn(
+                "px-3 py-1.5 rounded-md text-[9px] font-black uppercase tracking-widest transition-all",
+                filter === f 
+                  ? "bg-slate-800 text-salami-red shadow-sm" 
+                  : "text-slate-500 hover:text-slate-400"
+              )}
+            >
+              {f === 'Preview' ? 'Upcoming' : f}
+            </button>
+          ))}
         </div>
       </div>
       
       <div className="divide-y divide-slate-800">
-        {games.length === 0 ? (
+        {filteredGames.length === 0 ? (
           <div className="p-16 text-center text-slate-500">
             <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
               <Activity className="w-8 h-8 opacity-20" />
             </div>
-            <div className="font-black uppercase tracking-widest text-sm mb-1">No Active Slate</div>
-            <div className="text-[10px] font-mono">WAITING FOR NEXT SCHEDULED PITCH</div>
+            <div className="font-black uppercase tracking-widest text-sm mb-1">No {filter !== 'All' ? filter : ''} Games</div>
+            <div className="text-[10px] font-mono uppercase">
+              {filter === 'Live' ? 'Waiting for games to start' : 
+               filter === 'Final' ? 'No games have finished yet' :
+               filter === 'Preview' ? 'All games have started' : 'Waiting for next scheduled pitch'}
+            </div>
           </div>
         ) : (
           <div>
             {/* Mobile View: Card List */}
             <div className="block md:hidden divide-y divide-slate-800">
-              {games.map((game, index) => {
+              {filteredGames.map((game, index) => {
                 if (!game || !game.teams) return null;
                 const total = (game.teams.away?.score || 0) + (game.teams.home?.score || 0);
                 const isExpanded = expandedGameId === game.gamePk;
@@ -194,7 +210,7 @@ export function GameLog({ games }: GameLogProps) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800">
-                  {games.map((game, index) => {
+                  {filteredGames.map((game, index) => {
                     if (!game || !game.teams) return null;
                     const total = (game.teams.away?.score || 0) + (game.teams.home?.score || 0);
                     const isExpanded = expandedGameId === game.gamePk;
