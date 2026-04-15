@@ -87,10 +87,11 @@ export function InfoSection() {
               <Calculator className="w-5 h-5 text-blue-400" />
             </div>
             <div>
-              <h3 className="font-black text-white uppercase tracking-tighter text-lg mb-2">Real-Time Projections</h3>
+              <h3 className="font-black text-white uppercase tracking-tighter text-lg mb-2">Smart Projection Engine</h3>
               <p className="text-sm text-slate-400 leading-relaxed">
-                Our tracker doesn't just count finished games. We use a <span className="font-bold text-slate-200">Granular Extrapolation Engine</span> that monitors every half-inning. 
-                By calculating the current "Runs Per Inning" pace across the entire slate, we provide a live projection of where the total is likely to land before the final pitch is even thrown.
+                Our tracker uses a <span className="font-bold text-slate-200">Smart Projection Engine</span> that goes beyond simple math. 
+                It monitors <span className="text-blue-400 font-bold">Live Threats</span> (runners on base) in real-time, using historical base-out scoring averages to anticipate runs before they happen. 
+                Combined with a <span className="font-bold text-slate-200">Confidence Meter</span>, you'll know exactly how reliable the current pace is at any moment.
               </p>
             </div>
           </div>
