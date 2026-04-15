@@ -8,6 +8,7 @@ import { db, handleFirestoreError, OperationType } from '../firebase';
 import { doc, setDoc, getDoc, Timestamp } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { trackEvent } from '../lib/analytics';
+import { calculateSmartProjection, getConfidenceScore } from '../lib/projectionEngine';
 import confetti from 'canvas-confetti';
 
 interface WagerTrackerProps {
@@ -17,6 +18,7 @@ interface WagerTrackerProps {
   isFinished: boolean;
   gameCount: number;
   finalCount: number;
+  liveThreats?: number;
 }
 
 export function WagerTracker({ 
@@ -25,7 +27,8 @@ export function WagerTracker({
   totalExpectedInnings, 
   isFinished,
   gameCount,
-  finalCount
+  finalCount,
+  liveThreats = 0
 }: WagerTrackerProps) {
   const { user, profile, updateProfile } = useAuth();
   const [betLine, setBetLine] = useState<number | ''>('');
@@ -102,14 +105,16 @@ export function WagerTracker({
   }, [betLine, betType, user, today]);
 
   const projectedTotal = playedInnings > 0.25 
-    ? Math.round((currentTotal / playedInnings) * totalExpectedInnings) 
+    ? calculateSmartProjection(currentTotal, playedInnings, totalExpectedInnings, liveThreats)
     : null;
-
-  const isStabilizing = playedInnings > 0 && playedInnings < 3;
 
   const completionPercentage = totalExpectedInnings > 0 
     ? Math.round((playedInnings / totalExpectedInnings) * 100) 
     : 0;
+
+  const confidence = getConfidenceScore(completionPercentage);
+
+  const isStabilizing = playedInnings > 0 && playedInnings < 3;
 
   const remainingInnings = totalExpectedInnings - playedInnings;
   const currentPace = playedInnings > 0 ? (currentTotal / playedInnings) * 9 : 0;
@@ -407,17 +412,27 @@ export function WagerTracker({
                   </div>
                   <div className="text-right">
                     <span className="text-[10px] font-mono font-black uppercase tracking-widest block opacity-70">
-                      Projected
+                      Smart Projection
                     </span>
                     <div className="flex flex-col items-end">
-                      <span className="text-xl font-mono font-black">
-                        {projectedTotal !== null ? projectedTotal.toString().padStart(3, '0') : '---'}
-                      </span>
-                      {isStabilizing && (
-                        <span className="text-[7px] font-mono text-amber-500 font-bold animate-pulse">
-                          STABILIZING...
+                      <div className="flex items-center gap-2">
+                        {liveThreats > 0.5 && (
+                          <motion.div
+                            animate={{ scale: [1, 1.2, 1], opacity: [1, 0.5, 1] }}
+                            transition={{ duration: 1, repeat: Infinity }}
+                            className="w-2 h-2 rounded-full bg-salami-red shadow-[0_0_8px_rgba(225,29,72,0.8)]"
+                            title="Live Scoring Threat Detected"
+                          />
+                        )}
+                        <span className="text-xl font-mono font-black">
+                          {projectedTotal !== null ? projectedTotal.toString().padStart(3, '0') : '---'}
                         </span>
-                      )}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className={cn("text-[7px] font-mono font-bold uppercase", confidence.color)}>
+                          {confidence.label} CONFIDENCE
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>

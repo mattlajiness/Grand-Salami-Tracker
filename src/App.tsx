@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { fetchMLBGames, MLBGame } from './services/mlbService';
+import { calculateLiveThreat } from './lib/projectionEngine';
 import { GrandSalamiHeader } from './components/GrandSalamiHeader';
 import { GameLog } from './components/GameLog';
 import { WagerTracker } from './components/WagerTracker';
@@ -82,12 +83,25 @@ export default function App() {
     const live = games.filter(g => g?.status?.abstractGameState === 'Live').length;
     
     const totalExpected = games.length * 9;
+    let liveThreats = 0;
+
     const played = games.reduce((acc, game) => {
       if (!game?.status) return acc;
       if (game.status.abstractGameState === 'Final') return acc + 9;
       if (game.status.abstractGameState === 'Live') {
         const inning = game.linescore?.currentInning || 1;
         const isTop = game.linescore?.isTopInning ?? true;
+
+        // Calculate live threat for this game
+        if (game.linescore?.offense) {
+          liveThreats += calculateLiveThreat({
+            first: !!game.linescore.offense.first,
+            second: !!game.linescore.offense.second,
+            third: !!game.linescore.offense.third,
+            outs: game.linescore.outs || 0
+          });
+        }
+
         return acc + (inning - 1) + (isTop ? 0.25 : 0.75);
       }
       return acc;
@@ -98,6 +112,7 @@ export default function App() {
       liveCount: live,
       totalExpectedInnings: totalExpected,
       playedInnings: played,
+      liveThreats,
       isFinished: final === games.length
     };
   }, [games]);
@@ -175,6 +190,7 @@ export default function App() {
                   isFinished={stats.isFinished}
                   gameCount={games.length}
                   finalCount={stats.finalCount}
+                  liveThreats={stats.liveThreats}
                 />
 
                 {/* Desktop Run Trends */}
