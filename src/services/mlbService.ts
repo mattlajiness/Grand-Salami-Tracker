@@ -78,6 +78,12 @@ export interface MLBGame {
     name: string;
     id: number;
   };
+  boxscore?: {
+    teams: {
+      away: { pitchers: number[] };
+      home: { pitchers: number[] };
+    };
+  };
   gameDate: string;
   officialDate?: string;
 }
@@ -91,7 +97,7 @@ export interface MLBScheduleResponse {
 
 export async function fetchMLBGames(date?: string, startDate?: string, endDate?: string): Promise<MLBGame[]> {
   const url = new URL('https://statsapi.mlb.com/api/v1/schedule/games/?sportId=1');
-  url.searchParams.append('hydrate', 'linescore,team,weather,venue,probablePitcher');
+  url.searchParams.append('hydrate', 'linescore,team,weather,venue,probablePitcher,boxscore');
   url.searchParams.append('_t', Date.now().toString()); // Cache buster
   
   if (startDate && endDate) {

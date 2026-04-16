@@ -1,4 +1,4 @@
-import { HelpCircle, Info, Calculator, Target, Zap, Bell, History, UserPlus } from 'lucide-react';
+import { HelpCircle, Info, Calculator, Target, Zap, Bell, History, UserPlus, CloudRain } from 'lucide-react';
 import { motion } from 'motion/react';
 
 export function InfoSection() {
@@ -22,7 +22,8 @@ export function InfoSection() {
               <div>
                 <h4 className="text-sm font-black text-white uppercase tracking-widest mb-1">Live Notifications</h4>
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  Get alerted when the Grand Salami pace shifts significantly or when the slate hits critical milestones.
+                  Get alerted when the pace shifts or milestones are hit. 
+                  <span className="block mt-1 text-[10px] text-blue-400/70 italic">Note: If in preview, open in new tab for best results.</span>
                 </p>
               </div>
             </div>
@@ -133,7 +134,16 @@ export function InfoSection() {
                 <Zap className="w-3 h-3" /> The Bullpen Factor
               </div>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Scoring often increases in the 7th-9th innings as tired bullpens take over. If the projection is close to your line in the 6th, the "Over" often has the edge.
+                Scoring often increases in the 7th-9th innings as tired bullpens take over. Our <span className="text-blue-400">Fatigue Report</span> tracks teams using 4+ pitchers to highlight scoring surges.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-blue-400 font-mono text-[10px] font-black uppercase tracking-widest">
+                <CloudRain className="w-3 h-3" /> Rain & Voids
+              </div>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Rain doesn't just lower scoring; it can void your entire bet. If a game is canceled or doesn't reach the required innings, most books void the Grand Salami. Watch the <span className="text-blue-400">Rain Risk</span> badges.
               </p>
             </div>
           </div>

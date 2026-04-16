@@ -2,7 +2,8 @@ import { useState, Fragment } from 'react';
 import { MLBGame } from '../services/mlbService';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
-import { Activity, RefreshCw, ChevronDown, ChevronUp, User, Info, Wind, Thermometer, Cloud, Sun, CloudRain, CloudLightning, MapPin } from 'lucide-react';
+import { Activity, RefreshCw, ChevronDown, ChevronUp, User, Info, Wind, Thermometer, Cloud, Sun, CloudRain, CloudLightning, MapPin, AlertTriangle, Droplets } from 'lucide-react';
+import { calculateLiveThreat } from '../lib/projectionEngine';
 
 interface GameLogProps {
   games: MLBGame[];
@@ -20,6 +21,23 @@ export function GameLog({ games }: GameLogProps) {
     if (filter === 'All') return true;
     return game.status.abstractGameState === filter;
   });
+
+  const getThreatLevel = (game: MLBGame) => {
+    if (!game.linescore || game.status.abstractGameState !== 'Live') return 0;
+    const { offense, outs } = game.linescore;
+    if (!offense) return 0;
+    return calculateLiveThreat({
+      first: !!offense.first,
+      second: !!offense.second,
+      third: !!offense.third,
+      outs: outs || 0
+    });
+  };
+
+  const isRainy = (condition: string = '') => {
+    const rainKeywords = ['Rain', 'Drizzle', 'Showers', 'Thunderstorm', 'Storm'];
+    return rainKeywords.some(keyword => condition.toLowerCase().includes(keyword.toLowerCase()));
+  };
 
   return (
     <div className="dashboard-card border-slate-800 shadow-xl transition-all duration-300">
@@ -101,6 +119,18 @@ export function GameLog({ games }: GameLogProps) {
                             : game.status.detailedState.toUpperCase()}
                         </div>
                         <div className="flex items-center gap-2">
+                          {game.status.abstractGameState === 'Live' && getThreatLevel(game) > 0.5 && (
+                             <div className="flex items-center gap-1 bg-salami-red/20 px-1.5 py-0.5 rounded animate-pulse">
+                               <AlertTriangle className="w-2.5 h-2.5 text-salami-red" />
+                               <span className="text-[7px] font-mono font-black text-salami-red uppercase tracking-widest">High Threat</span>
+                             </div>
+                          )}
+                          {isRainy(game.weather?.condition) && (
+                            <div className="flex items-center gap-1 bg-blue-500/20 px-1.5 py-0.5 rounded">
+                              <Droplets className="w-2.5 h-2.5 text-blue-400" />
+                              <span className="text-[7px] font-mono font-black text-blue-400 uppercase tracking-widest">Rain Risk</span>
+                            </div>
+                          )}
                           <span className="text-[8px] font-mono text-slate-500 font-black uppercase tracking-widest mr-1">Details</span>
                           <span className="text-[9px] font-mono text-slate-400 font-bold">
                             {game.status.abstractGameState === 'Preview' 
@@ -306,6 +336,26 @@ export function GameLog({ games }: GameLogProps) {
                           <td className="px-6 py-5 text-right">
                             <div className="flex flex-col items-end gap-1">
                               <div className="flex items-center gap-2 mb-1">
+                                {game.status.abstractGameState === 'Live' && getThreatLevel(game) > 0.5 && (
+                                  <motion.div 
+                                    animate={{ opacity: [1, 0.5, 1] }} 
+                                    transition={{ duration: 1, repeat: Infinity }}
+                                    className="flex items-center gap-1 bg-salami-red/10 border border-salami-red/20 px-2 py-0.5 rounded cursor-help"
+                                    title="Scoring threat in progress (runners on base)"
+                                  >
+                                    <AlertTriangle className="w-2 h-2 text-salami-red" />
+                                    <span className="text-[7px] font-mono font-black text-salami-red uppercase">Live Threat</span>
+                                  </motion.div>
+                                )}
+                                {isRainy(game.weather?.condition) && (
+                                  <div 
+                                    className="flex items-center gap-1 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded cursor-help"
+                                    title="Rain forecast: Game at risk of delay or cancellation"
+                                  >
+                                    <Droplets className="w-2 h-2 text-blue-400" />
+                                    <span className="text-[7px] font-mono font-black text-blue-400 uppercase">Rain Watch</span>
+                                  </div>
+                                )}
                                 <span className="text-[10px] font-mono font-black text-salami-red">
                                   TOTAL: {total}
                                 </span>

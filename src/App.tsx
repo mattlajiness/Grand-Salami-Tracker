@@ -5,14 +5,15 @@ import { GrandSalamiHeader } from './components/GrandSalamiHeader';
 import { GameLog } from './components/GameLog';
 import { WagerTracker } from './components/WagerTracker';
 import { RunTrends } from './components/RunTrends';
+import { BullpenReport } from './components/BullpenReport';
 import { InfoSection } from './components/InfoSection';
 import { LogoExport } from './components/LogoExport';
 import { UserAdminPanel } from './components/UserAdminPanel';
-import { Calendar, Share2 } from 'lucide-react';
+import { Calendar, Share2, Droplets } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { useAuth } from './contexts/AuthContext';
 import { format, subDays } from 'date-fns';
-import { AnimatePresence } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 
 export default function App() {
   const { user, loading: authLoading } = useAuth();
@@ -113,7 +114,11 @@ export default function App() {
       totalExpectedInnings: totalExpected,
       playedInnings: played,
       liveThreats,
-      isFinished: final === games.length
+      isFinished: final === games.length,
+      hasRainRisk: games.some(g => {
+        const cond = g.weather?.condition?.toLowerCase() || '';
+        return cond.includes('rain') || cond.includes('showers') || cond.includes('storm');
+      })
     };
   }, [games]);
 
@@ -145,6 +150,27 @@ export default function App() {
       
       <main className="max-w-5xl mx-auto px-4 pt-8">
         <div className="space-y-6">
+          {stats.hasRainRisk && (
+            <motion.div 
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              className="bg-blue-900/20 border border-blue-800/50 rounded-xl p-3 flex items-center justify-between px-6"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-500/10 rounded-lg">
+                  <Droplets className="w-4 h-4 text-blue-400 animate-pulse" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-mono font-black text-blue-400 uppercase tracking-widest block">Weather Alert</span>
+                  <p className="text-[11px] font-mono text-slate-300 uppercase tracking-tight">Active precipitation detected in one or more games. Monitor for delays.</p>
+                </div>
+              </div>
+              <div className="hidden sm:block text-[8px] font-mono text-slate-500 uppercase tracking-widest text-right">
+                Canceled games may void<br/>Grand Salami wagers
+              </div>
+            </motion.div>
+          )}
+
           <GrandSalamiHeader 
             currentTotal={currentTotal}
             gameCount={games.length}
@@ -192,6 +218,8 @@ export default function App() {
                   finalCount={stats.finalCount}
                   liveThreats={stats.liveThreats}
                 />
+
+                <BullpenReport games={games} />
 
                 {/* Desktop Run Trends */}
                 <div className="hidden lg:block">

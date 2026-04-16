@@ -182,7 +182,7 @@ export function WagerTracker({
   useEffect(() => {
     if (!notificationsEnabled || !status || betLine === '') return;
 
-    // Only notify on terminal states or significant changes
+    // 1. Terminal States (WON/LOST)
     if (status === 'WON' && lastNotifiedStatus.current !== 'WON') {
       playSound('win');
       triggerWinCelebration();
@@ -202,20 +202,40 @@ export function WagerTracker({
       });
       sendBrowserNotification('WAGER LOST ❌', `Total: ${currentTotal} (Line: ${betLine})`);
       lastNotifiedStatus.current = 'LOST';
+    } 
+    // 2. Significant Status Shifts (Intermediate alerts)
+    else if (status === 'ON TRACK' && (lastNotifiedStatus.current === 'BEHIND' || lastNotifiedStatus.current === 'DANGER')) {
+      toast.info('BACK ON TRACK! 📈', {
+        description: `Projection moved in your favor: ${projectedTotal}`,
+      });
+      sendBrowserNotification('BACK ON TRACK! 📈', `Projection moved in your favor: ${projectedTotal}`);
+      lastNotifiedStatus.current = 'ON TRACK';
+    } else if (status === 'BEHIND' && lastNotifiedStatus.current === 'ON TRACK' && betType === 'over') {
+      toast.warning('SLIPPING BEHIND 📉', {
+        description: `Projection moved against you: ${projectedTotal}`,
+      });
+      sendBrowserNotification('SLIPPING BEHIND 📉', `Projection moved against you: ${projectedTotal}`);
+      lastNotifiedStatus.current = 'BEHIND';
+    } else if (status === 'DANGER' && lastNotifiedStatus.current === 'ON TRACK' && betType === 'under') {
+      toast.warning('IN DANGER 📉', {
+        description: `Scoring surge detected: ${projectedTotal}`,
+      });
+      sendBrowserNotification('IN DANGER 📉', `Scoring surge detected: ${projectedTotal}`);
+      lastNotifiedStatus.current = 'DANGER';
     }
-  }, [status, notificationsEnabled, currentTotal, betLine]);
+  }, [status, notificationsEnabled, currentTotal, betLine, projectedTotal, betType]);
 
   const sendBrowserNotification = (title: string, body: string) => {
     if (!("Notification" in window)) return;
     
+    // Check if we are in an iframe
+    const isIframe = window.self !== window.top;
+    if (isIframe) {
+      console.warn('Notifications typically blocked in iframes. Open app in new tab.');
+    }
+    
     if (Notification.permission === "granted") {
       new Notification(title, { body, icon: '/favicon.ico' });
-    } else if (Notification.permission !== "denied") {
-      Notification.requestPermission().then(permission => {
-        if (permission === "granted") {
-          new Notification(title, { body, icon: '/favicon.ico' });
-        }
-      });
     }
   };
 
@@ -223,12 +243,15 @@ export function WagerTracker({
     trackEvent('toggle_notifications', { enabled: !notificationsEnabled });
     if (!notificationsEnabled && "Notification" in window) {
       Notification.requestPermission();
+      toast.info('ALERTS ENABLED 🔔', {
+        description: 'You will now receive alerts for results and significant pace shifts.',
+      });
     }
     if (user) {
       updateProfile({ notificationsEnabled: !notificationsEnabled });
     } else {
       localStorage.setItem('salami_notifications', (!notificationsEnabled).toString());
-      window.location.reload(); // Simple way to refresh local state for this demo
+      window.location.reload(); 
     }
   };
 
@@ -319,19 +342,35 @@ export function WagerTracker({
               </div>
             )}
           </div>
-            <button 
-              onClick={toggleNotifications}
-              className={cn(
-                "p-2 rounded-lg border transition-all",
-                notificationsEnabled 
-                  ? "bg-green-500/10 border-green-500/20 text-green-500" 
-                  : "bg-slate-800 border-slate-700 text-slate-500"
-              )}
-              title={notificationsEnabled ? "Notifications Enabled" : "Notifications Disabled"}
-            >
+              <div className="flex items-center gap-3">
+                {notificationsEnabled && (
+                  <button
+                    onClick={() => {
+                      toast.info('TEST ALERT 🔔', { description: 'Browser alert sent! Check your notification tray.' });
+                      sendBrowserNotification('Salami Pace Test', 'Notifications are working! Good luck on today\'s slate. ⚾️');
+                    }}
+                    className="text-[8px] font-mono font-black text-blue-500/50 hover:text-blue-400 uppercase tracking-widest border border-blue-500/10 hover:border-blue-500/30 px-2 py-1 rounded transition-all"
+                  >
+                    Test Alert
+                  </button>
+                )}
+                <button 
+                  onClick={toggleNotifications}
+            className={cn(
+              "p-2 rounded-lg border transition-all duration-300 group relative",
+              notificationsEnabled 
+                ? "bg-blue-500/10 border-blue-500/30 text-blue-400" 
+                : "bg-slate-800/50 border-slate-700 text-slate-500 hover:border-slate-600"
+            )}
+            title={notificationsEnabled ? "Disable Alerts" : "Enable Alerts"}
+          >
             {notificationsEnabled ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
+            {notificationsEnabled && (
+              <span className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />
+            )}
           </button>
         </div>
+      </div>
 
         <div className="space-y-6">
           {/* Inputs */}
