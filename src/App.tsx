@@ -117,7 +117,9 @@ export default function App() {
       isFinished: final === games.length,
       hasRainRisk: games.some(g => {
         const cond = g.weather?.condition?.toLowerCase() || '';
-        return cond.includes('rain') || cond.includes('showers') || cond.includes('storm');
+        const status = g.status.detailedState.toLowerCase();
+        const rainKeywords = ['rain', 'shower', 'storm', 'drizzle', 'precip', 'thunder', 'lightning', 'mist', 'overcast'];
+        return rainKeywords.some(keyword => cond.includes(keyword)) || status.includes('delay');
       })
     };
   }, [games]);

@@ -34,9 +34,20 @@ export function GameLog({ games }: GameLogProps) {
     });
   };
 
-  const isRainy = (condition: string = '') => {
-    const rainKeywords = ['Rain', 'Drizzle', 'Showers', 'Thunderstorm', 'Storm'];
-    return rainKeywords.some(keyword => condition.toLowerCase().includes(keyword.toLowerCase()));
+  const getRainRisk = (game: MLBGame) => {
+    const condition = game.weather?.condition?.toLowerCase() || '';
+    const status = game.status.detailedState.toLowerCase();
+    const rainKeywords = ['rain', 'shower', 'storm', 'drizzle', 'precip', 'thunder', 'lightning', 'mist', 'overcast'];
+    
+    if (rainKeywords.some(keyword => condition.includes(keyword))) {
+      return `Risk (${game.weather?.condition})`;
+    }
+    
+    if (status.includes('delay')) {
+      return `Delayed (${game.status.detailedState})`;
+    }
+    
+    return null;
   };
 
   return (
@@ -95,6 +106,8 @@ export function GameLog({ games }: GameLogProps) {
                 const total = (game.teams.away?.score || 0) + (game.teams.home?.score || 0);
                 const isExpanded = expandedGameId === game.gamePk;
 
+                const riskMessage = getRainRisk(game);
+
                 return (
                   <motion.div
                     key={game.gamePk}
@@ -125,10 +138,10 @@ export function GameLog({ games }: GameLogProps) {
                                <span className="text-[7px] font-mono font-black text-salami-red uppercase tracking-widest">High Threat</span>
                              </div>
                           )}
-                          {isRainy(game.weather?.condition) && (
+                          {riskMessage && (
                             <div className="flex items-center gap-1 bg-blue-500/20 px-1.5 py-0.5 rounded">
                               <Droplets className="w-2.5 h-2.5 text-blue-400" />
-                              <span className="text-[7px] font-mono font-black text-blue-400 uppercase tracking-widest">Rain Risk</span>
+                              <span className="text-[7px] font-mono font-black text-blue-400 uppercase tracking-widest">{riskMessage}</span>
                             </div>
                           )}
                           <span className="text-[8px] font-mono text-slate-500 font-black uppercase tracking-widest mr-1">Details</span>
@@ -244,6 +257,7 @@ export function GameLog({ games }: GameLogProps) {
                     if (!game || !game.teams) return null;
                     const total = (game.teams.away?.score || 0) + (game.teams.home?.score || 0);
                     const isExpanded = expandedGameId === game.gamePk;
+                    const riskMessage = getRainRisk(game);
 
                     return (
                       <Fragment key={game.gamePk}>
@@ -330,7 +344,12 @@ export function GameLog({ games }: GameLogProps) {
                                 </div>
                               </div>
                             ) : (
-                              <span className="text-[10px] font-mono text-slate-700 uppercase tracking-widest">Indoor</span>
+                              <div className="flex flex-col items-center opacity-40">
+                                <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest leading-none">
+                                  {[139, 158, 141, 136, 117, 109, 146, 140].includes(game.teams.home.team.id) ? 'Indoor' : 'Outdoor'}
+                                </span>
+                                <span className="text-[7px] font-mono text-slate-600 uppercase tracking-tighter mt-1">No Data</span>
+                              </div>
                             )}
                           </td>
                           <td className="px-6 py-5 text-right">
@@ -347,13 +366,13 @@ export function GameLog({ games }: GameLogProps) {
                                     <span className="text-[7px] font-mono font-black text-salami-red uppercase">Live Threat</span>
                                   </motion.div>
                                 )}
-                                {isRainy(game.weather?.condition) && (
+                                {riskMessage && (
                                   <div 
                                     className="flex items-center gap-1 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded cursor-help"
-                                    title="Rain forecast: Game at risk of delay or cancellation"
+                                    title={`${riskMessage}. Game at risk of delay or cancellation.`}
                                   >
                                     <Droplets className="w-2 h-2 text-blue-400" />
-                                    <span className="text-[7px] font-mono font-black text-blue-400 uppercase">Rain Watch</span>
+                                    <span className="text-[7px] font-mono font-black text-blue-400 uppercase">{riskMessage}</span>
                                   </div>
                                 )}
                                 <span className="text-[10px] font-mono font-black text-salami-red">
