@@ -104,6 +104,51 @@ export function WagerTracker({
     return () => clearTimeout(timeout);
   }, [betLine, betType, user, today]);
 
+  const handleSave = async () => {
+    if (betLine === '') {
+      toast.error('Please enter a bet line first');
+      return;
+    }
+
+    setIsSyncing(true);
+    try {
+      trackEvent('manual_save_wager', { line: betLine, side: betType });
+      if (user) {
+        const wagerDoc = doc(db, 'users', user.uid, 'wagers', today);
+        await setDoc(wagerDoc, {
+          userId: user.uid,
+          line: betLine,
+          side: betType.toUpperCase(),
+          date: today,
+          createdAt: Timestamp.now()
+        });
+        setLastSynced(new Date());
+        toast.success('WAGER SAVED TO CLOUD ☁️', {
+          description: `Tracking ${betType.toUpperCase()} ${betLine} for today.`
+        });
+      } else {
+        localStorage.setItem('salami_bet_line', betLine.toString());
+        localStorage.setItem('salami_bet_type', betType);
+        toast.success('WAGER SAVED LOCALLY 💾', {
+          description: 'Login to sync across devices!'
+        });
+      }
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `users/${user.uid}/wagers/${today}`);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleClear = () => {
+    setBetLine('');
+    if (!user) {
+      localStorage.removeItem('salami_bet_line');
+      localStorage.removeItem('salami_bet_type');
+    }
+    toast.info('WAGER CLEARED');
+  };
+
   const projectedTotal = playedInnings > 0.25 
     ? calculateSmartProjection(currentTotal, playedInnings, totalExpectedInnings, liveThreats)
     : null;
@@ -409,6 +454,32 @@ export function WagerTracker({
                 </button>
               </div>
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={handleSave}
+              disabled={isSyncing || betLine === ''}
+              className={cn(
+                "flex items-center justify-center gap-2 py-2 rounded-lg font-mono font-black text-[10px] uppercase tracking-[0.2em] transition-all border",
+                betLine === '' 
+                  ? "bg-slate-900 border-slate-800 text-slate-700 cursor-not-allowed" 
+                  : "bg-blue-600/10 border-blue-500/30 text-blue-400 hover:bg-blue-600/20 shadow-lg shadow-blue-500/5"
+              )}
+            >
+              {isSyncing ? (
+                <RefreshCw className="w-3 h-3 animate-spin" />
+              ) : (
+                <Save className="w-3 h-3" />
+              )}
+              {isSyncing ? 'Saving...' : 'Save Wager'}
+            </button>
+            <button
+              onClick={handleClear}
+              className="flex items-center justify-center gap-2 py-2 rounded-lg font-mono font-black text-[10px] uppercase tracking-[0.2em] transition-all border border-slate-800 text-slate-500 hover:bg-slate-900 hover:text-slate-400"
+            >
+              Clear
+            </button>
           </div>
 
           {/* Status Display */}
