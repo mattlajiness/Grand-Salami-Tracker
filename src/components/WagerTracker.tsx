@@ -388,17 +388,6 @@ export function WagerTracker({
             )}
           </div>
               <div className="flex items-center gap-3">
-                {notificationsEnabled && (
-                  <button
-                    onClick={() => {
-                      toast.info('TEST ALERT 🔔', { description: 'Browser alert sent! Check your notification tray.' });
-                      sendBrowserNotification('Salami Pace Test', 'Notifications are working! Good luck on today\'s slate. ⚾️');
-                    }}
-                    className="text-[8px] font-mono font-black text-blue-500/50 hover:text-blue-400 uppercase tracking-widest border border-blue-500/10 hover:border-blue-500/30 px-2 py-1 rounded transition-all"
-                  >
-                    Test Alert
-                  </button>
-                )}
                 <button 
                   onClick={toggleNotifications}
             className={cn(
