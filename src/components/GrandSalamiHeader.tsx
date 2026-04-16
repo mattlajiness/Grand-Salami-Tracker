@@ -240,9 +240,11 @@ export function GrandSalamiHeader({
             }}
             disabled={isRefreshing}
             className={cn(
-              "p-2 rounded-lg border transition-all disabled:opacity-50 active:scale-95 relative overflow-hidden",
-              isRefreshing ? "bg-slate-800 border-salami-red/50" : "bg-slate-800 hover:bg-slate-700 border-slate-700",
-              showCheck && !isRefreshing ? "border-green-500/50" : ""
+              "flex items-center gap-2 px-3 py-1.5 sm:p-2 rounded-lg border transition-all disabled:opacity-50 active:scale-95 relative overflow-hidden",
+              isRefreshing 
+                ? "bg-slate-800 border-salami-red/50 shadow-[0_0_15px_rgba(225,29,72,0.2)]" 
+                : "bg-slate-900 hover:bg-slate-800 border-slate-700 active:border-salami-red/50",
+              showCheck && !isRefreshing ? "border-green-500/50 bg-green-500/5" : ""
             )}
           >
             <AnimatePresence mode="wait">
@@ -278,10 +280,13 @@ export function GrandSalamiHeader({
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                 >
-                  <RefreshCw className="w-3.5 h-3.5 text-white" />
+                  <RefreshCw className="w-3.5 h-3.5 text-slate-300" />
                 </motion.div>
               )}
             </AnimatePresence>
+            <span className="sm:hidden text-[9px] font-mono font-black text-white uppercase tracking-widest leading-none">
+              {isRefreshing ? 'Syncing' : 'Refresh'}
+            </span>
           </button>
         </div>
       </div>
