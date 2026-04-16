@@ -87,7 +87,7 @@ export function GrandSalamiHeader({
   }, [isRefreshing]);
 
   return (
-    <div className="dashboard-card p-6 mb-6 border-none shadow-2xl transition-colors duration-300 bg-slate-900 text-white">
+    <div className="dashboard-card p-4 sm:p-6 mb-6 border-none shadow-2xl transition-colors duration-300 bg-slate-900 text-white">
       <div className="stitching-top opacity-50" />
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-salami-red to-transparent" />
       
@@ -153,13 +153,13 @@ export function GrandSalamiHeader({
           </div>
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
-              <span className="font-mono font-black tracking-tighter text-lg leading-none text-white">GRAND SALAMI</span>
+              <span className="font-mono font-black tracking-tighter text-base sm:text-lg leading-none text-white">GRAND SALAMI</span>
             </div>
             <span className="text-[8px] font-mono text-salami-red font-black tracking-[0.4em] mt-0.5 uppercase">Live Tracker</span>
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 sm:gap-3">
+        <div className="flex flex-wrap items-center justify-start sm:justify-end gap-2 sm:gap-3">
           {user ? (
             <div className="flex items-center gap-2">
               <div className="hidden md:flex flex-col items-end mr-2">
@@ -219,15 +219,15 @@ export function GrandSalamiHeader({
           </a>
 
           {weatherSummary && (
-            <div className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border border-slate-700 bg-slate-800/50">
-              <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 sm:gap-3 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border border-slate-700 bg-slate-800/50">
+              <div className="flex items-center gap-1">
                 <Thermometer className="w-3 h-3 text-salami-red" />
-                <span className="text-[8px] sm:text-[9px] font-mono font-black text-slate-300">{weatherSummary.avgTemp}° AVG</span>
+                <span className="text-[7px] sm:text-[9px] font-mono font-black text-slate-300 leading-none">{weatherSummary.avgTemp}° AVG</span>
               </div>
               {weatherSummary.highWindGames > 0 && (
-                <div className="flex items-center gap-1.5 border-l border-slate-700 pl-2 sm:pl-3">
+                <div className="flex items-center gap-1 border-l border-slate-700 pl-1.5 sm:pl-3">
                   <Wind className="w-3 h-3 text-blue-400" />
-                  <span className="text-[8px] sm:text-[9px] font-mono font-black text-slate-300">{weatherSummary.highWindGames} WINDY</span>
+                  <span className="text-[7px] sm:text-[9px] font-mono font-black text-slate-300 leading-none">{weatherSummary.highWindGames} WINDY</span>
                 </div>
               )}
             </div>
@@ -291,7 +291,7 @@ export function GrandSalamiHeader({
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 relative z-10">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-8 relative z-10">
         <div className="space-y-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full border-2 flex items-center justify-center shadow-lg bg-slate-800 border-slate-700">
