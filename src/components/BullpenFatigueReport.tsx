@@ -88,9 +88,12 @@ export function BullpenFatigueReport({ historicalGames, todayGames, isLoading }:
       const stats = teamStats[id];
       if (!stats) return;
 
-      const usageYesterday = stats.pitcherCounts[stats.pitcherCounts.length - 1] || 0;
-      const avgUsage = stats.pitcherCounts.reduce((a, b) => a + b, 0) / (stats.pitcherCounts.length || 1);
-      const avgDepth = stats.starterInnings.reduce((a, b) => a + b, 0) / (stats.starterInnings.length || 1);
+      const recentUsage = stats.pitcherCounts.slice(-3);
+      const recentDepth = stats.starterInnings.slice(-3);
+      
+      const usageYesterday = recentUsage[recentUsage.length - 1] || 0;
+      const avgUsage = recentUsage.reduce((a, b) => a + b, 0) / (recentUsage.length || 1);
+      const avgDepth = recentDepth.reduce((a, b) => a + b, 0) / (recentDepth.length || 1);
       
       // Calculate consecutive appearances
       let consecutiveArms = 0;

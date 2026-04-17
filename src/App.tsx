@@ -30,7 +30,7 @@ export default function App() {
   const loadHistoricalData = useCallback(async () => {
     setHistoryLoading(true);
     try {
-      const datesToFetch = [1, 2, 3].map(d => format(subDays(new Date(), d), 'yyyy-MM-dd'));
+      const datesToFetch = [1, 2, 3, 4, 5, 6, 7].map(d => format(subDays(new Date(), d), 'yyyy-MM-dd'));
       const historicalResults = await Promise.all(
         datesToFetch.map(date => fetchMLBGames(date))
       );
