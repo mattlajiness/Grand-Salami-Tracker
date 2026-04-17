@@ -5,7 +5,7 @@ import { GrandSalamiHeader } from './components/GrandSalamiHeader';
 import { GameLog } from './components/GameLog';
 import { WagerTracker } from './components/WagerTracker';
 import { RunTrends } from './components/RunTrends';
-import { BullpenReport } from './components/BullpenReport';
+import { PreGameAudit } from './components/PreGameAudit';
 import { InfoSection } from './components/InfoSection';
 import { LogoExport } from './components/LogoExport';
 import { UserAdminPanel } from './components/UserAdminPanel';
@@ -221,7 +221,9 @@ export default function App() {
                   liveThreats={stats.liveThreats}
                 />
 
-                <BullpenReport games={games} />
+                <div className="hidden lg:block">
+                  <PreGameAudit games={games} />
+                </div>
 
                 {/* Desktop Run Trends */}
                 <div className="hidden lg:block">
@@ -232,8 +234,9 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Mobile Run Trends - Placed under the GameLog (Scoreboard) */}
-              <div className="order-3 lg:hidden">
+              {/* Mobile Run Trends & PreGameAudit - Placed under the GameLog (Scoreboard) */}
+              <div className="order-3 lg:hidden space-y-6">
+                <PreGameAudit games={games} />
                 <RunTrends 
                   historicalGames={historicalGames}
                   currentTotal={currentTotal}
