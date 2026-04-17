@@ -20,6 +20,7 @@ export default function App() {
   const { user, loading: authLoading } = useAuth();
   const [games, setGames] = useState<MLBGame[]>([]);
   const [historicalGames, setHistoricalGames] = useState<MLBGame[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -27,13 +28,18 @@ export default function App() {
   const isLogoMode = new URLSearchParams(window.location.search).get('logo') === 'true';
 
   const loadHistoricalData = useCallback(async () => {
+    setHistoryLoading(true);
     try {
-      const fiveDaysAgo = format(subDays(new Date(), 6), 'yyyy-MM-dd');
-      const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
-      const historyData = await fetchMLBGames(undefined, fiveDaysAgo, yesterday);
-      setHistoricalGames(historyData || []);
+      const datesToFetch = [1, 2, 3].map(d => format(subDays(new Date(), d), 'yyyy-MM-dd'));
+      const historicalResults = await Promise.all(
+        datesToFetch.map(date => fetchMLBGames(date))
+      );
+      const combinedHistory = historicalResults.flat();
+      setHistoricalGames(combinedHistory || []);
     } catch (error) {
       console.error('Error loading historical data:', error);
+    } finally {
+      setHistoryLoading(false);
     }
   }, []);
 
@@ -223,7 +229,11 @@ export default function App() {
                 />
 
                 <div className="hidden lg:block space-y-6">
-                  <BullpenFatigueReport historicalGames={historicalGames} todayGames={games} />
+                  <BullpenFatigueReport 
+                    historicalGames={historicalGames} 
+                    todayGames={games} 
+                    isLoading={historyLoading} 
+                  />
                   <PreGameAudit games={games} />
                 </div>
 
@@ -238,7 +248,11 @@ export default function App() {
 
               {/* Mobile Run Trends & PreGameAudit - Placed under the GameLog (Scoreboard) */}
               <div className="order-3 lg:hidden space-y-6">
-                <BullpenFatigueReport historicalGames={historicalGames} todayGames={games} />
+                <BullpenFatigueReport 
+                  historicalGames={historicalGames} 
+                  todayGames={games} 
+                  isLoading={historyLoading}
+                />
                 <PreGameAudit games={games} />
                 <RunTrends 
                   historicalGames={historicalGames}

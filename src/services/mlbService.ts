@@ -95,6 +95,14 @@ export interface MLBScheduleResponse {
   }[];
 }
 
+// Cache for pitcher stats to reduce API load
+let pitcherStatsCache: {
+  data: Record<number, string>;
+  lastFetched: number;
+} | null = null;
+
+const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+
 export async function fetchMLBGames(date?: string, startDate?: string, endDate?: string): Promise<MLBGame[]> {
   const url = new URL('https://statsapi.mlb.com/api/v1/schedule/games/?sportId=1');
   url.searchParams.append('hydrate', 'linescore,team,weather,venue,probablePitcher,boxscore');
@@ -109,7 +117,7 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
   
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 20000); // Increased to 20s
 
     const response = await fetch(url.toString(), { signal: controller.signal });
     clearTimeout(timeoutId);
@@ -143,7 +151,17 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
     });
 
     if (pitcherIds.size > 0) {
-      const statsMap = await fetchPitcherStats(Array.from(pitcherIds));
+      // Check cache first
+      let statsMap: Record<number, string> = {};
+      const now = Date.now();
+      
+      if (pitcherStatsCache && (now - pitcherStatsCache.lastFetched < CACHE_TTL)) {
+        statsMap = pitcherStatsCache.data;
+      } else {
+        statsMap = await fetchPitcherStats(Array.from(pitcherIds));
+        pitcherStatsCache = { data: statsMap, lastFetched: now };
+      }
+
       games = games.map(game => {
         const newGame = { ...game };
         if (newGame.teams.away.probablePitcher?.id) {
@@ -180,7 +198,7 @@ async function fetchPitcherStats(pitcherIds: number[]): Promise<Record<number, s
     try {
       const url = `https://statsapi.mlb.com/api/v1/people?personIds=${batch.join(',')}&hydrate=stats(group=[pitching],type=[season])`;
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // Increased to 10s
       
       const response = await fetch(url, { signal: controller.signal });
       clearTimeout(timeoutId);
