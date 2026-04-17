@@ -36,7 +36,7 @@ export function PreGameAudit({ games }: PreGameAuditProps) {
     return { direction: 'CROSS', speed };
   };
 
-  const getMatchupStrength = (game: MLBGame) => {
+  const getMatchupStrength = (game: MLBGame, wind: { direction: string; speed: number }) => {
     const awayId = game.teams.away.team.id;
     const homeId = game.teams.home.team.id;
     const awayEra = parseFloat(game.teams.away.probablePitcher?.era || '4.00');
@@ -46,6 +46,21 @@ export function PreGameAudit({ games }: PreGameAuditProps) {
     // Coors Field (Rockies) and Athletics Home games are shootout risks
     if (homeId === 115) return { label: 'COORS SHOOTOUT', color: 'text-orange-400', icon: Zap };
     if (homeId === 133) return { label: 'OAK SHOOTOUT', color: 'text-orange-400', icon: Zap };
+    
+    // Wrigley Field (Cubs - ID 112) is famously sensitive to wind
+    if (homeId === 112) {
+      if (wind.direction === 'OUT' && wind.speed > 5) return { label: 'WRIGLEY SHOOTOUT', color: 'text-red-400', icon: Zap };
+      if (wind.direction === 'CROSS' && wind.speed > 12) return { label: 'WRIGLEY WIND RISK', color: 'text-orange-400', icon: Wind };
+      if (wind.direction === 'IN' && wind.speed > 10) return { label: 'PITCHER PARK', color: 'text-blue-400', icon: ShieldCheck };
+    }
+
+    // High general wind blowing out or very strong crosswinds speed up the environment
+    if (wind.direction === 'OUT' && wind.speed >= 12) {
+      return { label: 'WIND SHOOTOUT', color: 'text-red-400', icon: Zap };
+    }
+    if (wind.direction === 'CROSS' && wind.speed >= 18) {
+      return { label: 'HIGH WIND RISK', color: 'text-orange-400', icon: Wind };
+    }
     
     if (combinedEra > 10) return { label: 'SHOOTOUT', color: 'text-red-400', icon: Zap };
     if (combinedEra < 7) return { label: 'PITCHER DUEL', color: 'text-blue-400', icon: ShieldCheck };
@@ -91,7 +106,7 @@ export function PreGameAudit({ games }: PreGameAuditProps) {
       <div className="p-4 space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar">
         {previewGames.map((game, idx) => {
           const wind = parseWind(game.weather?.wind);
-          const strength = getMatchupStrength(game);
+          const strength = getMatchupStrength(game, wind);
           const fatigue = getBullpenFatigue(game);
           const isHot = (parseFloat(game.weather?.temp || '70') > 85);
 
