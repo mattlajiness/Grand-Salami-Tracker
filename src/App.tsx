@@ -6,6 +6,7 @@ import { GameLog } from './components/GameLog';
 import { WagerTracker } from './components/WagerTracker';
 import { RunTrends } from './components/RunTrends';
 import { PreGameAudit } from './components/PreGameAudit';
+import { BullpenFatigueReport } from './components/BullpenFatigueReport';
 import { InfoSection } from './components/InfoSection';
 import { LogoExport } from './components/LogoExport';
 import { UserAdminPanel } from './components/UserAdminPanel';
@@ -221,7 +222,8 @@ export default function App() {
                   liveThreats={stats.liveThreats}
                 />
 
-                <div className="hidden lg:block">
+                <div className="hidden lg:block space-y-6">
+                  <BullpenFatigueReport historicalGames={historicalGames} todayGames={games} />
                   <PreGameAudit games={games} />
                 </div>
 
@@ -236,6 +238,7 @@ export default function App() {
 
               {/* Mobile Run Trends & PreGameAudit - Placed under the GameLog (Scoreboard) */}
               <div className="order-3 lg:hidden space-y-6">
+                <BullpenFatigueReport historicalGames={historicalGames} todayGames={games} />
                 <PreGameAudit games={games} />
                 <RunTrends 
                   historicalGames={historicalGames}
