@@ -9,6 +9,7 @@ import { BullpenFatigueReport } from './components/BullpenFatigueReport';
 import { InfoSection } from './components/InfoSection';
 import { LogoExport } from './components/LogoExport';
 import { UserAdminPanel } from './components/UserAdminPanel';
+import { CreatorOutreachKit } from './components/CreatorOutreachKit';
 import { Calendar, Share2, Droplets } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { useAuth } from './contexts/AuthContext';
@@ -214,7 +215,10 @@ export default function App() {
               
               <div className="order-1 lg:order-2 space-y-6">
                 {isAdmin && (
-                  <UserAdminPanel />
+                  <div className="space-y-6">
+                    <UserAdminPanel />
+                    <CreatorOutreachKit games={games} />
+                  </div>
                 )}
 
                 <WagerTracker 
