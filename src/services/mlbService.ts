@@ -131,17 +131,45 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
       return [];
     }
 
-    let games: MLBGame[] = [];
+    let rawGames: MLBGame[] = [];
     try {
       if (startDate && endDate) {
-        games = data.dates.flatMap(d => (d.games || []).map(g => ({ ...g, officialDate: d.date })));
+        rawGames = data.dates.flatMap(d => (d.games || []).map(g => ({ ...g, officialDate: d.date })));
       } else if (data.dates[0]) {
-        games = (data.dates[0].games || []).map(g => ({ ...g, officialDate: data.dates[0].date }));
+        rawGames = (data.dates[0].games || []).map(g => ({ ...g, officialDate: data.dates[0].date }));
       }
     } catch (e) {
       console.error('Error parsing MLB games data:', e);
       return [];
     }
+
+    // Enrich with boxscores if missing for final games
+    // We only do this for single-date fetches or limited ranges to avoid mass hits
+    const enrichedGames = await Promise.all(rawGames.map(async (game) => {
+      // If it's a final game and boxscore pitchers are missing, try a direct fetch
+      if (game.status.abstractGameState === 'Final' && (!game.boxscore?.teams.home.pitchers || game.boxscore.teams.home.pitchers.length === 0)) {
+        try {
+          const boxResponse = await fetch(`https://statsapi.mlb.com/api/v1/game/${game.gamePk}/boxscore`);
+          if (boxResponse.ok) {
+            const boxData = await boxResponse.json();
+            return {
+              ...game,
+              boxscore: {
+                teams: {
+                  away: { pitchers: boxData.teams.away.pitchers || [] },
+                  home: { pitchers: boxData.teams.home.pitchers || [] }
+                }
+              }
+            };
+          }
+        } catch (e) {
+          console.warn(`Failed to enrich boxscore for game ${game.gamePk}`);
+        }
+      }
+      return game;
+    }));
+
+    let games = enrichedGames;
 
     // Enrich with pitcher stats
     const pitcherIds = new Set<number>();

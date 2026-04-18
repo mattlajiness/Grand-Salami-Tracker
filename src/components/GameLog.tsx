@@ -2,8 +2,46 @@ import { useState, Fragment } from 'react';
 import { MLBGame } from '../services/mlbService';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
-import { Activity, RefreshCw, ChevronDown, ChevronUp, User, Info, Wind, Thermometer, Cloud, Sun, CloudRain, CloudLightning, MapPin, AlertTriangle, Droplets } from 'lucide-react';
+import { Activity, RefreshCw, ChevronDown, ChevronUp, User, Info, Wind, Thermometer, Cloud, Sun, CloudRain, CloudLightning, MapPin, AlertTriangle, Droplets, Zap, ShieldCheck, Target } from 'lucide-react';
 import { calculateLiveThreat } from '../lib/projectionEngine';
+
+const parseWind = (windStr: string = '') => {
+  const normalized = windStr.toLowerCase();
+  const speedMatch = normalized.match(/\d+/);
+  const speed = speedMatch ? parseInt(speedMatch[0]) : 0;
+  
+  if (normalized.includes('out') || normalized.includes('to lf') || normalized.includes('to rf') || normalized.includes('to cf')) {
+    return { direction: 'OUT', speed };
+  }
+  if (normalized.includes('in') || normalized.includes('from lf') || normalized.includes('from rf') || normalized.includes('from cf')) {
+    return { direction: 'IN', speed };
+  }
+  return { direction: 'CROSS', speed };
+};
+
+const getMatchupStrength = (game: MLBGame) => {
+  const wind = parseWind(game.weather?.wind);
+  const homeId = game.teams.home.team.id;
+  const awayEra = parseFloat(game.teams.away.probablePitcher?.era || '4.00');
+  const homeEra = parseFloat(game.teams.home.probablePitcher?.era || '4.00');
+  const combinedEra = awayEra + homeEra;
+  
+  if (homeId === 115) return { label: 'COORS SHOOTOUT', color: 'text-orange-400', icon: Zap };
+  if (homeId === 133) return { label: 'OAK SHOOTOUT', color: 'text-orange-400', icon: Zap };
+  
+  if (homeId === 112) {
+    if (wind.direction === 'OUT' && wind.speed > 5) return { label: 'WRIGLEY SHOOTOUT', color: 'text-red-400', icon: Zap };
+    if (wind.direction === 'CROSS' && wind.speed > 12) return { label: 'WRIGLEY WIND RISK', color: 'text-orange-400', icon: Wind };
+    if (wind.direction === 'IN' && wind.speed > 10) return { label: 'PITCHER PARK', color: 'text-blue-400', icon: ShieldCheck };
+  }
+
+  if (wind.direction === 'OUT' && wind.speed >= 12) return { label: 'WIND SHOOTOUT', color: 'text-red-400', icon: Zap };
+  if (wind.direction === 'CROSS' && wind.speed >= 18) return { label: 'HIGH WIND RISK', color: 'text-orange-400', icon: Wind };
+  
+  if (combinedEra > 10) return { label: 'SHOOTOUT', color: 'text-red-400', icon: Zap };
+  if (combinedEra < 7) return { label: 'PITCHER DUEL', color: 'text-blue-400', icon: ShieldCheck };
+  return { label: 'BALANCED', color: 'text-slate-400', icon: Target };
+};
 
 interface GameLogProps {
   games: MLBGame[];
@@ -208,15 +246,32 @@ export function GameLog({ games }: GameLogProps) {
                             <span className="text-[7px] font-mono text-slate-500 font-black mt-1 uppercase tracking-tighter">Total</span>
                           </div>
                           {game.weather && (
-                            <div className="flex items-center gap-2 pt-1 border-t border-slate-800 w-full justify-center">
-                              <div className="flex items-center gap-1">
-                                <Thermometer className="w-2.5 h-2.5 text-salami-red" />
-                                <span className="text-[10px] font-mono font-black text-slate-300">{game.weather.temp}°</span>
+                            <div className="flex flex-col items-center pt-1 border-t border-slate-800 w-full justify-center">
+                              <div className="flex items-center gap-2 mb-1">
+                                <div className="flex items-center gap-1">
+                                  <Thermometer className="w-2.5 h-2.5 text-salami-red" />
+                                  <span className="text-[10px] font-mono font-black text-slate-300">{game.weather.temp}°</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Wind className="w-2.5 h-2.5 text-blue-400" />
+                                  <span className="text-[10px] font-mono font-bold text-slate-500">{(game.weather.wind || '').split(' ')[0]}</span>
+                                </div>
                               </div>
-                              <div className="flex items-center gap-1">
-                                <Wind className="w-2.5 h-2.5 text-blue-400" />
-                                <span className="text-[10px] font-mono font-bold text-slate-500">{(game.weather.wind || '').split(' ')[0]}</span>
-                              </div>
+                              {game.status.abstractGameState === 'Preview' && (
+                                <div className="flex items-center gap-1">
+                                  {(() => {
+                                    const strength = getMatchupStrength(game);
+                                    return (
+                                      <>
+                                        <strength.icon className={cn("w-2 h-2", strength.color)} />
+                                        <span className={cn("text-[6px] font-mono font-black uppercase tracking-widest", strength.color)}>
+                                          {strength.label}
+                                        </span>
+                                      </>
+                                    );
+                                  })()}
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
@@ -342,6 +397,21 @@ export function GameLog({ games }: GameLogProps) {
                                     {(game.weather.wind || '').split(',')[0]}
                                   </span>
                                 </div>
+                                {game.status.abstractGameState === 'Preview' && (
+                                  <div className="mt-1 flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-950/50 border border-slate-800">
+                                    {(() => {
+                                      const strength = getMatchupStrength(game);
+                                      return (
+                                        <>
+                                          <strength.icon className={cn("w-2.5 h-2.5", strength.color)} />
+                                          <span className={cn("text-[7px] font-mono font-black uppercase tracking-[0.1em]", strength.color)}>
+                                            {strength.label}
+                                          </span>
+                                        </>
+                                      );
+                                    })()}
+                                  </div>
+                                )}
                               </div>
                             ) : (
                               <div className="flex flex-col items-center opacity-40">

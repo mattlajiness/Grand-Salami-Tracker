@@ -5,7 +5,6 @@ import { GrandSalamiHeader } from './components/GrandSalamiHeader';
 import { GameLog } from './components/GameLog';
 import { WagerTracker } from './components/WagerTracker';
 import { RunTrends } from './components/RunTrends';
-import { PreGameAudit } from './components/PreGameAudit';
 import { BullpenFatigueReport } from './components/BullpenFatigueReport';
 import { InfoSection } from './components/InfoSection';
 import { LogoExport } from './components/LogoExport';
@@ -234,7 +233,6 @@ export default function App() {
                     todayGames={games} 
                     isLoading={historyLoading} 
                   />
-                  <PreGameAudit games={games} />
                 </div>
 
                 {/* Desktop Run Trends */}
@@ -253,7 +251,6 @@ export default function App() {
                   todayGames={games} 
                   isLoading={historyLoading}
                 />
-                <PreGameAudit games={games} />
                 <RunTrends 
                   historicalGames={historicalGames}
                   currentTotal={currentTotal}
