@@ -1,7 +1,28 @@
-import { HelpCircle, Info, Calculator, Target, Zap, Bell, History, UserPlus, CloudRain } from 'lucide-react';
+import { HelpCircle, Info, Calculator, Target, Zap, Bell, History, UserPlus, CloudRain, ArrowRight, RefreshCw } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useAuth } from '../contexts/AuthContext';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import { trackEvent } from '../lib/analytics';
 
 export function InfoSection() {
+  const { user, signIn } = useAuth();
+  const [isSigningIn, setIsSigningIn] = useState(false);
+
+  const handleSignUp = async () => {
+    if (user) return;
+    setIsSigningIn(true);
+    trackEvent('signup_cta_click');
+    try {
+      await signIn();
+    } catch (error) {
+      console.error('Sign up error:', error);
+      toast.error('Could not connect. Please try again.');
+    } finally {
+      setIsSigningIn(false);
+    }
+  };
+
   return (
     <div id="how-it-works" className="mt-12 space-y-8">
       {/* Why Sign Up Section */}
@@ -51,6 +72,30 @@ export function InfoSection() {
               </div>
             </div>
           </div>
+
+          {!user && (
+            <div className="mt-10 pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-6">
+              <div>
+                <h4 className="text-lg font-black text-white uppercase tracking-tighter">Ready to track your edge?</h4>
+                <p className="text-xs text-slate-500 font-mono mt-1 uppercase">Join 1,000+ bettors monitoring the pace today.</p>
+              </div>
+              <button
+                onClick={handleSignUp}
+                disabled={isSigningIn}
+                className="group flex items-center gap-3 px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition-all shadow-xl shadow-blue-900/20 active:scale-95 disabled:opacity-50"
+              >
+                <div className="flex flex-col items-start">
+                  <span className="text-[10px] font-black uppercase tracking-widest leading-none opacity-70">Get Started</span>
+                  <span className="text-sm font-black uppercase tracking-tighter">Join Salami Pace Free</span>
+                </div>
+                {isSigningIn ? (
+                  <RefreshCw className="w-5 h-5 animate-spin" />
+                ) : (
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                )}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

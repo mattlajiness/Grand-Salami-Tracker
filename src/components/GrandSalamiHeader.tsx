@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Activity, Trophy, Sun, Moon, RefreshCw, Calendar, HelpCircle, LogIn, LogOut, User as UserIcon, Clock, Wind, Thermometer, Check, Twitter } from 'lucide-react';
+import { Activity, Trophy, Sun, Moon, RefreshCw, Calendar, HelpCircle, LogIn, LogOut, User as UserIcon, Clock, Wind, Thermometer, Check, Twitter, UserPlus } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../lib/utils';
@@ -180,14 +180,24 @@ export function GrandSalamiHeader({
               </button>
             </div>
           ) : (
-            <button 
-              onClick={handleSignIn}
-              disabled={isSigningIn}
-              className="flex items-center gap-2 px-3 py-1.5 bg-salami-red hover:bg-red-700 rounded-lg transition-all text-[9px] font-black uppercase tracking-widest text-white shadow-lg shadow-red-900/20 active:scale-95 disabled:opacity-50"
-            >
-              {isSigningIn ? <RefreshCw className="w-3 h-3 animate-spin" /> : <LogIn className="w-3 h-3" />}
-              Sign In
-            </button>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={handleSignIn}
+                disabled={isSigningIn}
+                className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition-all text-[9px] font-black uppercase tracking-widest text-slate-300 active:scale-95 disabled:opacity-50"
+              >
+                {isSigningIn ? <RefreshCw className="w-3 h-3 animate-spin" /> : <LogIn className="w-3 h-3 text-salami-red" />}
+                Sign In
+              </button>
+              <button 
+                onClick={handleSignIn}
+                disabled={isSigningIn}
+                className="flex items-center gap-2 px-3 py-1.5 bg-salami-red hover:bg-red-700 rounded-lg transition-all text-[9px] font-black uppercase tracking-widest text-white shadow-lg shadow-red-900/20 active:scale-95 disabled:opacity-50"
+              >
+                {isSigningIn ? <RefreshCw className="w-3 h-3 animate-spin" /> : <UserPlus className="w-3 h-3" />}
+                Join Now
+              </button>
+            </div>
           )}
 
           <button 
