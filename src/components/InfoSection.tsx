@@ -12,18 +12,36 @@ export function InfoSection() {
   const handleSignUp = async () => {
     if (user || isSigningIn) return;
     setIsSigningIn(true);
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const isIframe = window.self !== window.top;
+
     const toastId = toast.loading('Opening Google Secure Login...');
-    trackEvent('signup_cta_click');
+    trackEvent('signup_cta_click', { isMobile, isIframe });
+    
     try {
       await signIn();
       trackEvent('signup_success');
       toast.success('Welcome to Salami Pace!', { id: toastId });
     } catch (error: any) {
       console.error('Sign up error:', error);
-      const message = error?.code === 'auth/popup-blocked'
-        ? 'Login window blocked. Please enable popups or open app in a new tab.'
-        : 'Could not connect. Please try again.';
-      toast.error(message, { id: toastId });
+      trackEvent('signup_error', { error: String(error), code: error?.code });
+      
+      if (error?.code === 'auth/popup-blocked' || error?.code === 'auth/popup-closed-by-user' || (isMobile && isIframe)) {
+        toast.error('Login window blocked.', {
+          id: toastId,
+          description: 'Mobile browsers often block login inside an iframe. Click "Open Site" to fix.',
+          action: {
+            label: 'Open Site',
+            onClick: () => {
+              window.open(window.location.href, '_blank');
+              trackEvent('signup_tab_fallback_click');
+            }
+          },
+          duration: 10000
+        });
+      } else {
+        toast.error('Could not connect. Please try again.', { id: toastId });
+      }
     } finally {
       setIsSigningIn(false);
     }

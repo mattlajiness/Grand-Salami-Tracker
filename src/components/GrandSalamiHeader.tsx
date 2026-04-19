@@ -61,19 +61,36 @@ export function GrandSalamiHeader({
   const handleSignIn = async () => {
     if (isSigningIn) return;
     setIsSigningIn(true);
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const isIframe = window.self !== window.top;
+
     const toastId = toast.loading('Connecting to Google...');
-    trackEvent('login_attempt', { method: 'google' });
+    trackEvent('login_attempt', { method: 'google', isMobile, isIframe });
+    
     try {
       await signIn();
       trackEvent('login_success');
       toast.success('Successfully authenticated!', { id: toastId });
     } catch (error: any) {
       console.error('Sign in error:', error);
-      trackEvent('login_error', { error: String(error) });
-      const message = error?.code === 'auth/popup-blocked' 
-        ? 'Sign-in popup blocked. Please allow popups or open in a new tab.' 
-        : 'Sign in failed. Please try again.';
-      toast.error(message, { id: toastId });
+      trackEvent('login_error', { error: String(error), code: error?.code });
+      
+      if (error?.code === 'auth/popup-blocked' || error?.code === 'auth/popup-closed-by-user' || (isMobile && isIframe)) {
+        toast.error('Sign-in window blocked or failed.', {
+          id: toastId,
+          description: 'Mobile browsers often block login inside an iframe. Click "Open Site" to fix.',
+          action: {
+            label: 'Open Site',
+            onClick: () => {
+              window.open(window.location.href, '_blank');
+              trackEvent('open_tab_fallback_click');
+            }
+          },
+          duration: 10000
+        });
+      } else {
+        toast.error('Sign in failed. Please try again.', { id: toastId });
+      }
     } finally {
       setIsSigningIn(false);
     }
