@@ -67,6 +67,12 @@ service cloud.firestore {
              (data.get('createdAt', request.time) is timestamp);
     }
 
+    function isValidGameLine(data) {
+      return data.gamePk is number &&
+             data.total is number && data.total >= 0 && data.total < 200 &&
+             (data.get('updatedAt', request.time) is timestamp);
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
@@ -82,6 +88,11 @@ service cloud.firestore {
         allow update: if isOwner(userId) && isValidWager(request.resource.data, userId);
         allow delete: if isOwner(userId);
       }
+    }
+
+    match /gameLines/{gamePk} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidGameLine(request.resource.data);
     }
 
     // Default deny

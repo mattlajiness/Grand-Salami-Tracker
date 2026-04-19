@@ -25,6 +25,18 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "line", "side", "date"]
+    },
+    "GameLine": {
+      "title": "MLB Game Over/Under Line",
+      "description": "Official betting total for a single game.",
+      "type": "object",
+      "properties": {
+        "gamePk": { "type": "number", "description": "The MLB Game ID" },
+        "total": { "type": "number", "description": "The O/U line (e.g. 8.5)" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "updatedBy": { "type": "string" }
+      },
+      "required": ["gamePk", "total"]
     }
   },
   "firestore": {
@@ -35,6 +47,10 @@
     "/users/{userId}/wagers/{wagerId}": {
       "schema": "Wager",
       "description": "User's saved wagers"
+    },
+    "/gameLines/{gamePk}": {
+      "schema": "GameLine",
+      "description": "Shared over/under lines for individual games"
     }
   }
 }

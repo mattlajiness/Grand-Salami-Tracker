@@ -15,6 +15,8 @@ import { Toaster, toast } from 'sonner';
 import { useAuth } from './contexts/AuthContext';
 import { format, subDays } from 'date-fns';
 import { AnimatePresence, motion } from 'motion/react';
+import { db } from './firebase';
+import { collection, onSnapshot } from 'firebase/firestore';
 
 export default function App() {
   const { user, loading: authLoading } = useAuth();
@@ -25,8 +27,24 @@ export default function App() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [gameLines, setGameLines] = useState<Record<number, number>>({});
   
   const isLogoMode = new URLSearchParams(window.location.search).get('logo') === 'true';
+
+  useEffect(() => {
+    const q = collection(db, 'gameLines');
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const lines: Record<number, number> = {};
+      snapshot.forEach(doc => {
+        lines[parseInt(doc.id)] = doc.data().total;
+      });
+      setGameLines(lines);
+    }, (error) => {
+      console.error("Error fetching game lines:", error);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const loadHistoricalData = useCallback(async () => {
     setHistoryLoading(true);
@@ -211,7 +229,7 @@ export default function App() {
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="order-2 lg:order-1 lg:col-span-2">
-                <GameLog games={games} />
+                <GameLog games={games} gameLines={gameLines} />
               </div>
               
               <div className="order-1 lg:order-2 space-y-6">

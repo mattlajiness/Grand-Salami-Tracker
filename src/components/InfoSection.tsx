@@ -23,7 +23,6 @@ export function InfoSection() {
                 <h4 className="text-sm font-black text-white uppercase tracking-widest mb-1">Live Notifications</h4>
                 <p className="text-xs text-slate-400 leading-relaxed">
                   Get alerted when the pace shifts or milestones are hit. 
-                  <span className="block mt-1 text-[10px] text-blue-400/70 italic">Note: If in preview, open in new tab for best results.</span>
                 </p>
               </div>
             </div>
