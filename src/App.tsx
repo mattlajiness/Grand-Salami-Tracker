@@ -9,7 +9,6 @@ import { BullpenFatigueReport } from './components/BullpenFatigueReport';
 import { InfoSection } from './components/InfoSection';
 import { LogoExport } from './components/LogoExport';
 import { UserAdminPanel } from './components/UserAdminPanel';
-import { CreatorOutreachKit } from './components/CreatorOutreachKit';
 import { WagerHistory } from './components/WagerHistory';
 import { Calendar, Share2, Droplets } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
@@ -219,7 +218,6 @@ export default function App() {
                 {isAdmin && (
                   <div className="space-y-6">
                     <UserAdminPanel />
-                    <CreatorOutreachKit games={games} />
                   </div>
                 )}
 
