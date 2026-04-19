@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { History, Trophy, Frown, Calendar, TrendingUp, TrendingDown, ChevronRight, Loader2, Target } from 'lucide-react';
+import { History, Trophy, Frown, Calendar, TrendingUp, TrendingDown, ChevronRight, Loader2, Target, Activity } from 'lucide-react';
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -114,12 +114,14 @@ export function WagerHistory({ historicalGames, isOpen, onClose }: WagerHistoryP
                     const finalTotal = historicalTotals[wager.date];
                     const hasData = finalTotal !== undefined;
                     const isWin = hasData && (wager.side === 'OVER' ? finalTotal > wager.line : finalTotal < wager.line);
+                    const isToday = wager.date === format(new Date(), 'yyyy-MM-dd');
                     
                     return (
                       <div 
                         key={wager.id}
                         className={cn(
                           "relative group overflow-hidden bg-slate-950 border rounded-xl p-4 transition-all duration-300",
+                          isToday && !hasData ? "border-blue-500/30" :
                           hasData 
                             ? isWin ? "border-green-500/30 hover:border-green-500/50" : "border-red-500/30 hover:border-red-500/50"
                             : "border-slate-800 hover:border-slate-700"
@@ -137,17 +139,27 @@ export function WagerHistory({ historicalGames, isOpen, onClose }: WagerHistoryP
                           <div className="flex items-center gap-4">
                             <div className={cn(
                               "w-10 h-10 rounded-lg flex items-center justify-center border",
+                              isToday && !hasData ? "bg-blue-500/10 border-blue-500/20 text-blue-500" :
                               hasData 
                                 ? isWin ? "bg-green-500/10 border-green-500/20 text-green-500" : "bg-red-500/10 border-red-500/20 text-red-500"
                                 : "bg-slate-800 border-slate-700 text-slate-600"
                             )}>
-                              {hasData ? (isWin ? <Trophy className="w-5 h-5" /> : <Frown className="w-5 h-5" />) : <Calendar className="w-5 h-5" />}
+                              {isToday && !hasData ? <Activity className="w-5 h-5 animate-pulse" /> : 
+                               hasData ? (isWin ? <Trophy className="w-5 h-5" /> : <Frown className="w-5 h-5" />) : <Calendar className="w-5 h-5" />}
                             </div>
                             <div>
                               <div className="flex items-center gap-2">
-                                <span className="text-[11px] font-black text-white uppercase tracking-tight">
-                                  {format(parseISO(wager.date), 'EEEE, MMM d')}
+                                <span className={cn(
+                                  "text-[11px] font-black uppercase tracking-tight",
+                                  isToday ? "text-blue-400" : "text-white"
+                                )}>
+                                  {isToday ? 'Today\'s Wager' : format(parseISO(wager.date), 'EEEE, MMM d')}
                                 </span>
+                                {isToday && (
+                                  <span className="text-[7px] font-mono font-black px-1.5 py-0.5 rounded uppercase tracking-widest bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                                    ACTIVE
+                                  </span>
+                                )}
                                 {hasData && (
                                   <span className={cn(
                                     "text-[7px] font-mono font-black px-1.5 py-0.5 rounded uppercase tracking-widest",

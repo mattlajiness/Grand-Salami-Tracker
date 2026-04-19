@@ -5,7 +5,7 @@ import { cn } from '../lib/utils';
 import { toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
 import { db, handleFirestoreError, OperationType } from '../firebase';
-import { doc, setDoc, getDoc, Timestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { trackEvent } from '../lib/analytics';
 import { calculateSmartProjection, getConfidenceScore } from '../lib/projectionEngine';
@@ -73,38 +73,13 @@ export function WagerTracker({
     loadWager();
   }, [user, today]);
 
-  // Save to Firestore or LocalStorage
+  // Save to LocalStorage ONLY (for non-logged in persistence between sessions)
   useEffect(() => {
-    const saveWager = async () => {
-      if (betLine === '') return;
-
-      trackEvent('save_wager', { line: betLine, side: betType });
-      if (user) {
-        setIsSyncing(true);
-        try {
-          const wagerDoc = doc(db, 'users', user.uid, 'wagers', today);
-          await setDoc(wagerDoc, {
-            userId: user.uid,
-            line: betLine,
-            side: betType.toUpperCase(),
-            date: today,
-            createdAt: Timestamp.now()
-          });
-          setLastSynced(new Date());
-        } catch (error) {
-          handleFirestoreError(error, OperationType.WRITE, `users/${user.uid}/wagers/${today}`);
-        } finally {
-          setIsSyncing(false);
-        }
-      } else {
-        localStorage.setItem('salami_bet_line', betLine.toString());
-        localStorage.setItem('salami_bet_type', betType);
-      }
-    };
-
-    const timeout = setTimeout(saveWager, 1000);
-    return () => clearTimeout(timeout);
-  }, [betLine, betType, user, today]);
+    if (!user && betLine !== '') {
+      localStorage.setItem('salami_bet_line', betLine.toString());
+      localStorage.setItem('salami_bet_type', betType);
+    }
+  }, [betLine, betType, user]);
 
   const handleSave = async () => {
     if (betLine === '') {
@@ -142,13 +117,27 @@ export function WagerTracker({
     }
   };
 
-  const handleClear = () => {
+  const handleClear = async () => {
     setBetLine('');
-    if (!user) {
+    trackEvent('clear_wager', { platform: user ? 'cloud' : 'local' });
+    
+    if (user) {
+      setIsSyncing(true);
+      try {
+        const wagerDoc = doc(db, 'users', user.uid, 'wagers', today);
+        await deleteDoc(wagerDoc);
+        setLastSynced(null);
+        toast.info('WAGER REMOVED FROM CLOUD 🗑️');
+      } catch (error) {
+        handleFirestoreError(error, OperationType.DELETE, `users/${user.uid}/wagers/${today}`);
+      } finally {
+        setIsSyncing(false);
+      }
+    } else {
       localStorage.removeItem('salami_bet_line');
       localStorage.removeItem('salami_bet_type');
+      toast.info('WAGER CLEARED');
     }
-    toast.info('WAGER CLEARED');
   };
 
   const projectedTotal = playedInnings > 0.25 
