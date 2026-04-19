@@ -10,6 +10,8 @@
   --color-salami-bg: #f1f5f9;
   --color-field-green: #15803d;
   --color-dirt-brown: #92400e;
+
+  --breakpoint-xs: 420px;
 }
 
 @layer base {
