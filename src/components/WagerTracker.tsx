@@ -270,8 +270,16 @@ export function WagerTracker({
       console.warn('Notifications typically blocked in iframes. Open app in new tab.');
     }
     
-    if (Notification.permission === "granted") {
-      new Notification(title, { body, icon: '/favicon.ico' });
+    try {
+      if (Notification.permission === "granted") {
+        new Notification(title, { 
+          body, 
+          icon: 'https://cdn-icons-png.flaticon.com/512/3515/3515320.png',
+          tag: 'salami-pace-alert'
+        });
+      }
+    } catch (e) {
+      console.error('Notification error:', e);
     }
   };
 
@@ -388,7 +396,7 @@ export function WagerTracker({
                 <span className="text-[9px] font-mono font-black uppercase tracking-widest">History</span>
               </button>
             )}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <button 
                 onClick={toggleNotifications}
                 className={cn(

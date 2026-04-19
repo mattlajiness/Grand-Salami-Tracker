@@ -59,15 +59,21 @@ export function GrandSalamiHeader({
   }, [lastUpdated]);
 
   const handleSignIn = async () => {
+    if (isSigningIn) return;
     setIsSigningIn(true);
+    const toastId = toast.loading('Connecting to Google...');
     trackEvent('login_attempt', { method: 'google' });
     try {
       await signIn();
       trackEvent('login_success');
-    } catch (error) {
+      toast.success('Successfully authenticated!', { id: toastId });
+    } catch (error: any) {
       console.error('Sign in error:', error);
       trackEvent('login_error', { error: String(error) });
-      toast.error('Sign in failed. Please try again.');
+      const message = error?.code === 'auth/popup-blocked' 
+        ? 'Sign-in popup blocked. Please allow popups or open in a new tab.' 
+        : 'Sign in failed. Please try again.';
+      toast.error(message, { id: toastId });
     } finally {
       setIsSigningIn(false);
     }

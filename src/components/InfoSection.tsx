@@ -10,14 +10,20 @@ export function InfoSection() {
   const [isSigningIn, setIsSigningIn] = useState(false);
 
   const handleSignUp = async () => {
-    if (user) return;
+    if (user || isSigningIn) return;
     setIsSigningIn(true);
+    const toastId = toast.loading('Opening Google Secure Login...');
     trackEvent('signup_cta_click');
     try {
       await signIn();
-    } catch (error) {
+      trackEvent('signup_success');
+      toast.success('Welcome to Salami Pace!', { id: toastId });
+    } catch (error: any) {
       console.error('Sign up error:', error);
-      toast.error('Could not connect. Please try again.');
+      const message = error?.code === 'auth/popup-blocked'
+        ? 'Login window blocked. Please enable popups or open app in a new tab.'
+        : 'Could not connect. Please try again.';
+      toast.error(message, { id: toastId });
     } finally {
       setIsSigningIn(false);
     }
