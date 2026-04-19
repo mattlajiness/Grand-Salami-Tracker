@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { History, Trophy, Frown, Calendar, TrendingUp, TrendingDown, ChevronRight, Loader2, Target, Activity } from 'lucide-react';
-import { collection, query, orderBy, getDocs } from 'firebase/firestore';
+import { History, Trophy, Frown, Calendar, TrendingUp, TrendingDown, ChevronRight, Loader2, Target, Activity, Trash2 } from 'lucide-react';
+import { collection, query, orderBy, getDocs, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { MLBGame } from '../services/mlbService';
@@ -63,6 +63,20 @@ export function WagerHistory({ historicalGames, isOpen, onClose }: WagerHistoryP
 
     fetchWagers();
   }, [user, isOpen]);
+
+  const handleDelete = async (date: string) => {
+    if (!user) return;
+    
+    if (confirm(`Are you sure you want to remove the wager for ${date}?`)) {
+      try {
+        const wagerDocRef = doc(db, 'users', user.uid, 'wagers', date);
+        await deleteDoc(wagerDocRef);
+        setWagers(prev => prev.filter(w => w.date !== date));
+      } catch (error) {
+        console.error("Error deleting wager:", error);
+      }
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -127,6 +141,15 @@ export function WagerHistory({ historicalGames, isOpen, onClose }: WagerHistoryP
                             : "border-slate-800 hover:border-slate-700"
                         )}
                       >
+                        {/* Delete Button - Floating */}
+                        <button 
+                          onClick={() => handleDelete(wager.date)}
+                          className="absolute top-2 right-2 p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-600 hover:text-red-500 hover:border-red-500/30 transition-all opacity-0 group-hover:opacity-100 z-20"
+                          title="Delete record"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+
                         {/* Background Indicator */}
                         {hasData && (
                           <div className={cn(
