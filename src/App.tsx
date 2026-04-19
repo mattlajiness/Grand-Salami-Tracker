@@ -10,6 +10,7 @@ import { InfoSection } from './components/InfoSection';
 import { LogoExport } from './components/LogoExport';
 import { UserAdminPanel } from './components/UserAdminPanel';
 import { CreatorOutreachKit } from './components/CreatorOutreachKit';
+import { WagerHistory } from './components/WagerHistory';
 import { Calendar, Share2, Droplets } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { useAuth } from './contexts/AuthContext';
@@ -24,6 +25,7 @@ export default function App() {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   
   const isLogoMode = new URLSearchParams(window.location.search).get('logo') === 'true';
 
@@ -229,6 +231,7 @@ export default function App() {
                   gameCount={games.length}
                   finalCount={stats.finalCount}
                   liveThreats={stats.liveThreats}
+                  onOpenHistory={() => setIsHistoryModalOpen(true)}
                 />
 
                 <div className="hidden lg:block space-y-6">
@@ -264,6 +267,12 @@ export default function App() {
           )}
 
           <InfoSection />
+
+          <WagerHistory 
+            historicalGames={historicalGames} 
+            isOpen={isHistoryModalOpen} 
+            onClose={() => setIsHistoryModalOpen(false)} 
+          />
         </div>
       </main>
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Target, TrendingUp, TrendingDown, AlertCircle, CheckCircle2, XCircle, Bell, BellOff, Save, Cloud, RefreshCw, Activity, Trophy, Frown, Sparkles } from 'lucide-react';
+import { Target, TrendingUp, TrendingDown, AlertCircle, CheckCircle2, XCircle, Bell, BellOff, Save, Cloud, RefreshCw, Activity, Trophy, Frown, Sparkles, History } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { toast } from 'sonner';
@@ -19,6 +19,7 @@ interface WagerTrackerProps {
   gameCount: number;
   finalCount: number;
   liveThreats?: number;
+  onOpenHistory?: () => void;
 }
 
 export function WagerTracker({ 
@@ -28,7 +29,8 @@ export function WagerTracker({
   isFinished,
   gameCount,
   finalCount,
-  liveThreats = 0
+  liveThreats = 0,
+  onOpenHistory
 }: WagerTrackerProps) {
   const { user, profile, updateProfile } = useAuth();
   const [betLine, setBetLine] = useState<number | ''>('');
@@ -387,24 +389,35 @@ export function WagerTracker({
               </div>
             )}
           </div>
-              <div className="flex items-center gap-3">
-                <button 
-                  onClick={toggleNotifications}
-            className={cn(
-              "p-2 rounded-lg border transition-all duration-300 group relative",
-              notificationsEnabled 
-                ? "bg-blue-500/10 border-blue-500/30 text-blue-400" 
-                : "bg-slate-800/50 border-slate-700 text-slate-500 hover:border-slate-600"
+          <div className="flex items-center gap-2">
+            {user && (
+              <button 
+                onClick={onOpenHistory}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900/50 text-slate-400 hover:text-white hover:border-slate-700 transition-all group"
+              >
+                <History className="w-3.5 h-3.5 text-blue-500 group-hover:scale-110 transition-transform" />
+                <span className="text-[9px] font-mono font-black uppercase tracking-widest">History</span>
+              </button>
             )}
-            title={notificationsEnabled ? "Disable Alerts" : "Enable Alerts"}
-          >
-            {notificationsEnabled ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
-            {notificationsEnabled && (
-              <span className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />
-            )}
-          </button>
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={toggleNotifications}
+                className={cn(
+                  "p-2 rounded-lg border transition-all duration-300 group relative",
+                  notificationsEnabled 
+                    ? "bg-blue-500/10 border-blue-500/30 text-blue-400" 
+                    : "bg-slate-800/50 border-slate-700 text-slate-500 hover:border-slate-600"
+                )}
+                title={notificationsEnabled ? "Disable Alerts" : "Enable Alerts"}
+              >
+                {notificationsEnabled ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
+                {notificationsEnabled && (
+                  <span className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />
+                )}
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
 
         <div className="space-y-6">
           {/* Inputs */}
