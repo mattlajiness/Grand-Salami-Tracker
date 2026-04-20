@@ -10,13 +10,13 @@ import { InfoSection } from './components/InfoSection';
 import { LogoExport } from './components/LogoExport';
 import { UserAdminPanel } from './components/UserAdminPanel';
 import { WagerHistory } from './components/WagerHistory';
-import { Calendar, Share2, Droplets } from 'lucide-react';
+import { Calendar, Share2, Droplets, Activity } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { useAuth } from './contexts/AuthContext';
-import { format, subDays } from 'date-fns';
-import { AnimatePresence, motion } from 'motion/react';
 import { db } from './firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
+import { format, subDays } from 'date-fns';
+import { AnimatePresence, motion } from 'motion/react';
 
 export default function App() {
   const { user, loading: authLoading } = useAuth();
@@ -67,6 +67,7 @@ export default function App() {
     try {
       const today = format(new Date(), 'yyyy-MM-dd');
       const mlbData = await fetchMLBGames(today);
+      
       setGames(mlbData || []);
       setLastUpdated(new Date());
     } catch (error) {
@@ -214,25 +215,31 @@ export default function App() {
           />
 
           {games.length === 0 && !isRefreshing && !isInitialLoad ? (
-            <div className="dashboard-card p-12 text-center">
-              <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-700">
-                <Calendar className="w-8 h-8 text-slate-500" />
+            <div className="dashboard-card p-12 text-center bg-slate-900 border-slate-800">
+              <div className="w-20 h-20 bg-slate-950 rounded-full flex items-center justify-center mx-auto mb-6 border border-slate-800 shadow-inner">
+                <Calendar className="w-10 h-10 text-slate-700" />
               </div>
-              <h3 className="text-white font-black text-xl mb-2">No Games Scheduled</h3>
-              <p className="text-slate-500 font-mono text-xs uppercase tracking-widest">
-                There are no MLB games found for today's slate.
+              <h3 className="text-white font-black text-2xl mb-3 tracking-tighter uppercase">No Games Found</h3>
+              <p className="text-slate-500 font-mono text-[10px] uppercase tracking-[0.2em] max-w-md mx-auto leading-relaxed">
+                We couldn't find any MLB games scheduled for <span className="text-white bg-slate-800 px-2 py-0.5 rounded">{format(new Date(), 'MMMM do, yyyy').toUpperCase()}</span>.
               </p>
-              <button 
-                onClick={loadLiveData}
-                className="mt-6 px-6 py-2 bg-salami-red text-white rounded-full font-black text-[10px] uppercase tracking-widest hover:bg-red-700 transition-colors"
-              >
-                Check Again
-              </button>
+              <div className="mt-8 flex flex-col items-center gap-4">
+                <button 
+                  onClick={loadLiveData}
+                  className="px-8 py-3 bg-salami-red hover:bg-red-700 text-white rounded-xl font-black text-[11px] uppercase tracking-[0.3em] transition-all active:scale-95 shadow-lg shadow-red-900/20"
+                >
+                  Force Sync Now
+                </button>
+                <div className="flex items-center gap-2 text-[9px] font-mono text-slate-600 uppercase tracking-widest">
+                  <Activity className="w-3 h-3" />
+                  Requesting MLB Stats API...
+                </div>
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="order-2 lg:order-1 lg:col-span-2">
-                <GameLog games={games} gameLines={gameLines} />
+                <GameLog games={games} gameLines={gameLines} manualLines={gameLines} />
               </div>
               
               <div className="order-1 lg:order-2 space-y-6">
@@ -268,6 +275,7 @@ export default function App() {
                     currentTotal={currentTotal}
                     games={games}
                     gameLines={gameLines}
+                    manualLines={gameLines}
                   />
                 </div>
               </div>
@@ -284,6 +292,7 @@ export default function App() {
                   currentTotal={currentTotal}
                   games={games}
                   gameLines={gameLines}
+                  manualLines={gameLines}
                 />
               </div>
             </div>

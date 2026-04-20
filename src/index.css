@@ -12,6 +12,8 @@
   --color-dirt-brown: #92400e;
 
   --breakpoint-xs: 420px;
+
+  --animate-spin-slow: spin 3s linear infinite;
 }
 
 @layer base {

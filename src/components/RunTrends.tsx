@@ -10,9 +10,10 @@ interface RunTrendsProps {
   currentTotal: number;
   games: MLBGame[];
   gameLines: Record<number, number>;
+  manualLines?: Record<number, number>;
 }
 
-export function RunTrends({ historicalGames, currentTotal, games, gameLines }: RunTrendsProps) {
+export function RunTrends({ historicalGames, currentTotal, games, gameLines, manualLines = {} }: RunTrendsProps) {
   const trends = useMemo(() => {
     const dailyTotals: Record<string, number> = {};
     const gameCounts: Record<string, number> = {};
@@ -65,7 +66,7 @@ export function RunTrends({ historicalGames, currentTotal, games, gameLines }: R
     };
 
     games.forEach(game => {
-      const line = gameLines[game.gamePk];
+      const line = manualLines[game.gamePk] || gameLines[game.gamePk];
       if (!line) return;
 
       liveOU.totalWithLines++;
@@ -80,8 +81,6 @@ export function RunTrends({ historicalGames, currentTotal, games, gameLines }: R
         const isTop = game.linescore?.isTopInning ?? true;
         const played = (inning - 1) + (isTop ? 0 : 0.5);
         
-        // Simple projection: Current Score + (Line Pace * remaining innings)
-        // Or even simpler: Current pace vs Line pace
         const pace = played > 0 ? (score / played) * 9 : 0;
         
         if (score > line || pace > line) liveOU.over++;
@@ -101,7 +100,7 @@ export function RunTrends({ historicalGames, currentTotal, games, gameLines }: R
       volatilityScore,
       liveOU
     };
-  }, [historicalGames, games, gameLines]);
+  }, [historicalGames, games, gameLines, manualLines]);
 
   const hasGamesWithLines = trends.liveOU.totalWithLines > 0;
   const isAllPending = trends.liveOU.ready === trends.liveOU.totalWithLines && trends.liveOU.totalWithLines > 0;

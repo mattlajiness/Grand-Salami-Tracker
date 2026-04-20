@@ -51,9 +51,10 @@ const getMatchupStrength = (game: MLBGame) => {
 interface GameLogProps {
   games: MLBGame[];
   gameLines: Record<number, number>;
+  manualLines?: Record<number, number>;
 }
 
-export function GameLog({ games, gameLines }: GameLogProps) {
+export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
   const { user } = useAuth();
   const isAdmin = user?.email?.toLowerCase() === 'mattlajiness@gmail.com';
   
@@ -291,50 +292,30 @@ export function GameLog({ games, gameLines }: GameLogProps) {
                           {/* O/U Line UI */}
                           <div className="pt-2 border-t border-slate-800 w-full flex flex-col items-center">
                             <div className="flex items-center gap-1 mb-1">
-                              {editingLineId === game.gamePk ? (
-                                <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                                  <input 
-                                    type="number"
-                                    step="0.5"
-                                    value={tempLine}
-                                    onChange={e => setTempLine(e.target.value)}
-                                    className="w-10 bg-slate-900 border border-slate-700 rounded text-[10px] font-mono text-white px-1 py-0.5 focus:outline-none focus:border-salami-red"
-                                    autoFocus
-                                  />
-                                  <button 
-                                    onClick={() => handleSaveLine(game.gamePk)}
-                                    className="p-1 text-green-500 hover:text-green-400"
-                                  >
-                                    <Save className="w-3 h-3" />
-                                  </button>
-                                </div>
-                              ) : (
-                                <div className="flex items-center gap-1 group/line">
-                                  <span className="text-[10px] font-mono font-black text-slate-300">
-                                    {gameLines[game.gamePk] !== undefined ? `L: ${gameLines[game.gamePk]}` : 'NO LINE'}
-                                  </span>
-                                  {isAdmin && (
-                                    <button 
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setEditingLineId(game.gamePk);
-                                        setTempLine(gameLines[game.gamePk]?.toString() || '');
-                                      }}
-                                      className="p-1 text-slate-600 hover:text-white opacity-0 group-hover/line:opacity-100 transition-opacity"
-                                    >
-                                      <Edit2 className="w-2.5 h-2.5" />
-                                    </button>
-                                  )}
-                                </div>
-                              )}
+                              <span className="text-[10px] font-mono font-black text-slate-300">
+                                {gameLines[game.gamePk] !== undefined ? `L: ${gameLines[game.gamePk]}` : 'NO LINE'}
+                              </span>
                             </div>
                             
                             {gameLines[game.gamePk] !== undefined && (
                               <div className={cn(
-                                "text-[7px] font-mono font-black uppercase tracking-widest",
-                                total > gameLines[game.gamePk] ? "text-red-500" : "text-green-500"
+                                "text-[7px] font-mono font-black uppercase tracking-widest px-1.5 py-0.5 rounded flex items-center gap-1",
+                                total > gameLines[game.gamePk] ? "bg-red-500/10 text-red-500" : 
+                                total < gameLines[game.gamePk] ? "bg-green-500/10 text-green-500" : 
+                                "bg-blue-500/10 text-blue-500"
                               )}>
-                                {total > gameLines[game.gamePk] ? 'OVER' : 'UNDER'} ({(total - gameLines[game.gamePk]).toFixed(1)})
+                                {(() => {
+                                  const line = gameLines[game.gamePk];
+                                  const diff = total - line;
+                                  const label = diff > 0 ? 'OVER' : diff < 0 ? 'UNDER' : 'PUSH';
+                                  const sign = diff > 0 ? '+' : '';
+                                  return (
+                                    <>
+                                      <span>{label} {line}</span>
+                                      <span className="opacity-60">({sign}{diff.toFixed(1)})</span>
+                                    </>
+                                  );
+                                })()}
                               </div>
                             )}
                           </div>
@@ -519,52 +500,67 @@ export function GameLog({ games, gameLines }: GameLogProps) {
                           </td>
                           <td className="px-6 py-5 text-center border-l border-slate-800">
                             <div className="flex flex-col items-center justify-center">
-                               {editingLineId === game.gamePk ? (
-                                <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
-                                  <input 
-                                    type="number"
-                                    step="0.5"
-                                    value={tempLine}
-                                    onChange={e => setTempLine(e.target.value)}
-                                    className="w-16 bg-slate-950 border border-slate-800 rounded text-xs font-mono text-white px-2 py-1 focus:outline-none focus:ring-1 focus:ring-salami-red"
-                                    autoFocus
-                                  />
-                                  <button 
-                                    onClick={() => handleSaveLine(game.gamePk)}
-                                    className="p-1.5 bg-green-500/10 text-green-500 rounded hover:bg-green-500/20"
-                                  >
-                                    <Save className="w-4 h-4" />
-                                  </button>
-                                </div>
-                              ) : (
-                                <div className="flex items-center gap-2 group/line">
+                              <div className="flex items-center gap-2 group/line">
+                                {editingLineId === game.gamePk ? (
+                                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                                    <input
+                                      type="number"
+                                      step="0.5"
+                                      value={tempLine}
+                                      onChange={(e) => setTempLine(e.target.value)}
+                                      className="w-14 bg-slate-950 border border-salami-red rounded px-1 py-0.5 text-xs font-mono text-white text-center focus:outline-none"
+                                      autoFocus
+                                    />
+                                    <button
+                                      onClick={() => handleSaveLine(game.gamePk)}
+                                      className="p-1 hover:bg-slate-800 rounded text-green-500"
+                                    >
+                                      <Save className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                ) : (
                                   <div className="flex flex-col items-center">
-                                    <span className="text-sm font-mono font-black text-white">
-                                      {gameLines[game.gamePk] !== undefined ? gameLines[game.gamePk].toFixed(1) : '---'}
-                                    </span>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-sm font-mono font-black text-white">
+                                        {gameLines[game.gamePk] !== undefined ? gameLines[game.gamePk].toFixed(1) : '---'}
+                                      </span>
+                                      {isAdmin && (
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setEditingLineId(game.gamePk);
+                                            setTempLine(gameLines[game.gamePk]?.toString() || '');
+                                          }}
+                                          className="p-1 hover:bg-slate-800 rounded text-slate-500 opacity-0 group-hover/line:opacity-100 transition-opacity"
+                                        >
+                                          <Edit2 className="w-3 h-3" />
+                                        </button>
+                                      )}
+                                    </div>
                                     <span className="text-[7px] font-mono text-slate-500 font-bold uppercase tracking-widest mt-0.5">Betting Line</span>
                                   </div>
-                                  {isAdmin && (
-                                    <button 
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setEditingLineId(game.gamePk);
-                                        setTempLine(gameLines[game.gamePk]?.toString() || '');
-                                      }}
-                                      className="p-1.5 bg-slate-800 text-slate-400 rounded hover:text-white opacity-0 group-hover/line:opacity-100 transition-opacity"
-                                    >
-                                      <Edit2 className="w-3.5 h-3.5" />
-                                    </button>
-                                  )}
-                                </div>
-                              )}
+                                )}
+                              </div>
                               
                               {gameLines[game.gamePk] !== undefined && (
                                 <div className={cn(
                                   "mt-1 px-2 py-0.5 rounded text-[8px] font-mono font-black uppercase tracking-widest",
-                                  total > gameLines[game.gamePk] ? "bg-red-500/10 text-red-500" : "bg-green-500/10 text-green-500"
+                                  total > gameLines[game.gamePk] ? "bg-red-500/10 text-red-500" : 
+                                  total < gameLines[game.gamePk] ? "bg-green-500/10 text-green-500" : 
+                                  "bg-blue-500/10 text-blue-500"
                                 )}>
-                                  {total > gameLines[game.gamePk] ? 'OVER' : 'UNDER'} ({(total - gameLines[game.gamePk]).toFixed(1)})
+                                {(() => {
+                                  const line = gameLines[game.gamePk];
+                                  const diff = total - line;
+                                  const label = diff > 0 ? 'OVER' : diff < 0 ? 'UNDER' : 'PUSH';
+                                  const sign = diff > 0 ? '+' : '';
+                                  return (
+                                    <div className="flex items-center gap-1">
+                                      <span>{label} {line}</span>
+                                      <span className="opacity-60">({sign}{diff.toFixed(1)})</span>
+                                    </div>
+                                  );
+                                })()}
                                 </div>
                               )}
                             </div>

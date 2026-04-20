@@ -1,3 +1,5 @@
+import { format, subDays, addDays, parseISO } from 'date-fns';
+
 /**
  * MLB Stats API Types (Simplified)
  */
@@ -104,22 +106,30 @@ let pitcherStatsCache: {
 const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
 export async function fetchMLBGames(date?: string, startDate?: string, endDate?: string): Promise<MLBGame[]> {
-  const url = new URL('https://statsapi.mlb.com/api/v1/schedule/games/?sportId=1');
-  url.searchParams.append('hydrate', 'linescore,team,weather,venue,probablePitcher,boxscore');
-  url.searchParams.append('_t', Date.now().toString()); // Cache buster
+  // Use a cleaner URL construction
+  let url = 'https://statsapi.mlb.com/api/v1/schedule?sportId=1';
+  url += '&hydrate=linescore,team,weather,venue,probablePitcher,boxscore';
+  url += `&_t=${Date.now()}`;
   
   if (startDate && endDate) {
-    url.searchParams.append('startDate', startDate);
-    url.searchParams.append('endDate', endDate);
+    url += `&startDate=${startDate}&endDate=${endDate}`;
   } else if (date) {
-    url.searchParams.append('date', date);
+    // To handle timezone overlaps, fetch +/- 1 day
+    try {
+      const targetDate = parseISO(date);
+      const start = format(subDays(targetDate, 1), 'yyyy-MM-dd');
+      const end = format(addDays(targetDate, 1), 'yyyy-MM-dd');
+      url += `&startDate=${start}&endDate=${end}`;
+    } catch (e) {
+      url += `&date=${date}`;
+    }
   }
   
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000); // Increased to 20s
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
 
-    const response = await fetch(url.toString(), { signal: controller.signal });
+    const response = await fetch(url, { signal: controller.signal });
     clearTimeout(timeoutId);
 
     if (!response.ok) throw new Error(`MLB API Error: ${response.status}`);
@@ -135,6 +145,15 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
     try {
       if (startDate && endDate) {
         rawGames = data.dates.flatMap(d => (d.games || []).map(g => ({ ...g, officialDate: d.date })));
+      } else if (date) {
+        // Find the specific date requested
+        const dayData = data.dates.find(d => d.date === date);
+        if (dayData) {
+          rawGames = (dayData.games || []).map(g => ({ ...g, officialDate: dayData.date }));
+        } else {
+          // If the exact date isn't there (unlikely given the buffer), fallback to the first date returned
+          rawGames = (data.dates[0].games || []).map(g => ({ ...g, officialDate: data.dates[0].date }));
+        }
       } else if (data.dates[0]) {
         rawGames = (data.dates[0].games || []).map(g => ({ ...g, officialDate: data.dates[0].date }));
       }
