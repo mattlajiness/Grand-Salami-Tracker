@@ -198,15 +198,6 @@ export function InfoSection() {
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-salami-red font-mono text-[10px] font-black uppercase tracking-widest">
-                <Zap className="w-3 h-3" /> The Bullpen Factor
-              </div>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Scoring often increases in the 7th-9th innings as tired bullpens take over. Our <span className="text-blue-400">Fatigue Report</span> tracks teams using 4+ pitchers to highlight scoring surges.
-              </p>
-            </div>
-
-            <div className="space-y-2">
               <div className="flex items-center gap-2 text-blue-400 font-mono text-[10px] font-black uppercase tracking-widest">
                 <CloudRain className="w-3 h-3" /> Rain & Voids
               </div>
