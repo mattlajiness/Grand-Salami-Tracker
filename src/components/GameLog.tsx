@@ -97,6 +97,10 @@ export function GameLog({ games, gameLines }: GameLogProps) {
     if (!game.linescore || game.status.abstractGameState !== 'Live') return 0;
     const { offense, outs } = game.linescore;
     if (!offense) return 0;
+
+    // Trigger ONLY with Runners in Scoring Position (2nd or 3rd base)
+    if (!offense.second && !offense.third) return 0;
+
     return calculateLiveThreat({
       first: !!offense.first,
       second: !!offense.second,
@@ -768,12 +772,17 @@ function GameDetailView({ game }: { game: MLBGame }) {
               </div>
             </div>
             {(() => {
+              const offense = linescore.offense;
+              const hasRISP = !!offense?.second || !!offense?.third;
+              if (!hasRISP) return null;
+
               const threat = calculateLiveThreat({
-                first: !!linescore.offense?.first,
-                second: !!linescore.offense?.second,
-                third: !!linescore.offense?.third,
+                first: !!offense?.first,
+                second: !!offense?.second,
+                third: !!offense?.third,
                 outs: linescore.outs || 0
               });
+              
               if (threat <= 0.1) return null;
               
               return (

@@ -119,13 +119,16 @@ export default function App() {
         const inning = game.linescore?.currentInning || 1;
         const isTop = game.linescore?.isTopInning ?? true;
 
-        // Calculate live threat for this game
-        if (game.linescore?.offense) {
+        // Calculate live threat for this game - Only if Runners in Scoring Position (RISP)
+        const offense = game.linescore?.offense;
+        const hasRISP = !!offense?.second || !!offense?.third;
+        
+        if (offense && hasRISP) {
           liveThreats += calculateLiveThreat({
-            first: !!game.linescore.offense.first,
-            second: !!game.linescore.offense.second,
-            third: !!game.linescore.offense.third,
-            outs: game.linescore.outs || 0
+            first: !!offense.first,
+            second: !!offense.second,
+            third: !!offense.third,
+            outs: game.linescore?.outs || 0
           });
         }
 
