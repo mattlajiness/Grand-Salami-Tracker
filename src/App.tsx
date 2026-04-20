@@ -263,6 +263,8 @@ export default function App() {
                   <RunTrends 
                     historicalGames={historicalGames}
                     currentTotal={currentTotal}
+                    games={games}
+                    gameLines={gameLines}
                   />
                 </div>
               </div>
@@ -277,6 +279,8 @@ export default function App() {
                 <RunTrends 
                   historicalGames={historicalGames}
                   currentTotal={currentTotal}
+                  games={games}
+                  gameLines={gameLines}
                 />
               </div>
             </div>

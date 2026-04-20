@@ -8,9 +8,11 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 interface RunTrendsProps {
   historicalGames: MLBGame[];
   currentTotal: number;
+  games: MLBGame[];
+  gameLines: Record<number, number>;
 }
 
-export function RunTrends({ historicalGames, currentTotal }: RunTrendsProps) {
+export function RunTrends({ historicalGames, currentTotal, games, gameLines }: RunTrendsProps) {
   const trends = useMemo(() => {
     const dailyTotals: Record<string, number> = {};
     const gameCounts: Record<string, number> = {};
@@ -53,15 +55,57 @@ export function RunTrends({ historicalGames, currentTotal }: RunTrendsProps) {
     const volatility = Math.sqrt(variance);
     const volatilityScore = volatility > 1.5 ? 'HIGH' : volatility < 0.8 ? 'LOW' : 'STABLE';
 
+    // Current Slate O/U Analysis
+    const liveOU = {
+      over: 0,
+      under: 0,
+      push: 0,
+      ready: 0,
+      totalWithLines: 0
+    };
+
+    games.forEach(game => {
+      const line = gameLines[game.gamePk];
+      if (!line) return;
+
+      liveOU.totalWithLines++;
+      const score = (game.teams.away.score || 0) + (game.teams.home.score || 0);
+      
+      if (game.status.abstractGameState === 'Final') {
+        if (score > line) liveOU.over++;
+        else if (score < line) liveOU.under++;
+        else liveOU.push++;
+      } else if (game.status.abstractGameState === 'Live') {
+        const inning = game.linescore?.currentInning || 1;
+        const isTop = game.linescore?.isTopInning ?? true;
+        const played = (inning - 1) + (isTop ? 0 : 0.5);
+        
+        // Simple projection: Current Score + (Line Pace * remaining innings)
+        // Or even simpler: Current pace vs Line pace
+        const pace = played > 0 ? (score / played) * 9 : 0;
+        
+        if (score > line || pace > line) liveOU.over++;
+        else if (pace < line) liveOU.under++;
+        else liveOU.push++;
+      } else {
+        liveOU.ready++;
+      }
+    });
+
     return {
       chartData,
       avgRuns,
       avgRPG,
       temp,
       recentAvgRPG,
-      volatilityScore
+      volatilityScore,
+      liveOU
     };
-  }, [historicalGames]);
+  }, [historicalGames, games, gameLines]);
+
+  const hasGamesWithLines = trends.liveOU.totalWithLines > 0;
+  const isAllPending = trends.liveOU.ready === trends.liveOU.totalWithLines && trends.liveOU.totalWithLines > 0;
+  const totalTracked = trends.liveOU.over + trends.liveOU.under + trends.liveOU.push;
 
   return (
     <div className="dashboard-card p-6 bg-slate-900/50 border-slate-800 shadow-xl relative overflow-hidden">
@@ -93,7 +137,7 @@ export function RunTrends({ historicalGames, currentTotal }: RunTrendsProps) {
       </div>
 
       {/* Main Chart */}
-      <div className="h-48 w-full mb-8 -ml-4">
+      <div className="h-48 w-full mb-6 -ml-4">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={trends.chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
@@ -149,6 +193,83 @@ export function RunTrends({ historicalGames, currentTotal }: RunTrendsProps) {
           </BarChart>
         </ResponsiveContainer>
       </div>
+
+      {/* Today's O/U Pulse */}
+      {games.length > 0 && (
+        <div className="mb-6 p-4 rounded-xl bg-slate-950/50 border border-slate-800/80">
+          <div className="flex items-center justify-between mb-3 text-[9px] font-mono font-black uppercase tracking-widest text-slate-500">
+            <span>Today's O/U Trends</span>
+            <span className={cn(
+              "text-[8px] px-2 py-0.5 rounded-full border",
+              isAllPending ? "bg-blue-500/10 border-blue-500/30 text-blue-400" : "bg-salami-red/10 border-salami-red/30 text-salami-red"
+            )}>
+              {isAllPending ? 'PRE-GAME' : !hasGamesWithLines ? 'AWAITING LINES' : 'LIVE PULSE'}
+            </span>
+          </div>
+
+          {!hasGamesWithLines ? (
+            <div className="py-2 text-center">
+              <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest italic">
+                Awaiting betting lines for today's slate...
+              </p>
+            </div>
+          ) : isAllPending ? (
+            <div className="py-2 text-center flex flex-col items-center gap-2">
+              <div className="flex gap-1">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="w-1.5 h-1.5 rounded-full bg-blue-500/20 animate-pulse" style={{ animationDelay: `${i * 0.2}s` }} />
+                ))}
+              </div>
+              <p className="text-[10px] font-mono text-blue-400/70 uppercase tracking-widest">
+                {trends.liveOU.ready} Games Locked & Ready
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 h-3 rounded-full overflow-hidden flex bg-slate-800">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(trends.liveOU.over / Math.max(totalTracked, 1)) * 100}%` }}
+                    className="h-full bg-salami-red shadow-[0_0_10px_rgba(225,29,72,0.4)]"
+                  />
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(trends.liveOU.push / Math.max(totalTracked, 1)) * 100}%` }}
+                    className="h-full bg-blue-500"
+                  />
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(trends.liveOU.under / Math.max(totalTracked, 1)) * 100}%` }}
+                    className="h-full bg-slate-700"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-between mt-3">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-salami-red shadow-[0_0_5px_rgba(225,29,72,0.8)]" />
+                    <span className="text-[10px] font-mono font-black text-white">{trends.liveOU.over} OVER</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-slate-700" />
+                    <span className="text-[10px] font-mono font-black text-slate-400">{trends.liveOU.under} UNDER</span>
+                  </div>
+                  {trends.liveOU.push > 0 && (
+                    <div className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                      <span className="text-[10px] font-mono font-black text-blue-400">{trends.liveOU.push} PUSH</span>
+                    </div>
+                  )}
+                </div>
+                {trends.liveOU.ready > 0 && (
+                  <span className="text-[8px] font-mono text-slate-600 uppercase italic">+{trends.liveOU.ready} Pending</span>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 gap-4 pt-6 border-t border-slate-800">
