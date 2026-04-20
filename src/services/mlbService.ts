@@ -105,34 +105,62 @@ let pitcherStatsCache: {
 
 const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
+// Cache for schedule data to handle transient fetch failures
+let scheduleCache: {
+  data: MLBGame[];
+  timestamp: number;
+} | null = null;
+
+const SCHEDULE_CACHE_TTL = 60 * 1000; // 1 minute fallback cache
+
 export async function fetchMLBGames(date?: string, startDate?: string, endDate?: string): Promise<MLBGame[]> {
-  // Use a cleaner URL construction
-  let url = 'https://statsapi.mlb.com/api/v1/schedule?sportId=1';
-  url += '&hydrate=linescore,team,weather,venue,probablePitcher,boxscore';
-  url += `&_t=${Date.now()}`;
+  const fetchWithRetry = async (retryUrl: string, retries = 2): Promise<Response> => {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const res = await fetch(retryUrl, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      return res;
+    } catch (err) {
+      if (retries > 0) {
+        await new Promise(r => setTimeout(r, 1000));
+        return fetchWithRetry(retryUrl, retries - 1);
+      }
+      throw err;
+    }
+  };
+
+  const urlObj = new URL('https://statsapi.mlb.com/api/v1/schedule');
+  urlObj.searchParams.append('sportId', '1');
+  urlObj.searchParams.append('hydrate', 'linescore,team,weather,venue,probablePitcher,boxscore');
+  urlObj.searchParams.append('_t', Math.floor(Date.now() / 60000).toString()); // Minute-level cache busting
   
   if (startDate && endDate) {
-    url += `&startDate=${startDate}&endDate=${endDate}`;
+    urlObj.searchParams.append('startDate', startDate);
+    urlObj.searchParams.append('endDate', endDate);
   } else if (date) {
-    // To handle timezone overlaps, fetch +/- 1 day
     try {
       const targetDate = parseISO(date);
       const start = format(subDays(targetDate, 1), 'yyyy-MM-dd');
       const end = format(addDays(targetDate, 1), 'yyyy-MM-dd');
-      url += `&startDate=${start}&endDate=${end}`;
+      urlObj.searchParams.append('startDate', start);
+      urlObj.searchParams.append('endDate', end);
     } catch (e) {
-      url += `&date=${date}`;
+      urlObj.searchParams.append('date', date);
     }
   }
   
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000);
+    const response = await fetchWithRetry(urlObj.toString());
 
-    const response = await fetch(url, { signal: controller.signal });
-    clearTimeout(timeoutId);
-
-    if (!response.ok) throw new Error(`MLB API Error: ${response.status}`);
+    if (!response.ok) {
+      // If we have a cached version, use it during API errors
+      if (scheduleCache && (Date.now() - scheduleCache.timestamp < SCHEDULE_CACHE_TTL * 15)) {
+        console.warn('Using stale schedule cache due to API error');
+        return scheduleCache.data;
+      }
+      throw new Error(`MLB API Error: ${response.status}`);
+    }
     
     const data: MLBScheduleResponse = await response.json();
     
@@ -146,12 +174,10 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
       if (startDate && endDate) {
         rawGames = data.dates.flatMap(d => (d.games || []).map(g => ({ ...g, officialDate: d.date })));
       } else if (date) {
-        // Find the specific date requested
         const dayData = data.dates.find(d => d.date === date);
         if (dayData) {
           rawGames = (dayData.games || []).map(g => ({ ...g, officialDate: dayData.date }));
         } else {
-          // If the exact date isn't there (unlikely given the buffer), fallback to the first date returned
           rawGames = (data.dates[0].games || []).map(g => ({ ...g, officialDate: data.dates[0].date }));
         }
       } else if (data.dates[0]) {
@@ -163,9 +189,7 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
     }
 
     // Enrich with boxscores if missing for final games
-    // We only do this for single-date fetches or limited ranges to avoid mass hits
     const enrichedGames = await Promise.all(rawGames.map(async (game) => {
-      // If it's a final game and boxscore pitchers are missing, try a direct fetch
       if (game.status.abstractGameState === 'Final' && (!game.boxscore?.teams.home.pitchers || game.boxscore.teams.home.pitchers.length === 0)) {
         try {
           const boxResponse = await fetch(`https://statsapi.mlb.com/api/v1/game/${game.gamePk}/boxscore`);
@@ -182,23 +206,22 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
             };
           }
         } catch (e) {
-          console.warn(`Failed to enrich boxscore for game ${game.gamePk}`);
+          // Ignore
         }
       }
       return game;
     }));
 
-    let games = enrichedGames;
+    let resultGames = enrichedGames;
 
     // Enrich with pitcher stats
     const pitcherIds = new Set<number>();
-    games.forEach(game => {
+    resultGames.forEach(game => {
       if (game.teams.away.probablePitcher?.id) pitcherIds.add(game.teams.away.probablePitcher.id);
       if (game.teams.home.probablePitcher?.id) pitcherIds.add(game.teams.home.probablePitcher.id);
     });
 
     if (pitcherIds.size > 0) {
-      // Check cache first
       let statsMap: Record<number, string> = {};
       const now = Date.now();
       
@@ -209,7 +232,7 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
         pitcherStatsCache = { data: statsMap, lastFetched: now };
       }
 
-      games = games.map(game => {
+      resultGames = resultGames.map(game => {
         const newGame = { ...game };
         if (newGame.teams.away.probablePitcher?.id) {
           newGame.teams.away.probablePitcher.era = statsMap[newGame.teams.away.probablePitcher.id];
@@ -221,8 +244,21 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
       });
     }
 
-    return games;
+    // Update cache
+    if (resultGames.length > 0) {
+      scheduleCache = {
+        data: resultGames,
+        timestamp: Date.now()
+      };
+    }
+
+    return resultGames;
   } catch (error) {
+    if (scheduleCache && (Date.now() - scheduleCache.timestamp < SCHEDULE_CACHE_TTL * 30)) {
+      console.warn('Fetch failed, returning cached data:', error);
+      return scheduleCache.data;
+    }
+    
     if (error instanceof Error && error.name === 'AbortError') {
       console.error('MLB API Request timed out');
     } else {

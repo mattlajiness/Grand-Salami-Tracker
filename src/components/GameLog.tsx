@@ -386,7 +386,23 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                 <tbody className="divide-y divide-slate-800">
                   {filteredGames.map((game, index) => {
                     if (!game || !game.teams) return null;
-                    const total = (game.teams.away?.score || 0) + (game.teams.home?.score || 0);
+                    
+                    const homeScore = game.teams.home?.score ?? game.linescore?.teams?.home?.runs ?? 0;
+                    const awayScore = game.teams.away?.score ?? game.linescore?.teams?.away?.runs ?? 0;
+                    const totalScore = homeScore + awayScore;
+                    
+                    // Simple Pace Calculation
+                    let projectedTotal = totalScore;
+                    if (game.status.abstractGameState === 'Live') {
+                      const inning = game.linescore?.currentInning || 1;
+                      const isTop = game.linescore?.isTopInning ?? true;
+                      const played = (inning - 1) + (isTop ? 0 : 0.5);
+                      
+                      if (played > 0) {
+                        projectedTotal = (totalScore / played) * 9;
+                      }
+                    }
+
                     const isExpanded = expandedGameId === game.gamePk;
                     const riskMessage = getRainRisk(game);
 
@@ -522,14 +538,14 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                                   <div className="flex flex-col items-center">
                                     <div className="flex items-center gap-2">
                                       <span className="text-sm font-mono font-black text-white">
-                                        {gameLines[game.gamePk] !== undefined ? gameLines[game.gamePk].toFixed(1) : '---'}
+                                        {(manualLines[game.gamePk] ?? gameLines[game.gamePk]) !== undefined ? (manualLines[game.gamePk] ?? gameLines[game.gamePk]).toFixed(1) : '---'}
                                       </span>
                                       {isAdmin && (
                                         <button
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             setEditingLineId(game.gamePk);
-                                            setTempLine(gameLines[game.gamePk]?.toString() || '');
+                                            setTempLine((manualLines[game.gamePk] ?? gameLines[game.gamePk])?.toString() || '');
                                           }}
                                           className="p-1 hover:bg-slate-800 rounded text-slate-500 opacity-0 group-hover/line:opacity-100 transition-opacity"
                                         >
@@ -542,17 +558,28 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                                 )}
                               </div>
                               
-                              {gameLines[game.gamePk] !== undefined && (
+                              {((manualLines && manualLines[game.gamePk] !== undefined) || gameLines[game.gamePk] !== undefined) && (
                                 <div className={cn(
                                   "mt-1 px-2 py-0.5 rounded text-[8px] font-mono font-black uppercase tracking-widest",
-                                  total > gameLines[game.gamePk] ? "bg-red-500/10 text-red-500" : 
-                                  total < gameLines[game.gamePk] ? "bg-green-500/10 text-green-500" : 
+                                  (game.status.abstractGameState === 'Live' ? projectedTotal : totalScore) > (manualLines[game.gamePk] ?? gameLines[game.gamePk]) ? "bg-red-500/10 text-red-500" : 
+                                  (game.status.abstractGameState === 'Live' ? projectedTotal : totalScore) < (manualLines[game.gamePk] ?? gameLines[game.gamePk]) ? "bg-green-500/10 text-green-500" : 
                                   "bg-blue-500/10 text-blue-500"
                                 )}>
                                 {(() => {
-                                  const line = gameLines[game.gamePk];
-                                  const diff = total - line;
-                                  const label = diff > 0 ? 'OVER' : diff < 0 ? 'UNDER' : 'PUSH';
+                                  const line = manualLines[game.gamePk] ?? gameLines[game.gamePk];
+                                  const isLive = game.status.abstractGameState === 'Live';
+                                  const displayScore = isLive ? projectedTotal : totalScore;
+                                  const diff = displayScore - line;
+                                  
+                                  let label = '';
+                                  if (game.status.abstractGameState === 'Final') {
+                                    label = diff > 0 ? 'OVER' : diff < 0 ? 'UNDER' : 'PUSH';
+                                  } else if (isLive) {
+                                    label = diff > 0.5 ? 'TRENDING OVER' : diff < -0.5 ? 'TRENDING UNDER' : 'ON PACE';
+                                  } else {
+                                    label = 'PREVIEW';
+                                  }
+                                  
                                   const sign = diff > 0 ? '+' : '';
                                   return (
                                     <div className="flex items-center gap-1">
@@ -594,7 +621,7 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                                   </div>
                                 )}
                                 <span className="text-[10px] font-mono font-black text-salami-red">
-                                  TOTAL: {total}
+                                  TOTAL: {totalScore}
                                 </span>
                               </div>
                               <div className={cn(
