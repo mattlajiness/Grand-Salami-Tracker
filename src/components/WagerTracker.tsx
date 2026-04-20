@@ -167,6 +167,7 @@ export function WagerTracker({
     const line = parseFloat(betLine.toString());
     
     if (isFinished) {
+      if (currentTotal === line) return 'PUSH';
       const won = betType === 'over' ? currentTotal > line : currentTotal < line;
       return won ? 'WON' : 'LOST';
     }
@@ -229,6 +230,15 @@ export function WagerTracker({
       });
       sendBrowserNotification('WAGER WON! 🏆', `Final Total: ${currentTotal} (Line: ${betLine})`);
       lastNotifiedStatus.current = 'WON';
+    } else if (status === 'PUSH' && lastNotifiedStatus.current !== 'PUSH') {
+      playSound('win');
+      setShowResultModal(true);
+      toast.info('WAGER PUSHED 🤝', {
+        description: `Final Total: ${currentTotal} (Line: ${betLine})`,
+        duration: 15000,
+      });
+      sendBrowserNotification('WAGER PUSHED 🤝', `Final Total: ${currentTotal} (Line: ${betLine})`);
+      lastNotifiedStatus.current = 'PUSH';
     } else if (status === 'LOST' && lastNotifiedStatus.current !== 'LOST') {
       playSound('loss');
       setShowResultModal(true);
@@ -319,7 +329,7 @@ export function WagerTracker({
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
               className={cn(
                 "max-w-md w-full dashboard-card p-8 text-center relative overflow-hidden",
-                status === 'WON' ? "border-green-500/50" : "border-red-500/50"
+                status === 'WON' ? "border-green-500/50" : status === 'PUSH' ? "border-blue-500/50" : "border-red-500/50"
               )}
               onClick={e => e.stopPropagation()}
             >
@@ -327,18 +337,20 @@ export function WagerTracker({
               
               <div className={cn(
                 "w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6",
-                status === 'WON' ? "bg-green-500/20 text-green-500" : "bg-red-500/20 text-red-500"
+                status === 'WON' ? "bg-green-500/20 text-green-500" : status === 'PUSH' ? "bg-blue-500/20 text-blue-500" : "bg-red-500/20 text-red-500"
               )}>
-                {status === 'WON' ? <Trophy className="w-10 h-10" /> : <Frown className="w-10 h-10" />}
+                {status === 'WON' ? <Trophy className="w-10 h-10" /> : status === 'PUSH' ? <RefreshCw className="w-10 h-10" /> : <Frown className="w-10 h-10" />}
               </div>
 
               <h2 className="text-3xl font-black text-white uppercase tracking-tighter mb-2">
-                {status === 'WON' ? 'Wager Won!' : 'Wager Lost'}
+                {status === 'WON' ? 'Wager Won!' : status === 'PUSH' ? 'Wager Pushed' : 'Wager Lost'}
               </h2>
               
               <p className="text-slate-400 font-mono text-xs uppercase tracking-widest mb-8">
                 {status === 'WON' 
                   ? "The slate finished in your favor. Great call!" 
+                  : status === 'PUSH'
+                  ? "Final score matched the line exactly. No win, no loss."
                   : "The slate didn't go your way this time."
                 }
               </p>
@@ -353,7 +365,7 @@ export function WagerTracker({
                     <span className="text-[10px] font-mono font-black text-slate-500 uppercase block">Final Total</span>
                     <span className={cn(
                       "text-2xl font-mono font-black",
-                      status === 'WON' ? "text-green-500" : "text-red-500"
+                      status === 'WON' ? "text-green-500" : status === 'PUSH' ? "text-blue-500" : "text-red-500"
                     )}>{currentTotal}</span>
                   </div>
                 </div>
@@ -494,6 +506,8 @@ export function WagerTracker({
                   "p-4 rounded-xl border-2 flex items-center justify-between",
                   status === 'WON' || status === 'WINNING' || status === 'ON TRACK' 
                     ? "bg-green-500/10 border-green-500/20 text-green-500" 
+                    : status === 'PUSH'
+                    ? "bg-blue-500/10 border-blue-500/20 text-blue-500"
                     : status === 'DANGER' || status === 'BEHIND'
                     ? "bg-amber-500/10 border-amber-500/20 text-amber-500"
                     : status === 'CALIBRATING'
@@ -503,6 +517,8 @@ export function WagerTracker({
                   <div className="flex items-center gap-3">
                     {status === 'WON' || status === 'WINNING' || status === 'ON TRACK' ? (
                       <CheckCircle2 className="w-6 h-6" />
+                    ) : status === 'PUSH' ? (
+                      <RefreshCw className="w-6 h-6" />
                     ) : status === 'LOST' ? (
                       <XCircle className="w-6 h-6" />
                     ) : status === 'CALIBRATING' ? (
