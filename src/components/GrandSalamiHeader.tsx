@@ -276,17 +276,29 @@ export function GrandSalamiHeader({
           </a>
 
           {weatherSummary && (
-            <div className="flex items-center gap-1.5 sm:gap-3 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border border-slate-700 bg-slate-800/50">
-              <div className="flex items-center gap-1">
-                <Thermometer className="w-3 h-3 text-salami-red" />
-                <span className="text-[7px] sm:text-[9px] font-mono font-black text-slate-300 leading-none">{weatherSummary.avgTemp}° AVG</span>
+            <div className="flex flex-col items-end gap-1">
+              <div className="flex items-center gap-1 opacity-50 px-1">
+                <div className="w-1 h-1 rounded-full bg-salami-red animate-pulse" />
+                <span className="text-[7px] font-mono font-bold uppercase tracking-[0.2em] text-slate-400">Daily Conditions</span>
               </div>
-              {weatherSummary.highWindGames > 0 && (
-                <div className="flex items-center gap-1 border-l border-slate-700 pl-1.5 sm:pl-3">
-                  <Wind className="w-3 h-3 text-blue-400" />
-                  <span className="text-[7px] sm:text-[9px] font-mono font-black text-slate-300 leading-none">{weatherSummary.highWindGames} WINDY</span>
+              <div className="flex items-center gap-1.5 sm:gap-3 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border border-slate-700 bg-slate-800/50 shadow-lg shadow-black/20">
+                <div className="flex items-center gap-1.5">
+                  <Thermometer className="w-3 h-3 text-salami-red" />
+                  <div className="flex flex-col">
+                    <span className="text-[8px] sm:text-[10px] font-mono font-black text-white leading-none">{weatherSummary.avgTemp}°</span>
+                    <span className="text-[6px] font-mono text-slate-500 font-bold uppercase tracking-tighter">AVG TMP</span>
+                  </div>
                 </div>
-              )}
+                {weatherSummary.highWindGames > 0 && (
+                  <div className="flex items-center gap-1.5 border-l border-slate-700 pl-1.5 sm:pl-3">
+                    <Wind className="w-3 h-3 text-blue-400" />
+                    <div className="flex flex-col">
+                      <span className="text-[8px] sm:text-[10px] font-mono font-black text-white leading-none">{weatherSummary.highWindGames}</span>
+                      <span className="text-[6px] font-mono text-slate-500 font-bold uppercase tracking-tighter">WINDY</span>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
           
