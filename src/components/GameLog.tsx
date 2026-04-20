@@ -101,7 +101,7 @@ export function GameLog({ games, gameLines }: GameLogProps) {
       first: !!offense.first,
       second: !!offense.second,
       third: !!offense.third,
-      outs: outs || 0
+      outs: (outs || 0) >= 3 ? 0 : (outs || 0)
     });
   };
 
@@ -203,10 +203,15 @@ export function GameLog({ games, gameLines }: GameLogProps) {
                             : game.status.detailedState.toUpperCase()}
                         </div>
                         <div className="flex items-center gap-2">
-                          {game.status.abstractGameState === 'Live' && getThreatLevel(game) > 0.5 && (
-                             <div className="flex items-center gap-1 bg-salami-red/20 px-1.5 py-0.5 rounded animate-pulse">
-                               <AlertTriangle className="w-2.5 h-2.5 text-salami-red" />
-                               <span className="text-[7px] font-mono font-black text-salami-red uppercase tracking-widest">High Threat</span>
+                          {game.status.abstractGameState === 'Live' && getThreatLevel(game) > 0.25 && (
+                             <div className={cn(
+                               "flex items-center gap-1 px-1.5 py-0.5 rounded animate-pulse shadow-sm",
+                               getThreatLevel(game) > 0.7 ? "bg-red-600 text-white" : "bg-salami-red/20 text-salami-red"
+                             )}>
+                               <AlertTriangle className={cn("w-3 h-3", getThreatLevel(game) > 0.7 ? "text-white" : "text-salami-red")} />
+                               <span className="text-[7px] font-mono font-black uppercase tracking-widest">
+                                 {getThreatLevel(game) > 0.7 ? 'High Threat' : 'Threat'}
+                               </span>
                              </div>
                           )}
                           {riskMessage && (
@@ -563,15 +568,20 @@ export function GameLog({ games, gameLines }: GameLogProps) {
                           <td className="px-6 py-5 text-right">
                             <div className="flex flex-col items-end gap-1">
                               <div className="flex items-center gap-2 mb-1">
-                                {game.status.abstractGameState === 'Live' && getThreatLevel(game) > 0.5 && (
+                                {game.status.abstractGameState === 'Live' && getThreatLevel(game) > 0.25 && (
                                   <motion.div 
-                                    animate={{ opacity: [1, 0.5, 1] }} 
+                                    animate={{ opacity: [1, 0.5, 1], scale: getThreatLevel(game) > 0.7 ? [1, 1.05, 1] : 1 }} 
                                     transition={{ duration: 1, repeat: Infinity }}
-                                    className="flex items-center gap-1 bg-salami-red/10 border border-salami-red/20 px-2 py-0.5 rounded cursor-help"
-                                    title="Scoring threat in progress (runners on base)"
+                                    className={cn(
+                                      "flex items-center gap-1.5 border px-2 py-0.5 rounded cursor-help shadow-sm",
+                                      getThreatLevel(game) > 0.7 ? "bg-red-600 border-red-500 text-white" : "bg-salami-red/10 border-salami-red/20 text-salami-red"
+                                    )}
+                                    title={`Live scoring threat: ${getThreatLevel(game).toFixed(2)} expected runs`}
                                   >
-                                    <AlertTriangle className="w-2 h-2 text-salami-red" />
-                                    <span className="text-[7px] font-mono font-black text-salami-red uppercase">Live Threat</span>
+                                    <AlertTriangle className={cn("w-3 h-3", getThreatLevel(game) > 0.7 ? "text-white" : "text-salami-red")} />
+                                    <span className="text-[8px] font-mono font-black uppercase">
+                                      {getThreatLevel(game) > 0.7 ? 'HIGH THREAT' : 'LIVE THREAT'}
+                                    </span>
                                   </motion.div>
                                 )}
                                 {riskMessage && (
@@ -757,6 +767,28 @@ function GameDetailView({ game }: { game: MLBGame }) {
                 <span className="text-[10px] font-bold text-white">{linescore.defense?.pitcher?.fullName || '---'}</span>
               </div>
             </div>
+            {(() => {
+              const threat = calculateLiveThreat({
+                first: !!linescore.offense?.first,
+                second: !!linescore.offense?.second,
+                third: !!linescore.offense?.third,
+                outs: linescore.outs || 0
+              });
+              if (threat <= 0.1) return null;
+              
+              return (
+                <div className={cn(
+                  "flex items-center gap-2 px-3 py-2 rounded-lg border animate-pulse",
+                  threat > 0.8 ? "bg-red-500/10 border-red-500/20 text-red-500" : "bg-orange-500/10 border-orange-500/20 text-orange-500"
+                )}>
+                  <AlertTriangle className="w-3 h-3" />
+                  <div className="flex flex-col">
+                    <span className="text-[7px] font-mono uppercase tracking-widest opacity-70">Live Threat Level</span>
+                    <span className="text-[10px] font-bold uppercase">{threat > 0.8 ? 'Extremely High' : 'Elevated'} ({threat.toFixed(2)})</span>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
       </div>
