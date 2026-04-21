@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Activity, Trophy, Sun, Moon, RefreshCw, Calendar, HelpCircle, LogIn, LogOut, User as UserIcon, Clock, Wind, Thermometer, Check, Twitter, UserPlus } from 'lucide-react';
+import { Activity, Trophy, Sun, Moon, RefreshCw, Calendar, HelpCircle, LogIn, LogOut, User as UserIcon, Clock, Wind, Thermometer, Check, Twitter, UserPlus, Target, AlertTriangle } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../lib/utils';
@@ -17,6 +17,10 @@ interface GrandSalamiHeaderProps {
   isRefreshing: boolean;
   lastUpdated: Date;
   games: MLBGame[];
+  betLine?: number | '';
+  betType?: 'over' | 'under';
+  projectedTotal?: number | null;
+  isFinished?: boolean;
 }
 
 export function GrandSalamiHeader({ 
@@ -27,7 +31,11 @@ export function GrandSalamiHeader({
   onRefresh,
   isRefreshing,
   lastUpdated,
-  games
+  games,
+  betLine = '',
+  betType = 'over',
+  projectedTotal = null,
+  isFinished = false
 }: GrandSalamiHeaderProps) {
   const { user, signIn, signOut } = useAuth();
   const [relativeTime, setRelativeTime] = useState(formatDistanceToNow(lastUpdated, { addSuffix: true }));
@@ -108,6 +116,26 @@ export function GrandSalamiHeader({
       return () => clearTimeout(timer);
     }
   }, [isRefreshing]);
+
+  const getStatus = () => {
+    if (betLine === '') return null;
+    const line = parseFloat(betLine.toString());
+    if (isFinished) {
+      if (currentTotal === line) return 'PUSH';
+      const won = betType === 'over' ? currentTotal > line : currentTotal < line;
+      return won ? 'WON' : 'LOST';
+    }
+    if (projectedTotal === null) return 'CALIBRATING';
+    if (betType === 'over') {
+      if (currentTotal > line) return 'WINNING';
+      return (projectedTotal || 0) > line ? 'ON TRACK' : 'BEHIND';
+    } else {
+      if (currentTotal > line) return 'LOST';
+      return (projectedTotal || 0) < line ? 'ON TRACK' : 'DANGER';
+    }
+  };
+
+  const status = getStatus();
 
   return (
     <div className="space-y-4">
@@ -275,10 +303,38 @@ export function GrandSalamiHeader({
             <span className="hidden md:inline">@Salamipace</span>
           </a>
 
-          {weatherSummary && (
-            <div className="flex flex-col items-end gap-1">
+          {betLine !== '' && (
+            <div className="flex sm:hidden flex-col items-end gap-1">
               <div className="flex items-center gap-1 opacity-50 px-1">
-                <div className="w-1 h-1 rounded-full bg-salami-red animate-pulse" />
+                <Target className="w-2.5 h-2.5 text-blue-400" />
+                <span className="text-[7px] font-mono font-bold uppercase tracking-[0.2em] text-slate-400">Live Wager</span>
+              </div>
+              <div className={cn(
+                "flex items-center gap-3 px-3 py-1.5 rounded-full border shadow-lg",
+                status === 'WON' || status === 'WINNING' || status === 'ON TRACK' ? "bg-green-500/10 border-green-500/30 text-green-400" :
+                status === 'PUSH' ? "bg-blue-500/10 border-blue-500/30 text-blue-400" :
+                "bg-red-500/10 border-red-500/30 text-red-500"
+              )}>
+                <div className="flex flex-col items-center">
+                  <span className="text-[8px] font-mono font-bold leading-none">{betType.toUpperCase()} {betLine}</span>
+                  <span className="text-[6px] font-mono opacity-60 uppercase mt-0.5">Your Bet</span>
+                </div>
+                <div className="w-[1px] h-4 bg-slate-700/50" />
+                <div className="flex flex-col items-end">
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] font-mono font-black leading-none">{projectedTotal || '---'}</span>
+                    <span className="text-[6px] font-mono opacity-60 uppercase">PROJ</span>
+                  </div>
+                  <span className="text-[6px] font-mono font-black uppercase tracking-tighter">{status}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {weatherSummary && (
+            <div className={cn("flex flex-col items-end gap-1", betLine !== '' ? "hidden sm:flex" : "flex")}>
+              <div className="flex items-center gap-1 opacity-50 px-1">
+                <div className="w-1 h-1 rounded-full bg-salami-red" />
                 <span className="text-[7px] font-mono font-bold uppercase tracking-[0.2em] text-slate-400">Daily Conditions</span>
               </div>
               <div className="flex items-center gap-1.5 sm:gap-3 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border border-slate-700 bg-slate-800/50 shadow-lg shadow-black/20">
@@ -318,20 +374,9 @@ export function GrandSalamiHeader({
           >
             <AnimatePresence mode="wait">
               {isRefreshing ? (
-                <motion.div
-                  key="refreshing"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  className="relative"
-                >
+                <div key="refreshing" className="relative">
                   <RefreshCw className="w-3.5 h-3.5 text-salami-red animate-spin" />
-                  <motion.div
-                    animate={{ scale: [1, 1.5, 1], opacity: [0.3, 0, 0.3] }}
-                    transition={{ duration: 1.5, repeat: Infinity }}
-                    className="absolute inset-0 bg-salami-red rounded-full -z-10"
-                  />
-                </motion.div>
+                </div>
               ) : showCheck ? (
                 <motion.div
                   key="check"
@@ -421,11 +466,6 @@ export function GrandSalamiHeader({
           <div className="flex items-center gap-2 text-[10px] font-mono text-slate-500 font-bold">
             <div className="relative flex items-center justify-center w-3 h-3">
               <Activity className="w-3 h-3 text-salami-red relative z-10" />
-              <motion.div 
-                animate={{ scale: [1, 2, 1], opacity: [0.5, 0, 0.5] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="absolute inset-0 bg-salami-red rounded-full"
-              />
             </div>
             <span className="tracking-widest">REAL-TIME FEED</span>
             <div className="flex items-center gap-1.5 text-[8px] text-slate-600 ml-2 px-2 py-0.5 rounded border bg-slate-800/50 border-slate-700/50">

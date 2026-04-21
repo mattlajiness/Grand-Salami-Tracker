@@ -19,6 +19,11 @@ interface WagerTrackerProps {
   gameCount: number;
   finalCount: number;
   liveThreats?: number;
+  betLine: number | '';
+  setBetLine: (val: number | '') => void;
+  betType: 'over' | 'under';
+  setBetType: (val: 'over' | 'under') => void;
+  projectedTotal: number | null;
   onOpenHistory?: () => void;
 }
 
@@ -30,11 +35,14 @@ export function WagerTracker({
   gameCount,
   finalCount,
   liveThreats = 0,
+  betLine,
+  setBetLine,
+  betType,
+  setBetType,
+  projectedTotal,
   onOpenHistory
 }: WagerTrackerProps) {
   const { user, profile, updateProfile } = useAuth();
-  const [betLine, setBetLine] = useState<number | ''>('');
-  const [betType, setBetType] = useState<'over' | 'under'>('over');
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSynced, setLastSynced] = useState<Date | null>(null);
 
@@ -43,35 +51,6 @@ export function WagerTracker({
   const lastNotifiedStatus = useRef<string | null>(null);
   const [showResultModal, setShowResultModal] = useState<boolean>(false);
   const today = format(new Date(), 'yyyy-MM-dd');
-
-  // Load from Firestore or LocalStorage
-  useEffect(() => {
-    const loadWager = async () => {
-      if (user) {
-        setIsSyncing(true);
-        try {
-          const wagerDoc = doc(db, 'users', user.uid, 'wagers', today);
-          const snap = await getDoc(wagerDoc);
-          if (snap.exists()) {
-            const data = snap.data();
-            setBetLine(data.line);
-            setBetType(data.side.toLowerCase() as 'over' | 'under');
-            setLastSynced(new Date());
-          }
-        } catch (error) {
-          handleFirestoreError(error, OperationType.GET, `users/${user.uid}/wagers/${today}`);
-        } finally {
-          setIsSyncing(false);
-        }
-      } else {
-        const savedLine = localStorage.getItem('salami_bet_line');
-        const savedType = localStorage.getItem('salami_bet_type');
-        if (savedLine) setBetLine(parseFloat(savedLine));
-        if (savedType) setBetType(savedType as 'over' | 'under');
-      }
-    };
-    loadWager();
-  }, [user, today]);
 
   // Save to LocalStorage ONLY (for non-logged in persistence between sessions)
   useEffect(() => {
@@ -139,10 +118,6 @@ export function WagerTracker({
       toast.info('WAGER CLEARED');
     }
   };
-
-  const projectedTotal = playedInnings > 0.25 
-    ? calculateSmartProjection(currentTotal, playedInnings, totalExpectedInnings, liveThreats)
-    : null;
 
   const completionPercentage = totalExpectedInnings > 0 
     ? Math.round((playedInnings / totalExpectedInnings) * 100) 
@@ -563,7 +538,7 @@ export function WagerTracker({
                 </div>
 
                 {/* Pace Comparison */}
-                {!isFinished && betLine !== '' && (
+                {!isFinished && (
                   <div className="grid grid-cols-2 gap-3">
                     <div className={cn(
                       "border rounded-lg p-3 transition-colors",
@@ -608,7 +583,7 @@ export function WagerTracker({
                 )}
 
                 {/* Live Threshold */}
-                {!isFinished && betLine !== '' && remainingInnings > 0 && (
+                {!isFinished && remainingInnings > 0 && (
                   <div className="bg-slate-950 rounded-lg p-3 border border-slate-800">
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">

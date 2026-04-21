@@ -210,7 +210,7 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                         <div className="flex items-center gap-2">
                           {game.status.abstractGameState === 'Live' && getThreatLevel(game) > 0.25 && (
                              <div className={cn(
-                               "flex items-center gap-1 px-1.5 py-0.5 rounded animate-pulse shadow-sm",
+                               "flex items-center gap-1 px-1.5 py-0.5 rounded shadow-sm",
                                getThreatLevel(game) > 0.7 ? "bg-red-600 text-white" : "bg-salami-red/20 text-salami-red"
                              )}>
                                <AlertTriangle className={cn("w-3 h-3", getThreatLevel(game) > 0.7 ? "text-white" : "text-salami-red")} />
@@ -810,7 +810,7 @@ function GameDetailView({ game }: { game: MLBGame }) {
               
               return (
                 <div className={cn(
-                  "flex items-center gap-2 px-3 py-2 rounded-lg border animate-pulse",
+                  "flex items-center gap-2 px-3 py-2 rounded-lg border",
                   threat > 0.8 ? "bg-red-500/10 border-red-500/20 text-red-500" : "bg-orange-500/10 border-orange-500/20 text-orange-500"
                 )}>
                   <AlertTriangle className="w-3 h-3" />

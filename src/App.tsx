@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { fetchMLBGames, MLBGame } from './services/mlbService';
-import { calculateLiveThreat } from './lib/projectionEngine';
+import { calculateLiveThreat, calculateSmartProjection } from './lib/projectionEngine';
 import { GrandSalamiHeader } from './components/GrandSalamiHeader';
 import { GameLog } from './components/GameLog';
 import { WagerTracker } from './components/WagerTracker';
@@ -14,7 +14,7 @@ import { Calendar, Share2, Droplets, Activity } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { useAuth } from './contexts/AuthContext';
 import { db } from './firebase';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { format, subDays } from 'date-fns';
 import { AnimatePresence, motion } from 'motion/react';
 
@@ -28,6 +28,9 @@ export default function App() {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [gameLines, setGameLines] = useState<Record<number, number>>({});
+  const [betLine, setBetLine] = useState<number | ''>('');
+  const [betType, setBetType] = useState<'over' | 'under'>('over');
+  const [isWagerLoading, setIsWagerLoading] = useState(false);
   
   const isLogoMode = new URLSearchParams(window.location.search).get('logo') === 'true';
 
@@ -62,8 +65,12 @@ export default function App() {
     }
   }, []);
 
-  const loadLiveData = useCallback(async () => {
-    setIsRefreshing(true);
+  const loadLiveData = useCallback(async (forced = false) => {
+    if (isRefreshing && !forced) return;
+    
+    // Only show visual loading state if it's a forced/initial refresh
+    if (forced) setIsRefreshing(true);
+    
     try {
       const today = format(new Date(), 'yyyy-MM-dd');
       const mlbData = await fetchMLBGames(today);
@@ -72,24 +79,33 @@ export default function App() {
       setLastUpdated(new Date());
     } catch (error) {
       console.error('Error in loadLiveData:', error);
-      toast.error('Error loading live game data.');
+      if (forced) toast.error('Error loading live game data.');
     } finally {
-      setIsRefreshing(false);
+      if (forced) setIsRefreshing(false);
       setIsInitialLoad(false);
     }
-  }, []);
+  }, [isRefreshing]);
 
   useEffect(() => {
     loadHistoricalData();
-    loadLiveData();
+    loadLiveData(true);
     
-    const interval = setInterval(loadLiveData, 60000);
+    // Original 1-minute heartbeat (silent background updates)
+    const interval = setInterval(() => {
+      loadLiveData();
+    }, 60000);
+    
     return () => clearInterval(interval);
   }, [loadHistoricalData, loadLiveData]);
 
   const currentTotal = useMemo(() => {
     if (!Array.isArray(games)) return 0;
     return games.reduce((acc, game) => {
+      // Ignore postponed/canceled games for the total score
+      const isPostponed = game.status.detailedState.toLowerCase().includes('postponed') || 
+                         game.status.detailedState.toLowerCase().includes('canceled');
+      if (isPostponed) return acc;
+
       const awayScore = game?.teams?.away?.score || 0;
       const homeScore = game?.teams?.home?.score || 0;
       return acc + awayScore + homeScore;
@@ -103,24 +119,48 @@ export default function App() {
         liveCount: 0,
         totalExpectedInnings: 0,
         playedInnings: 0,
-        isFinished: false
+        isFinished: false,
+        liveThreats: 0
       };
     }
 
-    const final = games.filter(g => g?.status?.abstractGameState === 'Final').length;
-    const live = games.filter(g => g?.status?.abstractGameState === 'Live').length;
+    // Filter out games that won't be played (Postponed/Canceled)
+    const activeGames = games.filter(g => {
+      const state = g.status.detailedState.toLowerCase();
+      return !state.includes('postponed') && !state.includes('canceled');
+    });
+
+    if (activeGames.length === 0) {
+      return {
+        finalCount: 0,
+        liveCount: 0,
+        totalExpectedInnings: 0,
+        playedInnings: 0,
+        isFinished: false,
+        liveThreats: 0
+      };
+    }
+
+    const final = activeGames.filter(g => g?.status?.abstractGameState === 'Final').length;
+    const live = activeGames.filter(g => g?.status?.abstractGameState === 'Live').length;
     
-    const totalExpected = games.length * 9;
+    // Default to 9 innings per game, but allow for doubleheaders if they ever happen (7 innings)
+    const totalExpected = activeGames.length * 9;
     let liveThreats = 0;
 
-    const played = games.reduce((acc, game) => {
+    const played = activeGames.reduce((acc, game) => {
       if (!game?.status) return acc;
-      if (game.status.abstractGameState === 'Final') return acc + 9;
+      
+      if (game.status.abstractGameState === 'Final') {
+        // Use the actual number of innings played for completed games (handles extra innings)
+        const finalInnings = game.linescore?.innings?.length || 9;
+        return acc + finalInnings;
+      }
+
       if (game.status.abstractGameState === 'Live') {
         const inning = game.linescore?.currentInning || 1;
         const isTop = game.linescore?.isTopInning ?? true;
 
-        // Calculate live threat for this game - Only if Runners in Scoring Position (RISP)
         const offense = game.linescore?.offense;
         const hasRISP = !!offense?.second || !!offense?.third;
         
@@ -142,10 +182,10 @@ export default function App() {
       finalCount: final,
       liveCount: live,
       totalExpectedInnings: totalExpected,
-      playedInnings: played,
+      playedInnings: Math.min(played, totalExpected + 10), // Guard against weird overflows
       liveThreats,
-      isFinished: final === games.length,
-      hasRainRisk: games.some(g => {
+      isFinished: final === activeGames.length && activeGames.length > 0,
+      hasRainRisk: activeGames.some(g => {
         const cond = g.weather?.condition?.toLowerCase() || '';
         const status = g.status.detailedState.toLowerCase();
         const rainKeywords = ['rain', 'shower', 'storm', 'drizzle', 'precip', 'thunder', 'lightning', 'mist', 'overcast'];
@@ -153,6 +193,42 @@ export default function App() {
       })
     };
   }, [games]);
+
+  // Load Wager Data for global access
+  useEffect(() => {
+    const loadWager = async () => {
+      const today = format(new Date(), 'yyyy-MM-dd');
+      if (user) {
+        setIsWagerLoading(true);
+        try {
+          const wagerDoc = doc(db, 'users', user.uid, 'wagers', today);
+          const snap = await getDoc(wagerDoc);
+          if (snap.exists()) {
+            const data = snap.data();
+            setBetLine(data.line);
+            setBetType(data.side.toLowerCase() as 'over' | 'under');
+          }
+        } catch (error) {
+          console.error("Error loading wager:", error);
+        } finally {
+          setIsWagerLoading(false);
+        }
+      } else {
+        const savedLine = localStorage.getItem('salami_bet_line');
+        const savedType = localStorage.getItem('salami_bet_type');
+        if (savedLine) setBetLine(parseFloat(savedLine));
+        if (savedType) setBetType(savedType as 'over' | 'under');
+      }
+    };
+    loadWager();
+  }, [user]);
+
+  const projectedTotal = useMemo(() => {
+    if (stats.playedInnings > 0.25) {
+      return calculateSmartProjection(currentTotal, stats.playedInnings, stats.totalExpectedInnings, stats.liveThreats);
+    }
+    return null;
+  }, [currentTotal, stats.playedInnings, stats.totalExpectedInnings, stats.liveThreats]);
 
   const isAdmin = user?.email?.toLowerCase() === 'mattlajiness@gmail.com';
 
@@ -168,7 +244,7 @@ export default function App() {
             <div className="absolute inset-0 border-4 border-slate-800 rounded-full" />
             <div className="absolute inset-0 border-4 border-salami-red rounded-full border-t-transparent animate-spin" />
           </div>
-          <span className="text-[10px] font-mono font-black text-slate-600 uppercase tracking-[0.3em] animate-pulse">
+          <span className="text-[10px] font-mono font-black text-slate-600 uppercase tracking-[0.3em]">
             Authenticating...
           </span>
         </div>
@@ -190,7 +266,7 @@ export default function App() {
             >
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-500/10 rounded-lg">
-                  <Droplets className="w-4 h-4 text-blue-400 animate-pulse" />
+                  <Droplets className="w-4 h-4 text-blue-400" />
                 </div>
                 <div>
                   <span className="text-[10px] font-mono font-black text-blue-400 uppercase tracking-widest block">Weather Alert</span>
@@ -212,6 +288,10 @@ export default function App() {
             isRefreshing={isRefreshing}
             lastUpdated={lastUpdated}
             games={games}
+            betLine={betLine}
+            betType={betType}
+            projectedTotal={projectedTotal}
+            isFinished={stats.isFinished}
           />
 
           {games.length === 0 && !isRefreshing && !isInitialLoad ? (
@@ -257,6 +337,11 @@ export default function App() {
                   gameCount={games.length}
                   finalCount={stats.finalCount}
                   liveThreats={stats.liveThreats}
+                  betLine={betLine}
+                  setBetLine={setBetLine}
+                  betType={betType}
+                  setBetType={setBetType}
+                  projectedTotal={projectedTotal}
                   onOpenHistory={() => setIsHistoryModalOpen(true)}
                 />
 
