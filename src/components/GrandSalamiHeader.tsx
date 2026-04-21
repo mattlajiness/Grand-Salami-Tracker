@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Activity, Trophy, Sun, Moon, RefreshCw, Calendar, HelpCircle, LogIn, LogOut, User as UserIcon, Clock, Wind, Thermometer, Check, Twitter, UserPlus, Target, AlertTriangle } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -105,16 +105,16 @@ export function GrandSalamiHeader({
   };
 
   const [showCheck, setShowCheck] = useState(false);
+  const prevRefreshing = useRef(isRefreshing);
 
   useEffect(() => {
-    if (isRefreshing) {
-      setShowCheck(false);
-    } else {
+    if (prevRefreshing.current && !isRefreshing) {
       // When refreshing stops, show checkmark briefly
       setShowCheck(true);
       const timer = setTimeout(() => setShowCheck(false), 2000);
       return () => clearTimeout(timer);
     }
+    prevRefreshing.current = isRefreshing;
   }, [isRefreshing]);
 
   const getStatus = () => {
@@ -165,16 +165,16 @@ export function GrandSalamiHeader({
       <div className="stitching-top opacity-50" />
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-salami-red to-transparent" />
       
-      {/* Top Controls Row */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-6 border-b border-slate-800">
+      {/* Top Header Section */}
+      <div className="flex items-center justify-between gap-4 mb-4">
+        {/* Logo & Title */}
         <div className="flex items-center gap-3">
-          <div className="relative w-10 h-10 flex items-center justify-center group">
+          <div className="relative w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center group">
             {/* The Baseball Body */}
             <div className="absolute inset-0 rounded-full bg-white border-2 border-slate-200 shadow-[inset_0_-2px_4px_rgba(0,0,0,0.1)] group-hover:scale-110 transition-transform duration-500" />
             
             {/* The Seams and Salami */}
-            <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full p-1.5 z-10 group-hover:rotate-12 transition-transform duration-500">
-              {/* Left Seam */}
+            <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full p-1 sm:p-1.5 z-10 group-hover:rotate-12 transition-transform duration-500">
               <path 
                 d="M 28 15 Q 48 50 28 85" 
                 fill="none" 
@@ -183,7 +183,6 @@ export function GrandSalamiHeader({
                 strokeDasharray="3 3" 
                 strokeLinecap="round"
               />
-              {/* Right Seam */}
               <path 
                 d="M 72 15 Q 52 50 72 85" 
                 fill="none" 
@@ -192,31 +191,18 @@ export function GrandSalamiHeader({
                 strokeDasharray="3 3" 
                 strokeLinecap="round"
               />
-              
-              {/* The Salami Log */}
               <g transform="rotate(-15 50 50)">
-                {/* Main Log Body */}
                 <rect 
-                  x="22" 
-                  y="38" 
-                  width="56" 
-                  height="24" 
-                  rx="12" 
+                  x="22" y="38" width="56" height="24" rx="12" 
                   fill="#fb7185" 
                   className="shadow-sm"
                 />
-                {/* Salami Texture (Fat Spots) */}
                 <circle cx="32" cy="46" r="2" fill="white" fillOpacity="0.7" />
                 <circle cx="42" cy="54" r="1.5" fill="white" fillOpacity="0.6" />
                 <circle cx="52" cy="44" r="2.2" fill="white" fillOpacity="0.8" />
                 <circle cx="64" cy="52" r="1.8" fill="white" fillOpacity="0.5" />
-                {/* Salami Casing Detail */}
                 <rect 
-                  x="22" 
-                  y="38" 
-                  width="56" 
-                  height="24" 
-                  rx="12" 
+                  x="22" y="38" width="56" height="24" rx="12" 
                   fill="none" 
                   stroke="#be123c" 
                   strokeWidth="1" 
@@ -226,85 +212,86 @@ export function GrandSalamiHeader({
             </svg>
           </div>
           <div className="flex flex-col">
-            <div className="flex items-center gap-2">
-              <span className="font-mono font-black tracking-tighter text-base sm:text-lg leading-none text-white">GRAND SALAMI</span>
-            </div>
-            <span className="text-[8px] font-mono text-salami-red font-black tracking-[0.4em] mt-0.5 uppercase">Live Tracker</span>
+            <span className="font-mono font-black tracking-tighter text-sm sm:text-lg leading-none text-white whitespace-nowrap">GRAND SALAMI</span>
+            <span className="text-[7px] sm:text-[8px] font-mono text-salami-red font-black tracking-[0.3em] sm:tracking-[0.4em] mt-0.5 uppercase mb-1">Live Tracker</span>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-start sm:justify-end gap-2 sm:gap-3">
+        {/* User Auth & Date (Top Right) */}
+        <div className="flex items-center gap-3">
+          <div className="hidden xs:flex items-center gap-2 text-[9px] font-mono px-2 py-1 rounded-full border text-slate-500 bg-slate-800/50 border-slate-800">
+            <Calendar className="w-2.5 h-2.5 text-salami-red" />
+            {format(new Date(), 'MMM dd').toUpperCase()}
+          </div>
+
+          <div className="w-[1px] h-4 bg-slate-800 hidden xs:block" />
+
           {user ? (
             <div className="flex items-center gap-2">
-              <div className="hidden md:flex flex-col items-end mr-2">
-                <span className="text-[10px] font-black uppercase tracking-tighter leading-none text-white">{user.displayName}</span>
-                <span className={cn(
-                  "text-[8px] font-mono uppercase tracking-widest mt-0.5",
-                  isAdmin ? "text-blue-400 font-black" : "text-slate-500"
-                )}>
-                  {isAdmin ? 'ADMIN ACCESS' : 'PRO MEMBER'}
-                </span>
+              <div className="flex flex-col items-end mr-1">
+                <span className="text-[9px] font-black uppercase tracking-tighter leading-none text-white">{user.displayName?.split(' ')[0]}</span>
+                <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest leading-none mt-0.5">{isAdmin ? 'ADMIN' : 'PRO'}</span>
               </div>
               <button 
                 onClick={() => signOut()}
-                className="p-2 rounded-lg border transition-all active:scale-95 group bg-slate-800 hover:bg-slate-700 border-slate-700"
+                className="p-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 transition-all active:scale-95 text-slate-400 hover:text-salami-red"
                 title="Sign Out"
               >
-                <LogOut className="w-3.5 h-3.5 text-slate-400 group-hover:text-salami-red" />
+                <LogOut className="w-3 h-3" />
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <button 
                 onClick={handleSignIn}
                 disabled={isSigningIn}
-                className="flex items-center gap-2 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition-all text-[9px] font-black uppercase tracking-widest text-slate-300 active:scale-95 disabled:opacity-50"
+                className="flex items-center gap-1.5 px-2 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-md transition-all text-[8px] font-black uppercase tracking-widest text-slate-300"
               >
-                {isSigningIn ? <RefreshCw className="w-3 h-3 animate-spin" /> : <LogIn className="w-3 h-3 text-salami-red" />}
-                <span className="hidden xs:inline">Sign In</span>
+                <LogIn className="w-2.5 h-2.5 text-salami-red" />
+                <span>Sign In</span>
               </button>
               <button 
                 onClick={handleSignIn}
                 disabled={isSigningIn}
-                className="flex items-center gap-2 px-2.5 py-1.5 bg-salami-red hover:bg-red-700 rounded-lg transition-all text-[9px] font-black uppercase tracking-widest text-white shadow-lg shadow-red-900/20 active:scale-95 disabled:opacity-50"
+                className="flex items-center gap-1.5 px-2 py-1 bg-salami-red hover:bg-red-700 rounded-md transition-all text-[8px] font-black uppercase tracking-widest text-white shadow-lg shadow-red-900/20"
               >
-                {isSigningIn ? <RefreshCw className="w-3 h-3 animate-spin" /> : <UserPlus className="w-3 h-3" />}
-                <span className="hidden xs:inline">Join Now</span>
-                <span className="xs:hidden">Join</span>
+                <UserPlus className="w-2.5 h-2.5" />
+                <span>JOIN</span>
               </button>
             </div>
           )}
+        </div>
+      </div>
 
+      {/* Main Controls Row */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-6 border-b border-slate-800">
+        <div className="flex flex-wrap items-center justify-start gap-2">
           <button 
             onClick={() => {
               document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });
             }}
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all text-[9px] font-mono font-black uppercase tracking-widest bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300"
-            title="Knowledge Base"
           >
             <HelpCircle className="w-3 h-3 text-salami-red" />
             <span className="hidden sm:inline">Knowledge Base</span>
             <span className="sm:hidden">KB</span>
           </button>
 
-          <div className="hidden sm:flex items-center gap-2 text-[9px] font-mono px-3 py-1.5 rounded-full border text-slate-400 bg-slate-800 border-slate-700">
-            <Calendar className="w-3 h-3 text-salami-red" />
-            {format(new Date(), 'MMM dd').toUpperCase()}
-          </div>
-
           <a 
             href="https://twitter.com/Salamipace" 
             target="_blank" 
             rel="noreferrer"
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all text-[9px] font-mono font-black uppercase tracking-widest bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300 group"
-            title="Follow @Salamipace"
           >
-            <Twitter className="w-3 h-3 text-[#1DA1F2] group-hover:scale-110 transition-transform" />
+            <Twitter className="w-3 h-3 text-[#1DA1F2]" />
             <span className="hidden md:inline">@Salamipace</span>
           </a>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-start sm:justify-end gap-3 w-full sm:w-auto">
 
           {betLine !== '' && (
-            <div className="flex sm:hidden flex-col items-end gap-1">
+            <div className="flex sm:hidden flex-col items-start gap-1">
               <div className="flex items-center gap-1 opacity-50 px-1">
                 <Target className="w-2.5 h-2.5 text-blue-400" />
                 <span className="text-[7px] font-mono font-bold uppercase tracking-[0.2em] text-slate-400">Live Wager</span>
@@ -332,7 +319,7 @@ export function GrandSalamiHeader({
           )}
 
           {weatherSummary && (
-            <div className={cn("flex flex-col items-end gap-1", betLine !== '' ? "hidden sm:flex" : "flex")}>
+            <div className="flex flex-col items-start sm:items-end gap-1">
               <div className="flex items-center gap-1 opacity-50 px-1">
                 <div className="w-1 h-1 rounded-full bg-salami-red" />
                 <span className="text-[7px] font-mono font-bold uppercase tracking-[0.2em] text-slate-400">Daily Conditions</span>
@@ -365,7 +352,7 @@ export function GrandSalamiHeader({
             }}
             disabled={isRefreshing}
             className={cn(
-              "flex items-center gap-2 px-3 py-1.5 sm:p-2 rounded-lg border transition-all disabled:opacity-50 active:scale-95 relative overflow-hidden",
+              "flex items-center gap-2 px-3 py-1.5 sm:p-2.5 rounded-lg border transition-all disabled:opacity-50 active:scale-95 relative overflow-hidden",
               isRefreshing 
                 ? "bg-slate-800 border-salami-red/50 shadow-[0_0_15px_rgba(225,29,72,0.2)]" 
                 : "bg-slate-900 hover:bg-slate-800 border-slate-700 active:border-salami-red/50",

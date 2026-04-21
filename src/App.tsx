@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { fetchMLBGames, MLBGame } from './services/mlbService';
 import { calculateLiveThreat, calculateSmartProjection } from './lib/projectionEngine';
 import { GrandSalamiHeader } from './components/GrandSalamiHeader';
@@ -33,6 +33,7 @@ export default function App() {
   const [isWagerLoading, setIsWagerLoading] = useState(false);
   
   const isLogoMode = new URLSearchParams(window.location.search).get('logo') === 'true';
+  const isFetchingRef = useRef(false);
 
   useEffect(() => {
     const q = collection(db, 'gameLines');
@@ -66,9 +67,9 @@ export default function App() {
   }, []);
 
   const loadLiveData = useCallback(async (forced = false) => {
-    if (isRefreshing && !forced) return;
+    if (isFetchingRef.current && !forced) return;
     
-    // Only show visual loading state if it's a forced/initial refresh
+    isFetchingRef.current = true;
     if (forced) setIsRefreshing(true);
     
     try {
@@ -81,10 +82,11 @@ export default function App() {
       console.error('Error in loadLiveData:', error);
       if (forced) toast.error('Error loading live game data.');
     } finally {
-      if (forced) setIsRefreshing(false);
+      isFetchingRef.current = false;
+      setIsRefreshing(false);
       setIsInitialLoad(false);
     }
-  }, [isRefreshing]);
+  }, []);
 
   useEffect(() => {
     loadHistoricalData();
@@ -284,7 +286,7 @@ export default function App() {
             gameCount={games.length}
             finalCount={stats.finalCount}
             liveCount={stats.liveCount}
-            onRefresh={loadLiveData}
+            onRefresh={() => loadLiveData(true)}
             isRefreshing={isRefreshing}
             lastUpdated={lastUpdated}
             games={games}
