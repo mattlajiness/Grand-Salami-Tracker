@@ -126,7 +126,13 @@ export function BullpenFatigueReport({ historicalGames, todayGames, isLoading }:
       }
     });
 
-    return reports.sort((a, b) => b.flags.length - a.flags.length);
+    const fatiguePriority = { HIGH: 2, MED: 1, LOW: 0 };
+    return reports.sort((a, b) => {
+      if (fatiguePriority[b.fatigueLevel] !== fatiguePriority[a.fatigueLevel]) {
+        return fatiguePriority[b.fatigueLevel] - fatiguePriority[a.fatigueLevel];
+      }
+      return b.flags.length - a.flags.length;
+    });
   }, [historicalGames, todayGames, isLoading]);
 
   if (isLoading) {
