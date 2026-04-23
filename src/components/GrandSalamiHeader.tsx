@@ -155,9 +155,9 @@ export function GrandSalamiHeader({
       <div className="flex items-center justify-between gap-4 mb-4">
         {/* Logo & Title */}
         <div className="flex items-center gap-3">
-          <div className="relative w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center group">
+          <div className="relative w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center group">
             {/* The Baseball Body */}
-            <div className="absolute inset-0 rounded-full bg-white border-2 border-slate-200 shadow-[inset_0_-2px_4px_rgba(0,0,0,0.1)] group-hover:scale-110 transition-transform duration-500" />
+            <div className="absolute inset-0 rounded-full bg-white border-2 border-slate-200 shadow-[inset_0_-2px_4px_rgba(0,0,0,0.1),0_0_15px_rgba(255,255,255,0.1)] group-hover:scale-110 transition-all duration-500" />
             
             {/* The Seams and Salami */}
             <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full p-1 sm:p-1.5 z-10 group-hover:rotate-12 transition-transform duration-500">
@@ -165,41 +165,41 @@ export function GrandSalamiHeader({
                 d="M 28 15 Q 48 50 28 85" 
                 fill="none" 
                 stroke="#e11d48" 
-                strokeWidth="4" 
-                strokeDasharray="3 3" 
+                strokeWidth="5" 
+                strokeDasharray="4 4" 
                 strokeLinecap="round"
               />
               <path 
                 d="M 72 15 Q 52 50 72 85" 
                 fill="none" 
                 stroke="#e11d48" 
-                strokeWidth="4" 
-                strokeDasharray="3 3" 
+                strokeWidth="5" 
+                strokeDasharray="4 4" 
                 strokeLinecap="round"
               />
               <g transform="rotate(-15 50 50)">
                 <rect 
-                  x="22" y="38" width="56" height="24" rx="12" 
-                  fill="#fb7185" 
+                  x="20" y="36" width="60" height="28" rx="14" 
+                  fill="#e11d48" 
                   className="shadow-sm"
                 />
-                <circle cx="32" cy="46" r="2" fill="white" fillOpacity="0.7" />
-                <circle cx="42" cy="54" r="1.5" fill="white" fillOpacity="0.6" />
-                <circle cx="52" cy="44" r="2.2" fill="white" fillOpacity="0.8" />
-                <circle cx="64" cy="52" r="1.8" fill="white" fillOpacity="0.5" />
+                <circle cx="32" cy="46" r="2.5" fill="white" fillOpacity="0.8" />
+                <circle cx="45" cy="54" r="2" fill="white" fillOpacity="0.7" />
+                <circle cx="58" cy="44" r="2.8" fill="white" fillOpacity="0.9" />
+                <circle cx="68" cy="52" r="2.2" fill="white" fillOpacity="0.6" />
                 <rect 
-                  x="22" y="38" width="56" height="24" rx="12" 
+                  x="20" y="36" width="60" height="28" rx="14" 
                   fill="none" 
                   stroke="#be123c" 
-                  strokeWidth="1" 
-                  strokeOpacity="0.3"
+                  strokeWidth="1.5" 
+                  strokeOpacity="0.4"
                 />
               </g>
             </svg>
           </div>
           <div className="flex flex-col">
-            <span className="font-mono font-black tracking-tighter text-sm sm:text-lg leading-none text-white whitespace-nowrap">GRAND SALAMI</span>
-            <span className="text-[7px] sm:text-[8px] font-mono text-salami-red font-black tracking-[0.3em] sm:tracking-[0.4em] mt-0.5 uppercase mb-1">Live Tracker</span>
+            <span className="font-mono font-black tracking-tighter text-sm sm:text-xl leading-none text-white whitespace-nowrap uppercase">GRAND SALAMI</span>
+            <span className="text-[7px] sm:text-[9px] font-mono text-salami-red font-black tracking-[0.3em] sm:tracking-[0.4em] mt-0.5 uppercase mb-1">Live Tracker</span>
           </div>
         </div>
 

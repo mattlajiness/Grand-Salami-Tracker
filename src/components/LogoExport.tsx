@@ -11,7 +11,7 @@ export function LogoExport() {
       <motion.div 
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="relative w-96 h-96 flex items-center justify-center"
+        className="relative w-[400px] h-[400px] flex items-center justify-center p-8 group"
       >
         {/* The Baseball Body */}
         <div className="absolute inset-0 rounded-full bg-white border-[8px] border-slate-200 shadow-[inset_0_-8px_16px_rgba(0,0,0,0.1),0_20px_50px_rgba(0,0,0,0.3)]" />
@@ -23,8 +23,8 @@ export function LogoExport() {
             d="M 28 15 Q 48 50 28 85" 
             fill="none" 
             stroke="#e11d48" 
-            strokeWidth="4" 
-            strokeDasharray="3 3" 
+            strokeWidth="5" 
+            strokeDasharray="4 4" 
             strokeLinecap="round"
           />
           {/* Right Seam */}
@@ -32,8 +32,8 @@ export function LogoExport() {
             d="M 72 15 Q 52 50 72 85" 
             fill="none" 
             stroke="#e11d48" 
-            strokeWidth="4" 
-            strokeDasharray="3 3" 
+            strokeWidth="5" 
+            strokeDasharray="4 4" 
             strokeLinecap="round"
           />
           
@@ -41,29 +41,29 @@ export function LogoExport() {
           <g transform="rotate(-15 50 50)">
             {/* Main Log Body */}
             <rect 
-              x="22" 
-              y="38" 
-              width="56" 
-              height="24" 
-              rx="12" 
-              fill="#fb7185" 
+              x="20" 
+              y="36" 
+              width="60" 
+              height="28" 
+              rx="14" 
+              fill="#e11d48" 
             />
             {/* Salami Texture (Fat Spots) */}
-            <circle cx="32" cy="46" r="2" fill="white" fillOpacity="0.7" />
-            <circle cx="42" cy="54" r="1.5" fill="white" fillOpacity="0.6" />
-            <circle cx="52" cy="44" r="2.2" fill="white" fillOpacity="0.8" />
-            <circle cx="64" cy="52" r="1.8" fill="white" fillOpacity="0.5" />
+            <circle cx="32" cy="46" r="2.5" fill="white" fillOpacity="0.8" />
+            <circle cx="45" cy="54" r="2" fill="white" fillOpacity="0.7" />
+            <circle cx="58" cy="44" r="2.8" fill="white" fillOpacity="0.9" />
+            <circle cx="68" cy="52" r="2.2" fill="white" fillOpacity="0.6" />
             {/* Salami Casing Detail */}
             <rect 
-              x="22" 
-              y="38" 
-              width="56" 
-              height="24" 
-              rx="12" 
+              x="20" 
+              y="36" 
+              width="60" 
+              height="28" 
+              rx="14" 
               fill="none" 
               stroke="#be123c" 
-              strokeWidth="1" 
-              strokeOpacity="0.3"
+              strokeWidth="2" 
+              strokeOpacity="0.4"
             />
           </g>
         </svg>
