@@ -150,9 +150,11 @@ export function WagerTracker({
     if (projectedTotal === null) return 'CALIBRATING';
 
     if (betType === 'over') {
-      if (currentTotal > line) return 'WINNING';
+      // If Over bet hits the line mid-game, it is WON (Settled)
+      if (currentTotal > line) return 'WON';
       return projectedTotal > line ? 'ON TRACK' : 'BEHIND';
     } else {
+      // If Under bet exceeds the line mid-game, it is LOST (Settled)
       if (currentTotal > line) return 'LOST';
       return projectedTotal < line ? 'ON TRACK' : 'DANGER';
     }
@@ -194,13 +196,13 @@ export function WagerTracker({
   useEffect(() => {
     if (!notificationsEnabled || !status || betLine === '') return;
 
-    // 1. Terminal States (WON/LOST)
+    // 1. Terminal States (WON/LOST/PUSH) - Wager is only notified when officially settled
     if (status === 'WON' && lastNotifiedStatus.current !== 'WON') {
       playSound('win');
       triggerWinCelebration();
       setShowResultModal(true);
       toast.success('WAGER WON! 🏆', {
-        description: `Final Total: ${currentTotal} (Line: ${betLine})`,
+        description: `Total: ${currentTotal} (Line: ${betLine})`,
         duration: 15000,
       });
       sendBrowserNotification('WAGER WON! 🏆', `Final Total: ${currentTotal} (Line: ${betLine})`);
@@ -209,7 +211,7 @@ export function WagerTracker({
       playSound('win');
       setShowResultModal(true);
       toast.info('WAGER PUSHED 🤝', {
-        description: `Final Total: ${currentTotal} (Line: ${betLine})`,
+        description: `Total: ${currentTotal} (Line: ${betLine})`,
         duration: 15000,
       });
       sendBrowserNotification('WAGER PUSHED 🤝', `Final Total: ${currentTotal} (Line: ${betLine})`);
@@ -224,26 +226,7 @@ export function WagerTracker({
       sendBrowserNotification('WAGER LOST ❌', `Total: ${currentTotal} (Line: ${betLine})`);
       lastNotifiedStatus.current = 'LOST';
     } 
-    // 2. Significant Status Shifts (Intermediate alerts)
-    else if (status === 'ON TRACK' && (lastNotifiedStatus.current === 'BEHIND' || lastNotifiedStatus.current === 'DANGER')) {
-      toast.info('BACK ON TRACK! 📈', {
-        description: `Projection moved in your favor: ${projectedTotal}`,
-      });
-      sendBrowserNotification('BACK ON TRACK! 📈', `Projection moved in your favor: ${projectedTotal}`);
-      lastNotifiedStatus.current = 'ON TRACK';
-    } else if (status === 'BEHIND' && lastNotifiedStatus.current === 'ON TRACK' && betType === 'over') {
-      toast.warning('SLIPPING BEHIND 📉', {
-        description: `Projection moved against you: ${projectedTotal}`,
-      });
-      sendBrowserNotification('SLIPPING BEHIND 📉', `Projection moved against you: ${projectedTotal}`);
-      lastNotifiedStatus.current = 'BEHIND';
-    } else if (status === 'DANGER' && lastNotifiedStatus.current === 'ON TRACK' && betType === 'under') {
-      toast.warning('IN DANGER 📉', {
-        description: `Scoring surge detected: ${projectedTotal}`,
-      });
-      sendBrowserNotification('IN DANGER 📉', `Scoring surge detected: ${projectedTotal}`);
-      lastNotifiedStatus.current = 'DANGER';
-    }
+    // 2. Intermediate Pace Alerts REMOVED to prevent premature/buggy notifications
   }, [status, notificationsEnabled, currentTotal, betLine, projectedTotal, betType]);
 
   const sendBrowserNotification = (title: string, body: string) => {
@@ -479,7 +462,7 @@ export function WagerTracker({
               >
                 <div className={cn(
                   "p-4 rounded-xl border-2 flex items-center justify-between",
-                  status === 'WON' || status === 'WINNING' || status === 'ON TRACK' 
+                  status === 'WON' || status === 'ON TRACK' 
                     ? "bg-green-500/10 border-green-500/20 text-green-500" 
                     : status === 'PUSH'
                     ? "bg-blue-500/10 border-blue-500/20 text-blue-500"
@@ -490,7 +473,7 @@ export function WagerTracker({
                     : "bg-red-500/10 border-red-500/20 text-red-500"
                 )}>
                   <div className="flex items-center gap-3">
-                    {status === 'WON' || status === 'WINNING' || status === 'ON TRACK' ? (
+                    {status === 'WON' || status === 'ON TRACK' ? (
                       <CheckCircle2 className="w-6 h-6" />
                     ) : status === 'PUSH' ? (
                       <RefreshCw className="w-6 h-6" />

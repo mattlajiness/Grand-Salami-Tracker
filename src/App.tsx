@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { fetchMLBGames, MLBGame } from './services/mlbService';
 import { calculateLiveThreat, calculateSmartProjection } from './lib/projectionEngine';
 import { GrandSalamiHeader } from './components/GrandSalamiHeader';
+import { ModelAnalyst } from './components/ModelAnalyst';
+import { calculateFatigueStats } from './lib/fatigueEngine';
 import { GameLog } from './components/GameLog';
 import { WagerTracker } from './components/WagerTracker';
 import { RunTrends } from './components/RunTrends';
@@ -180,12 +182,31 @@ export default function App() {
       return acc;
     }, 0);
 
+    // Multi-component Weather Summary
+    const gamesWithWeather = activeGames.filter(g => g?.weather?.temp && g?.weather?.wind);
+    let weatherSummary = null;
+    if (gamesWithWeather.length > 0) {
+      const avgTemp = Math.round(gamesWithWeather.reduce((acc, g) => acc + (parseInt(g.weather!.temp) || 0), 0) / gamesWithWeather.length);
+      const highWindGames = gamesWithWeather.filter(g => {
+        const windStr = g.weather?.wind || '';
+        const windMatch = windStr.match(/\d+/);
+        const windSpeed = windMatch ? parseInt(windMatch[0]) : 0;
+        return windSpeed > 12;
+      }).length;
+      weatherSummary = { avgTemp, highWindGames };
+    }
+
+    // Fatigue Analysis for Model
+    const fatigue = calculateFatigueStats(historicalGames, activeGames);
+
     return {
       finalCount: final,
       liveCount: live,
       totalExpectedInnings: totalExpected,
       playedInnings: Math.min(played, totalExpected + 10), // Guard against weird overflows
       liveThreats,
+      weatherSummary,
+      fatigue,
       isFinished: final === activeGames.length && activeGames.length > 0,
       hasRainRisk: activeGames.some(g => {
         const cond = g.weather?.condition?.toLowerCase() || '';
@@ -194,7 +215,7 @@ export default function App() {
         return rainKeywords.some(keyword => cond.includes(keyword)) || status.includes('delay');
       })
     };
-  }, [games]);
+  }, [games, historicalGames]);
 
   // Load Wager Data for global access
   useEffect(() => {
@@ -226,7 +247,8 @@ export default function App() {
   }, [user]);
 
   const projectedTotal = useMemo(() => {
-    if (stats.playedInnings > 0.25) {
+    // Requirement for stabilization: at least 1 full inning cumulative across the slate
+    if (stats.playedInnings >= 1.0) {
       return calculateSmartProjection(currentTotal, stats.playedInnings, stats.totalExpectedInnings, stats.liveThreats);
     }
     return null;
@@ -294,6 +316,7 @@ export default function App() {
             betType={betType}
             projectedTotal={projectedTotal}
             isFinished={stats.isFinished}
+            weatherSummary={stats.weatherSummary}
           />
 
           {games.length === 0 && !isRefreshing && !isInitialLoad ? (
@@ -347,6 +370,27 @@ export default function App() {
                   onOpenHistory={() => setIsHistoryModalOpen(true)}
                 />
 
+                {/* Model Analyst hidden to focus on core tracking features */}
+                {/* 
+                <ModelAnalyst 
+                  inputs={{
+                    mode: betLine === '' ? 'forecast' : 'live',
+                    weather: stats.weatherSummary,
+                    fatigue: stats.fatigue,
+                    stats: {
+                      currentTotal,
+                      projectedTotal: projectedTotal || 0,
+                      betLine,
+                      betType,
+                      gamesLive: stats.liveCount,
+                      gamesFinished: stats.finalCount,
+                      totalGames: games.length,
+                      sumOfLines: (Object.values(gameLines) as number[]).reduce((acc, line) => acc + line, 0)
+                    }
+                  }}
+                /> 
+                */}
+
                 <div className="hidden lg:block space-y-6">
                   <BullpenFatigueReport 
                     historicalGames={historicalGames} 
@@ -369,17 +413,17 @@ export default function App() {
 
               {/* Mobile Run Trends & PreGameAudit - Placed under the GameLog (Scoreboard) */}
               <div className="order-3 lg:hidden space-y-6">
-                <BullpenFatigueReport 
-                  historicalGames={historicalGames} 
-                  todayGames={games} 
-                  isLoading={historyLoading}
-                />
                 <RunTrends 
                   historicalGames={historicalGames}
                   currentTotal={currentTotal}
                   games={games}
                   gameLines={gameLines}
                   manualLines={gameLines}
+                />
+                <BullpenFatigueReport 
+                  historicalGames={historicalGames} 
+                  todayGames={games} 
+                  isLoading={historyLoading}
                 />
               </div>
             </div>

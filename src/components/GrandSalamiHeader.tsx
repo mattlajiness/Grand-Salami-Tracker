@@ -21,6 +21,7 @@ interface GrandSalamiHeaderProps {
   betType?: 'over' | 'under';
   projectedTotal?: number | null;
   isFinished?: boolean;
+  weatherSummary?: { avgTemp: number; highWindGames: number } | null;
 }
 
 export function GrandSalamiHeader({ 
@@ -35,29 +36,14 @@ export function GrandSalamiHeader({
   betLine = '',
   betType = 'over',
   projectedTotal = null,
-  isFinished = false
+  isFinished = false,
+  weatherSummary = null
 }: GrandSalamiHeaderProps) {
   const { user, signIn, signOut } = useAuth();
   const [relativeTime, setRelativeTime] = useState(formatDistanceToNow(lastUpdated, { addSuffix: true }));
   const [isSigningIn, setIsSigningIn] = useState(false);
 
   const isAdmin = user?.email?.toLowerCase() === 'mattlajiness@gmail.com';
-
-  const weatherSummary = useMemo(() => {
-    if (!games || !games.length) return null;
-    const gamesWithWeather = games.filter(g => g?.weather?.temp && g?.weather?.wind);
-    if (!gamesWithWeather.length) return null;
-
-    const avgTemp = Math.round(gamesWithWeather.reduce((acc, g) => acc + (parseInt(g.weather!.temp) || 0), 0) / gamesWithWeather.length);
-    const highWindGames = gamesWithWeather.filter(g => {
-      const windStr = g.weather?.wind || '';
-      const windMatch = windStr.match(/\d+/);
-      const windSpeed = windMatch ? parseInt(windMatch[0]) : 0;
-      return windSpeed > 12;
-    }).length;
-
-    return { avgTemp, highWindGames };
-  }, [games]);
 
   useEffect(() => {
     const interval = setInterval(() => {
