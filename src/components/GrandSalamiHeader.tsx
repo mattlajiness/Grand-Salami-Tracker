@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Activity, Trophy, Sun, Moon, RefreshCw, Calendar, HelpCircle, LogIn, LogOut, User as UserIcon, Clock, Wind, Thermometer, Check, Twitter, UserPlus, Target, AlertTriangle } from 'lucide-react';
+import { Activity, Trophy, Sun, Moon, RefreshCw, Calendar, HelpCircle, LogIn, LogOut, User as UserIcon, Clock, Wind, Thermometer, Check, Twitter, UserPlus, Target, AlertTriangle, ShoppingBag } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../lib/utils';
@@ -271,6 +271,16 @@ export function GrandSalamiHeader({
           >
             <Twitter className="w-3 h-3 text-[#1DA1F2]" />
             <span className="hidden md:inline">@Salamipace</span>
+          </a>
+
+          <a 
+            href="https://www.winible.com/grandsalamibet" 
+            target="_blank" 
+            rel="noreferrer"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all text-[9px] font-mono font-black uppercase tracking-widest bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 border-slate-700 text-salami-red group shadow-lg shadow-black/20"
+          >
+            <ShoppingBag className="w-3 h-3" />
+            <span className="font-mono text-salami-red">Daily Strategy and Picks</span>
           </a>
         </div>
 

@@ -132,7 +132,7 @@ export function InfoSection() {
         <div className="h-px flex-1 bg-slate-800" />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* What is a Grand Salami? */}
         <div className="dashboard-card p-6 bg-slate-900/50 border-slate-800 shadow-lg">
           <div className="flex items-start gap-4">
@@ -143,7 +143,6 @@ export function InfoSection() {
               <h3 className="font-black text-white uppercase tracking-tighter text-lg mb-2">What is a Grand Salami?</h3>
               <p className="text-sm text-slate-400 leading-relaxed">
                 In MLB betting, the <span className="text-salami-red font-bold">Grand Salami</span> is a unique wager on the <span className="font-bold text-slate-200">Total Runs scored across every single game</span> on a specific day's slate. 
-                It's an "Over/Under" for the entire league. If the line is 120.5, you're betting whether the total runs from all 15 games will be 121 or more (Over) or 120 or less (Under).
               </p>
             </div>
           </div>
@@ -159,9 +158,33 @@ export function InfoSection() {
               <h3 className="font-black text-white uppercase tracking-tighter text-lg mb-2">Smart Projection Engine</h3>
               <p className="text-sm text-slate-400 leading-relaxed">
                 Our tracker uses a <span className="font-bold text-slate-200">Smart Projection Engine</span> that goes beyond simple math. 
-                It monitors <span className="text-blue-400 font-bold">Live Threats</span> (runners on base) in real-time, using historical base-out scoring averages to anticipate runs before they happen. 
-                Combined with a <span className="font-bold text-slate-200">Confidence Meter</span>, you'll know exactly how reliable the current pace is at any moment.
+                It monitors <span className="text-blue-400 font-bold">Live Threats</span> in real-time to anticipate runs before they happen.
               </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Winible / Storefront */}
+        <div className="dashboard-card p-6 bg-slate-900/50 border-slate-700/50 shadow-lg relative group overflow-hidden">
+          <div className="absolute inset-0 bg-red-600/5 group-hover:bg-red-600/10 transition-colors" />
+          <div className="flex items-start gap-4 relative z-10">
+            <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0 border border-white/10 group-hover:border-salami-red/50 transition-colors">
+              <Zap className="w-5 h-5 text-salami-red" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-black text-white uppercase tracking-tighter text-lg mb-2">Daily Strategy and Picks</h3>
+              <p className="text-sm text-slate-400 leading-relaxed mb-4">
+                Get <span className="text-white font-bold">Free Picks</span> and <span className="text-salami-red font-bold">Salami Slate Daily Updates</span> via our official Winible storefront.
+              </p>
+              <a 
+                href="https://www.winible.com/grandsalamibet" 
+                target="_blank" 
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-salami-red hover:bg-red-600 rounded-lg text-xs font-black uppercase tracking-widest text-white transition-all shadow-lg shadow-red-900/20"
+              >
+                <span>Storefront</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </a>
             </div>
           </div>
         </div>
