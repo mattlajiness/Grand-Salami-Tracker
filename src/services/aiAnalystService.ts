@@ -11,6 +11,10 @@ export interface ModelInputs {
     maxFatigueCount: number;
     highFatigueCount: number;
   };
+  leagueMetrics: {
+    avgParkFactor: number;
+    avgTeamOffense: number;
+  } | null;
   stats: {
     currentTotal: number;
     projectedTotal: number;
@@ -30,29 +34,33 @@ export async function analyzeSalamiEdge(inputs: ModelInputs) {
   }
 
   const isForecast = inputs.mode === 'forecast';
+  const { weather, fatigue, stats, leagueMetrics } = inputs;
   
   const prompt = isForecast ? `
-    Provide a professional MLB Grand Salami predictive analysis for today's ${inputs.stats.totalGames}-game slate.
+    Provide a professional MLB Grand Salami predictive analysis for today's ${stats.totalGames}-game slate.
     
     DATA:
-    - Weather: ${inputs.weather ? `${inputs.weather.avgTemp}° AVG, ${inputs.weather.highWindGames} windy` : 'Unknown'}
-    - Fatigue: ${inputs.fatigue.maxFatigueCount} MAX, ${inputs.fatigue.highFatigueCount} HIGH
-    - Market Total: ${inputs.stats.sumOfLines || 'Unknown'}
+    - Weather: ${weather ? `${weather.avgTemp}° AVG, ${weather.highWindGames} windy` : 'Unknown'}
+    - Fatigue: ${fatigue.maxFatigueCount} MAX, ${fatigue.highFatigueCount} HIGH
+    - Park Advantage: ${leagueMetrics ? `${leagueMetrics.avgParkFactor.toFixed(2)} Index` : 'Neutral'}
+    - Offense Profile: ${leagueMetrics ? `${leagueMetrics.avgTeamOffense.toFixed(1)} wRC+ Adj` : 'Average'}
+    - Market Total: ${stats.sumOfLines || 'Unknown'}
 
     TASK:
-    Analyze why the market may be mispricing this slate. 
+    Analyze why the market may be mispricing this slate based on environmental factors, relief stress, and venue scoring bias. 
     State your "Model Line" clearly.
   ` : `
-    Analyze the live state of this ${inputs.stats.totalGames}-game MLB Grand Salami.
+    Analyze the live state of this ${stats.totalGames}-game MLB Grand Salami.
     
     LIVE STATUS:
-    - Progress: ${inputs.stats.gamesFinished} Finished, ${inputs.stats.gamesLive} Live
-    - Score: ${inputs.stats.currentTotal} runs, Projecting ${inputs.stats.projectedTotal}
-    - User Wager: ${inputs.stats.betType.toUpperCase()} ${inputs.stats.betLine}
-    - Fatigue: ${inputs.fatigue.maxFatigueCount} MAX, ${inputs.fatigue.highFatigueCount} HIGH
+    - Progress: ${stats.gamesFinished} Finished, ${stats.gamesLive} Live
+    - Score: ${stats.currentTotal} runs, Projecting ${stats.projectedTotal}
+    - User Wager: ${stats.betType.toUpperCase()} ${stats.betLine}
+    - Fatigue: ${fatigue.maxFatigueCount} MAX, ${fatigue.highFatigueCount} HIGH
+    - Venue Profile: ${leagueMetrics ? `${leagueMetrics.avgParkFactor.toFixed(2)} Index` : 'Neutral'}
 
     TASK:
-    Evaluate the current pace vs the incoming late-inning bullpen volatility.
+    Evaluate the current pace vs incoming bullpen volatility and stadium scoring profiles for late-inning games.
     State your "Live Model Line".
   `;
 
@@ -84,6 +92,8 @@ export async function generateFullReport(inputs: ModelInputs) {
     - Slate Size: ${inputs.stats.totalGames} Games
     - Progress: ${inputs.stats.gamesFinished} Finished, ${inputs.stats.gamesLive} Live
     - Weather Alpha: ${inputs.weather?.avgTemp}°F Avg, ${inputs.weather?.highWindGames} windy venues
+    - Park Advantage: ${inputs.leagueMetrics?.avgParkFactor.toFixed(2)} Index Profile
+    - Offense Power: ${inputs.leagueMetrics?.avgTeamOffense.toFixed(1)} Adjusted Team Strength
     - Bullpen Risk: ${inputs.fatigue.maxFatigueCount} MAX stress rosters, ${inputs.fatigue.highFatigueCount} HIGH stress rosters
     - Heuristic Projection: ${inputs.stats.projectedTotal} total runs
     - Market Total: ${inputs.stats.sumOfLines || 'N/A'}
@@ -92,7 +102,7 @@ export async function generateFullReport(inputs: ModelInputs) {
     ANALYSIS REQUIREMENTS:
     - You must provide a specific "Official Model Line" total runs estimate. (e.g. Model Line: 122.4)
     - Analyze the atmospheric carry (temp/wind) impact on total output.
-    - Analyze the relief volatility (fatigue vs late-inning projections).
+    - Analyze the relief volatility (fatigue vs late-inning projections) and Park Factor adjustments.
     - Determine if the current pace is a regression candidate or a sustained trend.
 
     STRUCTURE:

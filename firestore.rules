@@ -73,6 +73,19 @@ service cloud.firestore {
              (data.get('updatedAt', request.time) is timestamp);
     }
 
+    function isValidDeliSettings(data) {
+      return data.date is string && data.date.matches("^\\d{4}-\\d{2}-\\d{2}$") &&
+             data.line is number && data.line > 0 &&
+             (data.get('updatedAt', request.time) is timestamp);
+    }
+
+    function isValidDeliVote(data) {
+      return data.userId == request.auth.uid &&
+             data.date is string && data.date.matches("^\\d{4}-\\d{2}-\\d{2}$") &&
+             data.side in ['OVER', 'UNDER'] &&
+             (data.get('createdAt', request.time) is timestamp);
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
@@ -93,6 +106,18 @@ service cloud.firestore {
     match /gameLines/{gamePk} {
       allow read: if true;
       allow write: if isAdmin() && isValidGameLine(request.resource.data);
+    }
+
+    match /deliSettings/{date} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidDeliSettings(request.resource.data);
+    }
+
+    match /deliVotes/{voteId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && isValidDeliVote(request.resource.data) && voteId == request.resource.data.userId + "_" + request.resource.data.date;
+      allow update: if isAuthenticated() && isOwner(resource.data.userId) && isValidDeliVote(request.resource.data) && voteId == resource.data.userId + "_" + resource.data.date;
+      allow delete: if isAuthenticated() && isOwner(resource.data.userId);
     }
 
     // Default deny

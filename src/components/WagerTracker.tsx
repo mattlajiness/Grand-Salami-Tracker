@@ -173,9 +173,11 @@ export function WagerTracker({
   };
 
   const triggerWinCelebration = () => {
+    if (typeof window === 'undefined') return;
+
     const duration = 5 * 1000;
     const animationEnd = Date.now() + duration;
-    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
 
     const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
 
@@ -187,14 +189,33 @@ export function WagerTracker({
       }
 
       const particleCount = 50 * (timeLeft / duration);
-      confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
-      confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+      
+      try {
+        confetti({ 
+          ...defaults, 
+          particleCount, 
+          origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } 
+        });
+        confetti({ 
+          ...defaults, 
+          particleCount, 
+          origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } 
+        });
+      } catch (err) {
+        console.error('Confetti error caught:', err);
+        clearInterval(interval);
+      }
     }, 250);
   };
 
   // Notification Logic
   useEffect(() => {
     if (!notificationsEnabled || !status || betLine === '') return;
+
+    const notificationKey = `notified_${today}_${betLine}_${betType}_${status}`;
+    const alreadyNotified = localStorage.getItem(notificationKey);
+
+    if (alreadyNotified) return;
 
     // 1. Terminal States (WON/LOST/PUSH) - Wager is only notified when officially settled
     if (status === 'WON' && lastNotifiedStatus.current !== 'WON') {
@@ -207,6 +228,7 @@ export function WagerTracker({
       });
       sendBrowserNotification('WAGER WON! 🏆', `Final Total: ${currentTotal} (Line: ${betLine})`);
       lastNotifiedStatus.current = 'WON';
+      localStorage.setItem(notificationKey, 'true');
     } else if (status === 'PUSH' && lastNotifiedStatus.current !== 'PUSH') {
       playSound('win');
       setShowResultModal(true);
@@ -216,6 +238,7 @@ export function WagerTracker({
       });
       sendBrowserNotification('WAGER PUSHED 🤝', `Final Total: ${currentTotal} (Line: ${betLine})`);
       lastNotifiedStatus.current = 'PUSH';
+      localStorage.setItem(notificationKey, 'true');
     } else if (status === 'LOST' && lastNotifiedStatus.current !== 'LOST') {
       playSound('loss');
       setShowResultModal(true);
@@ -225,6 +248,7 @@ export function WagerTracker({
       });
       sendBrowserNotification('WAGER LOST ❌', `Total: ${currentTotal} (Line: ${betLine})`);
       lastNotifiedStatus.current = 'LOST';
+      localStorage.setItem(notificationKey, 'true');
     } 
     // 2. Intermediate Pace Alerts REMOVED to prevent premature/buggy notifications
   }, [status, notificationsEnabled, currentTotal, betLine, projectedTotal, betType]);

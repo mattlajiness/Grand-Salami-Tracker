@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { motion } from 'motion/react';
 import { TrendingUp, Calendar, ArrowUpRight, ArrowDownRight, Minus, Flame, Snowflake, Info, Activity } from 'lucide-react';
+import { cn } from '../lib/utils';
 import { MLBGame } from '../services/mlbService';
 import { format, parseISO, subDays } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Cell } from 'recharts';
@@ -320,6 +321,4 @@ export function RunTrends({ historicalGames, currentTotal, games, gameLines, man
   );
 }
 
-function cn(...classes: any[]) {
-  return classes.filter(Boolean).join(' ');
-}
+// Removed local cn function to use imported one

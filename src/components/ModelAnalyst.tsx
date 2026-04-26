@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Target, Zap, Waves, Thermometer, Info, BrainCircuit, Activity, ChevronRight, X, FileText, Loader2 } from 'lucide-react';
 import { ModelInputs, analyzeSalamiEdge, generateFullReport } from '../services/aiAnalystService';
+import { calculateBullpenScore } from '../lib/fatigueEngine';
 import { cn } from '../lib/utils';
 
 // Simple Markdown parser for the report
@@ -82,17 +83,38 @@ export function ModelAnalyst({ inputs }: ModelAnalystProps) {
 
   // Model Weights & Confidence
   const modelMetrics = useMemo(() => {
-    const { weather, fatigue, stats } = inputs;
+    const { weather, fatigue, stats, leagueMetrics } = inputs;
     
-    const fatigueScore = Math.min((fatigue.maxFatigueCount * 25) + (fatigue.highFatigueCount * 10), 100);
+    // Safety guard
+    if (!fatigue) return {
+      fatigueScore: 0,
+      weatherTotalImpact: 0,
+      parkEffect: 0,
+      offenseEffect: 0,
+      confidence: 0,
+      edge: "0.0",
+      forecastTotal: null
+    };
+
+    const fatigueScore = calculateBullpenScore(fatigue);
     const tempEffect = weather ? (weather.avgTemp - 72) / 10 : 0;
     const windEffect = weather ? (weather.highWindGames * 0.5) : 0;
     const weatherTotalImpact = tempEffect + windEffect;
 
+    // New Factors
+    const parkEffect = leagueMetrics ? (leagueMetrics.avgParkFactor - 1) * 15 : 0;
+    const offenseEffect = leagueMetrics ? (leagueMetrics.avgTeamOffense - 100) / 4 : 0;
+
     const progress = (stats.gamesFinished + (stats.gamesLive * 0.5)) / stats.totalGames;
     const confidence = isForecast ? 45 : Math.round(progress * 100);
 
-    const heuristicForecast = stats.sumOfLines ? (stats.sumOfLines + weatherTotalImpact + (fatigueScore / 15)).toFixed(1) : null;
+    const heuristicForecast = stats.sumOfLines ? (
+      stats.sumOfLines + 
+      weatherTotalImpact + 
+      parkEffect + 
+      offenseEffect + 
+      (fatigueScore / 15)
+    ).toFixed(1) : null;
     
     // Calculate Edge relative to the primary prediction (AI or Heuristic)
     const primaryTarget = aiPredictedTotal ? Number(aiPredictedTotal) : Number(heuristicForecast);
@@ -103,6 +125,8 @@ export function ModelAnalyst({ inputs }: ModelAnalystProps) {
     return {
       fatigueScore,
       weatherTotalImpact,
+      parkEffect,
+      offenseEffect,
       confidence,
       edge,
       forecastTotal: heuristicForecast
@@ -246,31 +270,52 @@ export function ModelAnalyst({ inputs }: ModelAnalystProps) {
         </div>
 
         {/* Environmental Drivers */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="p-4 bg-slate-900 border border-slate-800/50 rounded-xl flex items-center justify-between group hover:border-slate-700 transition-colors">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-orange-500/10 rounded-lg group-hover:bg-orange-500/20 transition-colors">
-                <Thermometer className="w-4 h-4 text-orange-400" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[9px] font-mono text-slate-500 uppercase tracking-wider">Weather Alpha</span>
-                <span className="text-xs font-mono font-bold text-slate-300">
-                  {modelMetrics.weatherTotalImpact > 0 ? '+' : ''}{modelMetrics.weatherTotalImpact.toFixed(2)}
-                </span>
-              </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="p-3 bg-slate-900 border border-slate-800/50 rounded-xl flex items-center gap-3">
+            <div className="p-1.5 bg-orange-500/10 rounded-lg">
+              <Thermometer className="w-3 h-3 text-orange-400" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[8px] font-mono text-slate-500 uppercase tracking-wider">Weather</span>
+              <span className="text-[10px] font-mono font-bold text-slate-300">
+                {modelMetrics.weatherTotalImpact > 0 ? '+' : ''}{modelMetrics.weatherTotalImpact.toFixed(1)}
+              </span>
             </div>
           </div>
-          <div className="p-4 bg-slate-900 border border-slate-800/50 rounded-xl flex items-center justify-between group hover:border-slate-700 transition-colors">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-salami-red/10 rounded-lg group-hover:bg-salami-red/20 transition-colors">
-                <Activity className="w-4 h-4 text-salami-red" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[9px] font-mono text-slate-500 uppercase tracking-wider">Relief Stress</span>
-                <span className="text-xs font-mono font-bold text-slate-300">
-                  {(modelMetrics.fatigueScore / 10).toFixed(1)}/10
-                </span>
-              </div>
+          
+          <div className="p-3 bg-slate-900 border border-slate-800/50 rounded-xl flex items-center gap-3">
+            <div className="p-1.5 bg-blue-500/10 rounded-lg">
+              <Target className="w-3 h-3 text-blue-400" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[8px] font-mono text-slate-500 uppercase tracking-wider">Park</span>
+              <span className="text-[10px] font-mono font-bold text-slate-300">
+                {modelMetrics.parkEffect > 0 ? '+' : ''}{modelMetrics.parkEffect.toFixed(1)}
+              </span>
+            </div>
+          </div>
+
+          <div className="p-3 bg-slate-900 border border-slate-800/50 rounded-xl flex items-center gap-3">
+            <div className="p-1.5 bg-yellow-500/10 rounded-lg">
+              <Zap className="w-3 h-3 text-yellow-400" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[8px] font-mono text-slate-500 uppercase tracking-wider">Offense</span>
+              <span className="text-[10px] font-mono font-bold text-slate-300">
+                {modelMetrics.offenseEffect > 0 ? '+' : ''}{modelMetrics.offenseEffect.toFixed(1)}
+              </span>
+            </div>
+          </div>
+
+          <div className="p-3 bg-slate-900 border border-slate-800/50 rounded-xl flex items-center gap-3">
+            <div className="p-1.5 bg-salami-red/10 rounded-lg">
+              <Activity className="w-3 h-3 text-salami-red" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[8px] font-mono text-slate-500 uppercase tracking-wider">Relief</span>
+              <span className="text-[10px] font-mono font-bold text-slate-300">
+                +{(modelMetrics.fatigueScore / 15).toFixed(1)}
+              </span>
             </div>
           </div>
         </div>

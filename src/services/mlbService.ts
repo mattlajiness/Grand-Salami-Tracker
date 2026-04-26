@@ -88,6 +88,7 @@ export interface MLBGame {
   };
   gameDate: string;
   officialDate?: string;
+  totalLine?: number;
 }
 
 export interface MLBScheduleResponse {

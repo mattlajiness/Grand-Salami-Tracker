@@ -37,6 +37,30 @@
         "updatedBy": { "type": "string" }
       },
       "required": ["gamePk", "total"]
+    },
+    "DeliCounterSettings": {
+      "title": "Daily Salami Line",
+      "description": "The main Grand Salami line for the community to vote on.",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date" },
+        "line": { "type": "number" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "updatedBy": { "type": "string" }
+      },
+      "required": ["date", "line"]
+    },
+    "DeliVote": {
+      "title": "Community Vote",
+      "description": "A user's public vote on the daily line.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "side": { "type": "string", "enum": ["OVER", "UNDER"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "date", "side"]
     }
   },
   "firestore": {
@@ -51,6 +75,14 @@
     "/gameLines/{gamePk}": {
       "schema": "GameLine",
       "description": "Shared over/under lines for individual games"
+    },
+    "/deliSettings/{date}": {
+      "schema": "DeliCounterSettings",
+      "description": "Daily lines for public voting"
+    },
+    "/deliVotes/{voteId}": {
+      "schema": "DeliVote",
+      "description": "Public community votes"
     }
   }
 }

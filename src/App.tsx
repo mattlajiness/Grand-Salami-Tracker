@@ -4,6 +4,7 @@ import { calculateLiveThreat, calculateSmartProjection } from './lib/projectionE
 import { GrandSalamiHeader } from './components/GrandSalamiHeader';
 import { ModelAnalyst } from './components/ModelAnalyst';
 import { calculateFatigueStats } from './lib/fatigueEngine';
+import { getParkFactor, getTeamOffensePower } from './lib/leagueConstants';
 import { GameLog } from './components/GameLog';
 import { WagerTracker } from './components/WagerTracker';
 import { RunTrends } from './components/RunTrends';
@@ -124,7 +125,10 @@ export default function App() {
         totalExpectedInnings: 0,
         playedInnings: 0,
         isFinished: false,
-        liveThreats: 0
+        liveThreats: 0,
+        weatherSummary: null,
+        fatigue: { maxFatigueCount: 0, highFatigueCount: 0 },
+        leagueMetrics: null
       };
     }
 
@@ -141,7 +145,10 @@ export default function App() {
         totalExpectedInnings: 0,
         playedInnings: 0,
         isFinished: false,
-        liveThreats: 0
+        liveThreats: 0,
+        weatherSummary: null,
+        fatigue: { maxFatigueCount: 0, highFatigueCount: 0 },
+        leagueMetrics: null
       };
     }
 
@@ -199,6 +206,22 @@ export default function App() {
     // Fatigue Analysis for Model
     const fatigue = calculateFatigueStats(historicalGames, activeGames);
 
+    // League Metrics (Park Factors & Team Offense)
+    let leagueMetrics = null;
+    if (activeGames.length > 0) {
+      const parkTotal = activeGames.reduce((acc, g) => acc + getParkFactor(g.venue?.name || ''), 0);
+      const offenseTotal = activeGames.reduce((acc, g) => {
+        const awayPower = getTeamOffensePower(g.teams.away.team.name);
+        const homePower = getTeamOffensePower(g.teams.home.team.name);
+        return acc + (awayPower + homePower) / 2;
+      }, 0);
+      
+      leagueMetrics = {
+        avgParkFactor: parkTotal / activeGames.length,
+        avgTeamOffense: offenseTotal / activeGames.length
+      };
+    }
+
     return {
       finalCount: final,
       liveCount: live,
@@ -207,6 +230,7 @@ export default function App() {
       liveThreats,
       weatherSummary,
       fatigue,
+      leagueMetrics,
       isFinished: final === activeGames.length && activeGames.length > 0,
       hasRainRisk: activeGames.some(g => {
         const cond = g.weather?.condition?.toLowerCase() || '';
@@ -343,11 +367,11 @@ export default function App() {
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="order-2 lg:order-1 lg:col-span-2">
+              <div className="order-1 lg:order-1 lg:col-span-2">
                 <GameLog games={games} gameLines={gameLines} manualLines={gameLines} />
               </div>
               
-              <div className="order-1 lg:order-2 space-y-6">
+              <div className="order-2 lg:order-2 space-y-6">
                 {isAdmin && (
                   <div className="space-y-6">
                     <UserAdminPanel />
@@ -370,13 +394,14 @@ export default function App() {
                   onOpenHistory={() => setIsHistoryModalOpen(true)}
                 />
 
-                {/* Model Analyst hidden to focus on core tracking features */}
+                {/* Model Analyst removed - building externally */}
                 {/* 
                 <ModelAnalyst 
                   inputs={{
                     mode: betLine === '' ? 'forecast' : 'live',
                     weather: stats.weatherSummary,
                     fatigue: stats.fatigue,
+                    leagueMetrics: stats.leagueMetrics,
                     stats: {
                       currentTotal,
                       projectedTotal: projectedTotal || 0,
@@ -385,12 +410,11 @@ export default function App() {
                       gamesLive: stats.liveCount,
                       gamesFinished: stats.finalCount,
                       totalGames: games.length,
-                      sumOfLines: (Object.values(gameLines) as number[]).reduce((acc, line) => acc + line, 0)
+                      sumOfLines: (Object.values(gameLines) as number[]).reduce((acc: number, line: number) => acc + (line || 0), 0)
                     }
                   }}
                 /> 
                 */}
-
                 <div className="hidden lg:block space-y-6">
                   <BullpenFatigueReport 
                     historicalGames={historicalGames} 
