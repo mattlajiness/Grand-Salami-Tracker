@@ -210,7 +210,7 @@ export function WagerTracker({
 
   // Notification Logic
   useEffect(() => {
-    if (!notificationsEnabled || !status || betLine === '') return;
+    if (!notificationsEnabled || !status || betLine === '' || !isFinished) return;
 
     const notificationKey = `notified_${today}_${betLine}_${betType}_${status}`;
     const alreadyNotified = localStorage.getItem(notificationKey);

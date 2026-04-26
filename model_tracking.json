@@ -1,0 +1,23 @@
+[
+  {
+    "date": "2026-04-26",
+    "predictions": {
+      "grandSalami": {
+        "line": 146,
+        "projection": 151.6,
+        "edge": 5.6
+      },
+      "topOvers": [
+        { "match": "NYY @ HOU", "line": 8.5, "proj": 9.5 },
+        { "match": "SEA @ STL", "line": 8.5, "proj": 9.5 },
+        { "match": "DET @ CIN", "line": 8.5, "proj": 9.2 }
+      ],
+      "topUnders": [
+        { "match": "BOS @ BAL", "line": 8.5, "proj": 8.1 },
+        { "match": "PHI @ ATL", "line": 8.5, "proj": 8.2 }
+      ]
+    },
+    "actual": null,
+    "accuracy": null
+  }
+]
