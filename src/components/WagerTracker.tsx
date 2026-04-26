@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Target, TrendingUp, TrendingDown, AlertCircle, CheckCircle2, XCircle, Bell, BellOff, Save, Cloud, RefreshCw, Activity, Trophy, Frown, Sparkles, History } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -25,6 +25,7 @@ interface WagerTrackerProps {
   setBetType: (val: 'over' | 'under') => void;
   projectedTotal: number | null;
   onOpenHistory?: () => void;
+  todayStr?: string;
 }
 
 export function WagerTracker({ 
@@ -40,7 +41,8 @@ export function WagerTracker({
   betType,
   setBetType,
   projectedTotal,
-  onOpenHistory
+  onOpenHistory,
+  todayStr
 }: WagerTrackerProps) {
   const { user, profile, updateProfile } = useAuth();
   const [isSyncing, setIsSyncing] = useState(false);
@@ -50,7 +52,7 @@ export function WagerTracker({
 
   const lastNotifiedStatus = useRef<string | null>(null);
   const [showResultModal, setShowResultModal] = useState<boolean>(false);
-  const today = format(new Date(), 'yyyy-MM-dd');
+  const today = todayStr || format(new Date(), 'yyyy-MM-dd');
 
   // Save to LocalStorage ONLY (for non-logged in persistence between sessions)
   useEffect(() => {

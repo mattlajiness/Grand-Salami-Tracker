@@ -18,6 +18,7 @@ export interface MLBGame {
       team: {
         id: number;
         name: string;
+        abbreviation?: string;
       };
       probablePitcher?: {
         id: number;
@@ -30,6 +31,7 @@ export interface MLBGame {
       team: {
         id: number;
         name: string;
+        abbreviation?: string;
       };
       probablePitcher?: {
         id: number;
@@ -179,7 +181,9 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
         if (dayData) {
           rawGames = (dayData.games || []).map(g => ({ ...g, officialDate: dayData.date }));
         } else {
-          rawGames = (data.dates[0].games || []).map(g => ({ ...g, officialDate: data.dates[0].date }));
+          // If the specific day requested isn't found, return empty array instead of falling back to yesterday
+          console.warn(`No games found in API response for specific date: ${date}`);
+          rawGames = [];
         }
       } else if (data.dates[0]) {
         rawGames = (data.dates[0].games || []).map(g => ({ ...g, officialDate: data.dates[0].date }));

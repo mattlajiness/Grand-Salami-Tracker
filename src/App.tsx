@@ -103,10 +103,14 @@ export default function App() {
     return () => clearInterval(interval);
   }, [loadHistoricalData, loadLiveData]);
 
+  const [todayStr] = useState(() => format(new Date(), 'yyyy-MM-dd'));
+
   const currentTotal = useMemo(() => {
     if (!Array.isArray(games)) return 0;
     return games.reduce((acc, game) => {
-      // Ignore postponed/canceled games for the total score
+      // Strictly filter to ensure we aren't counting games from other days due to API data shifts
+      if (game.officialDate && game.officialDate !== todayStr) return acc;
+
       const isPostponed = game.status.detailedState.toLowerCase().includes('postponed') || 
                          game.status.detailedState.toLowerCase().includes('canceled');
       if (isPostponed) return acc;
@@ -122,6 +126,7 @@ export default function App() {
       return {
         finalCount: 0,
         liveCount: 0,
+        gameCount: 0,
         totalExpectedInnings: 0,
         playedInnings: 0,
         isFinished: false,
@@ -132,10 +137,11 @@ export default function App() {
       };
     }
 
-    // Filter out games that won't be played (Postponed/Canceled)
+    // Filter out games that won't be played or are from the wrong day
     const activeGames = games.filter(g => {
       const state = g.status.detailedState.toLowerCase();
-      return !state.includes('postponed') && !state.includes('canceled');
+      const isWrongDay = g.officialDate && g.officialDate !== todayStr;
+      return !state.includes('postponed') && !state.includes('canceled') && !isWrongDay;
     });
 
     if (activeGames.length === 0) {
@@ -155,7 +161,9 @@ export default function App() {
     const final = activeGames.filter(g => g?.status?.abstractGameState === 'Final').length;
     const live = activeGames.filter(g => g?.status?.abstractGameState === 'Live').length;
     
-    // Default to 9 innings per game, but allow for doubleheaders if they ever happen (7 innings)
+    const isActuallyFinished = final === activeGames.length && activeGames.length > 0;
+    
+    // Default to 9 innings per game
     const totalExpected = activeGames.length * 9;
     let liveThreats = 0;
 
@@ -163,7 +171,6 @@ export default function App() {
       if (!game?.status) return acc;
       
       if (game.status.abstractGameState === 'Final') {
-        // Use the actual number of innings played for completed games (handles extra innings)
         const finalInnings = game.linescore?.innings?.length || 9;
         return acc + finalInnings;
       }
@@ -225,13 +232,14 @@ export default function App() {
     return {
       finalCount: final,
       liveCount: live,
+      gameCount: activeGames.length,
       totalExpectedInnings: totalExpected,
-      playedInnings: Math.min(played, totalExpected + 10), // Guard against weird overflows
+      playedInnings: Math.min(played, totalExpected + 10), 
       liveThreats,
       weatherSummary,
       fatigue,
       leagueMetrics,
-      isFinished: final === activeGames.length && activeGames.length > 0,
+      isFinished: isActuallyFinished,
       hasRainRisk: activeGames.some(g => {
         const cond = g.weather?.condition?.toLowerCase() || '';
         const status = g.status.detailedState.toLowerCase();
@@ -383,7 +391,7 @@ export default function App() {
                   playedInnings={stats.playedInnings}
                   totalExpectedInnings={stats.totalExpectedInnings}
                   isFinished={stats.isFinished}
-                  gameCount={games.length}
+                  gameCount={stats.gameCount}
                   finalCount={stats.finalCount}
                   liveThreats={stats.liveThreats}
                   betLine={betLine}
@@ -391,6 +399,7 @@ export default function App() {
                   betType={betType}
                   setBetType={setBetType}
                   projectedTotal={projectedTotal}
+                  todayStr={todayStr}
                   onOpenHistory={() => setIsHistoryModalOpen(true)}
                 />
 
