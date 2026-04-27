@@ -243,7 +243,7 @@ export function GrandSalamiHeader({
               className="flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all text-[9px] font-mono font-black uppercase tracking-widest bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 border-slate-700 text-salami-red group shadow-lg shadow-black/20"
             >
               <ShoppingBag className="w-3 h-3" />
-              <span className="font-mono text-salami-red">Daily Grand Salami Insights and Pick</span>
+              <span className="font-mono text-salami-red">Daily Grand Salami Pick and Insights</span>
             </a>
         </div>
 
