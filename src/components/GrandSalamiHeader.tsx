@@ -1,12 +1,13 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Activity, Trophy, Sun, Moon, RefreshCw, Calendar, HelpCircle, LogIn, LogOut, User as UserIcon, Clock, Wind, Thermometer, Check, Twitter, UserPlus, Target, AlertTriangle, ShoppingBag } from 'lucide-react';
+import { TrendingDown, TrendingUp, AlertTriangle, ChevronRight, BarChart3, Database, CloudRain, Wind, Trophy, RefreshCw, Calendar, HelpCircle, LogIn, LogOut, User as UserIcon, Clock, Thermometer, Check, Twitter, UserPlus, Target, ShoppingBag, Activity } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../lib/utils';
 import { toast } from 'sonner';
 import { MLBGame } from '../services/mlbService';
 import { trackEvent } from '../lib/analytics';
+import { SalamiLogo } from './SalamiLogo';
 
 interface GrandSalamiHeaderProps {
   currentTotal: number;
@@ -155,47 +156,9 @@ export function GrandSalamiHeader({
       <div className="flex items-center justify-between gap-4 mb-4">
         {/* Logo & Title */}
         <div className="flex items-center gap-3">
-          <div className="relative w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center group">
-            {/* The Baseball Body */}
-            <div className="absolute inset-0 rounded-full bg-white border-2 border-slate-200 shadow-[inset_0_-2px_4px_rgba(0,0,0,0.1),0_0_15px_rgba(255,255,255,0.1)] group-hover:scale-110 transition-all duration-500" />
-            
-            {/* The Seams and Salami */}
-            <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full p-1 sm:p-1.5 z-10 group-hover:rotate-12 transition-transform duration-500">
-              <path 
-                d="M 28 15 Q 48 50 28 85" 
-                fill="none" 
-                stroke="#e11d48" 
-                strokeWidth="5" 
-                strokeDasharray="4 4" 
-                strokeLinecap="round"
-              />
-              <path 
-                d="M 72 15 Q 52 50 72 85" 
-                fill="none" 
-                stroke="#e11d48" 
-                strokeWidth="5" 
-                strokeDasharray="4 4" 
-                strokeLinecap="round"
-              />
-              <g transform="rotate(-15 50 50)">
-                <rect 
-                  x="20" y="36" width="60" height="28" rx="14" 
-                  fill="#e11d48" 
-                  className="shadow-sm"
-                />
-                <circle cx="32" cy="46" r="2.5" fill="white" fillOpacity="0.8" />
-                <circle cx="45" cy="54" r="2" fill="white" fillOpacity="0.7" />
-                <circle cx="58" cy="44" r="2.8" fill="white" fillOpacity="0.9" />
-                <circle cx="68" cy="52" r="2.2" fill="white" fillOpacity="0.6" />
-                <rect 
-                  x="20" y="36" width="60" height="28" rx="14" 
-                  fill="none" 
-                  stroke="#be123c" 
-                  strokeWidth="1.5" 
-                  strokeOpacity="0.4"
-                />
-              </g>
-            </svg>
+          <div className="relative">
+            <div className="absolute inset-0 bg-green-500/20 blur-md rounded-full" />
+            <SalamiLogo className="w-12 h-12 relative z-10" />
           </div>
           <div className="flex flex-col">
             <span className="font-mono font-black tracking-tighter text-sm sm:text-xl leading-none text-white whitespace-nowrap uppercase">GRAND SALAMI</span>
@@ -273,15 +236,15 @@ export function GrandSalamiHeader({
             <span className="hidden md:inline">@Salamipace</span>
           </a>
 
-          <a 
-            href="https://www.winible.com/grandsalamibet" 
-            target="_blank" 
-            rel="noreferrer"
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all text-[9px] font-mono font-black uppercase tracking-widest bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 border-slate-700 text-salami-red group shadow-lg shadow-black/20"
-          >
-            <ShoppingBag className="w-3 h-3" />
-            <span className="font-mono text-salami-red">Daily Strategy and Picks</span>
-          </a>
+            <a 
+              href="https://www.winible.com/grandsalamibet" 
+              target="_blank" 
+              rel="noreferrer"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all text-[9px] font-mono font-black uppercase tracking-widest bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 border-slate-700 text-salami-red group shadow-lg shadow-black/20"
+            >
+              <ShoppingBag className="w-3 h-3" />
+              <span className="font-mono text-salami-red">Daily Grand Salami Insights and Pick</span>
+            </a>
         </div>
 
         <div className="flex flex-wrap items-center justify-start sm:justify-end gap-3 w-full sm:w-auto">

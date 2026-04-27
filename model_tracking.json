@@ -8,13 +8,119 @@
         "edge": 5.6
       },
       "topOvers": [
-        { "match": "NYY @ HOU", "line": 8.5, "proj": 9.5 },
-        { "match": "SEA @ STL", "line": 8.5, "proj": 9.5 },
-        { "match": "DET @ CIN", "line": 8.5, "proj": 9.2 }
+        {
+          "match": "NYY @ HOU",
+          "line": 8.5,
+          "proj": 9.5
+        },
+        {
+          "match": "SEA @ STL",
+          "line": 8.5,
+          "proj": 9.5
+        },
+        {
+          "match": "DET @ CIN",
+          "line": 8.5,
+          "proj": 9.2
+        }
       ],
       "topUnders": [
-        { "match": "BOS @ BAL", "line": 8.5, "proj": 8.1 },
-        { "match": "PHI @ ATL", "line": 8.5, "proj": 8.2 }
+        {
+          "match": "BOS @ BAL",
+          "line": 8.5,
+          "proj": 8.1
+        },
+        {
+          "match": "PHI @ ATL",
+          "line": 8.5,
+          "proj": 8.2
+        }
+      ]
+    },
+    "actual": {
+      "salamiTotal": 119,
+      "games": [
+        {
+          "match": "BOS @ BAL",
+          "runs": 8
+        },
+        {
+          "match": "PHI @ ATL",
+          "runs": 8
+        },
+        {
+          "match": "CLE @ TOR",
+          "runs": 6
+        },
+        {
+          "match": "DET @ CIN",
+          "runs": 11
+        },
+        {
+          "match": "COL @ NYM",
+          "runs": 4
+        },
+        {
+          "match": "COL @ NYM",
+          "runs": 3
+        },
+        {
+          "match": "MIN @ TB",
+          "runs": 6
+        },
+        {
+          "match": "WSH @ CWS",
+          "runs": 3
+        },
+        {
+          "match": "NYY @ HOU",
+          "runs": 11
+        },
+        {
+          "match": "PIT @ MIL",
+          "runs": 5
+        },
+        {
+          "match": "SEA @ STL",
+          "runs": 5
+        },
+        {
+          "match": "ATH @ TEX",
+          "runs": 3
+        },
+        {
+          "match": "SD @ AZ",
+          "runs": 19
+        },
+        {
+          "match": "MIA @ SF",
+          "runs": 9
+        },
+        {
+          "match": "LAA @ KC",
+          "runs": 12
+        },
+        {
+          "match": "CHC @ LAD",
+          "runs": 6
+        }
+      ]
+    },
+    "accuracy": "MISS (UNDER)"
+  },
+  {
+    "date": "2026-04-27",
+    "predictions": {
+      "grandSalami": {
+        "line": 68.0,
+        "projection": 53.1,
+        "edge": -14.9
+      },
+      "topOvers": [],
+      "topUnders": [
+        { "match": "CHC @ SD", "line": 8.5, "proj": 6.5 },
+        { "match": "SEA @ MIN", "line": 8.5, "proj": 6.5 },
+        { "match": "STL @ PIT", "line": 8.5, "proj": 6.6 }
       ]
     },
     "actual": null,
