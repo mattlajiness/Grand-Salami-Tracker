@@ -182,7 +182,7 @@ export function InfoSection() {
                 rel="noreferrer"
                 className="inline-flex items-center gap-2 px-4 py-2 bg-salami-red hover:bg-red-600 rounded-lg text-[10px] font-black uppercase tracking-widest text-white transition-all shadow-lg shadow-red-900/20"
               >
-                <span>Daily Grand Salami Pick and Insights</span>
+                <span>Daily Grand Salami Picks and Insights</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </a>
             </div>

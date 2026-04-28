@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { fetchMLBGames, MLBGame } from './services/mlbService';
 import { calculateLiveThreat, calculateSmartProjection } from './lib/projectionEngine';
 import { GrandSalamiHeader } from './components/GrandSalamiHeader';
-import { ModelAnalyst } from './components/ModelAnalyst';
 import { calculateFatigueStats } from './lib/fatigueEngine';
 import { getParkFactor, getTeamOffensePower } from './lib/leagueConstants';
 import { GameLog } from './components/GameLog';
@@ -11,7 +10,6 @@ import { RunTrends } from './components/RunTrends';
 import { BullpenFatigueReport } from './components/BullpenFatigueReport';
 import { InfoSection } from './components/InfoSection';
 import { LogoExport } from './components/LogoExport';
-import { SalamiIntelDashboard } from './components/SalamiIntelDashboard';
 import { UserAdminPanel } from './components/UserAdminPanel';
 import { WagerHistory } from './components/WagerHistory';
 import { Calendar, Share2, Droplets, Activity } from 'lucide-react';
@@ -36,7 +34,6 @@ export default function App() {
   const [betType, setBetType] = useState<'over' | 'under'>('over');
   const [isWagerLoading, setIsWagerLoading] = useState(false);
   
-  const isIntelMode = new URLSearchParams(window.location.search).get('intel') === 'true';
   const isLogoMode = new URLSearchParams(window.location.search).get('logo') === 'true';
   const isFetchingRef = useRef(false);
 
@@ -299,10 +296,6 @@ export default function App() {
     return <LogoExport />;
   }
 
-  if (isIntelMode) {
-    return <SalamiIntelDashboard />;
-  }
-
   if (authLoading) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
@@ -414,27 +407,6 @@ export default function App() {
                   onOpenHistory={() => setIsHistoryModalOpen(true)}
                 />
 
-                {/* Model Analyst removed - building externally */}
-                {/* 
-                <ModelAnalyst 
-                  inputs={{
-                    mode: betLine === '' ? 'forecast' : 'live',
-                    weather: stats.weatherSummary,
-                    fatigue: stats.fatigue,
-                    leagueMetrics: stats.leagueMetrics,
-                    stats: {
-                      currentTotal,
-                      projectedTotal: projectedTotal || 0,
-                      betLine,
-                      betType,
-                      gamesLive: stats.liveCount,
-                      gamesFinished: stats.finalCount,
-                      totalGames: games.length,
-                      sumOfLines: (Object.values(gameLines) as number[]).reduce((acc: number, line: number) => acc + (line || 0), 0)
-                    }
-                  }}
-                /> 
-                */}
                 <div className="hidden lg:block space-y-6">
                   <BullpenFatigueReport 
                     historicalGames={historicalGames} 
