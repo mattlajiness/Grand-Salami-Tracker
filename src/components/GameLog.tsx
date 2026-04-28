@@ -767,55 +767,230 @@ function GameDetailView({ game }: { game: MLBGame }) {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-      {/* Line Score Table */}
-      <div className="md:col-span-2 space-y-4">
-        <div className="flex items-center justify-between mb-2">
+      {/* Detail Content */}
+      <div className="md:col-span-2 space-y-6">
+        {/* Umpire Intelligence Section - Moved up for prominence */}
+        {(() => {
+          const homePlateUmpire = game.officials?.find(o => o.officialType === 'Home Plate')?.official;
+          
+          if (!homePlateUmpire) return (
+            <div className="bg-slate-900/40 rounded-xl border border-slate-800/80 p-4 shadow-xl shadow-black/20 flex items-center justify-center gap-3">
+              <Scale className="w-4 h-4 text-slate-700 animate-pulse" />
+              <span className="text-[10px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black">Umpire Assignment Pending</span>
+            </div>
+          );
+
+          const tendency = getUmpireTendency(homePlateUmpire.fullName) || getGenericTendency(homePlateUmpire.fullName);
+          const impactValue = tendency.runsPerGame - 9.0;
+          const impactLabel = impactValue > 0.5 ? 'Strong Over' : impactValue > 0.1 ? 'Slight Over' : impactValue < -0.5 ? 'Strong Under' : impactValue < -0.1 ? 'Slight Under' : 'Neutral';
+          
+          return (
+            <div className="bg-slate-900/40 rounded-xl border border-slate-800/80 p-4 shadow-xl shadow-black/20 overflow-hidden relative group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/5 to-transparent -mr-16 -mt-16 rounded-full blur-3xl group-hover:from-blue-500/10 transition-all duration-700" />
+              
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-slate-950 flex items-center justify-center border border-slate-800 shadow-inner">
+                    <Scale className={cn(
+                      "w-5 h-5",
+                      tendency.tendency === 'Pitcher Friendly' ? "text-blue-400" :
+                      tendency.tendency === 'Hitter Friendly' ? "text-salami-red" :
+                      "text-slate-500"
+                    )} />
+                  </div>
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-2">
+                       <span className="text-[8px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black">Official Intelligence</span>
+                       <div className="h-px w-12 bg-slate-800" />
+                    </div>
+                    <span className="text-sm font-black text-white uppercase tracking-tight">{homePlateUmpire.fullName}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-6">
+                  <div className="flex flex-col items-end">
+                    <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest mb-1">Impact on Total</span>
+                    <div className={cn(
+                      "px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest shadow-sm",
+                      impactValue > 0.1 ? "bg-red-500/10 text-red-500 border border-red-500/20" :
+                      impactValue < -0.1 ? "bg-blue-500/10 text-blue-400 border border-blue-500/20" :
+                      "bg-slate-800 text-slate-400 border border-slate-700/50"
+                    )}>
+                      {impactLabel}
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-col items-end">
+                    <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest mb-1">Tendency</span>
+                    <div className={cn(
+                      "text-[10px] font-black uppercase tracking-widest",
+                      tendency.tendency === 'Pitcher Friendly' ? "text-blue-400" :
+                      tendency.tendency === 'Hitter Friendly' ? "text-red-500" :
+                      "text-slate-200"
+                    )}>
+                      {tendency.tendency}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-3 gap-6 mt-5 pt-4 border-t border-slate-800/50">
+                <div className="space-y-1">
+                  <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest">Strike Zone Size</span>
+                  <div className="flex items-center gap-2">
+                    <span className={cn(
+                      "text-[11px] font-bold uppercase",
+                      tendency.strikeZone === 'Large' ? "text-blue-400" :
+                      tendency.strikeZone === 'Small' ? "text-red-500" :
+                      "text-slate-300"
+                    )}>{tendency.strikeZone}</span>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest">Avg Runs/Game</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold text-white tracking-widest">{tendency.runsPerGame.toFixed(1)}</span>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest">Call Accuracy %</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold text-white tracking-widest">{tendency.strikePercent}%</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mt-3 bg-slate-950/50 rounded-lg p-2 border border-slate-800/30">
+                 <p className="text-[9px] font-mono text-slate-400 italic leading-relaxed">
+                   "{tendency.description}"
+                 </p>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Climate & Conditions Section */}
+        {game.weather && (() => {
+          const temp = parseInt(game.weather.temp) || 72;
+          const windStr = game.weather.wind || "";
+          const windSpeed = parseInt(windStr.split(' ')[0]) || 0;
+          const windDir = windStr.toLowerCase();
+          
+          let climateImpulse: 'positive' | 'negative' | 'neutral' = 'neutral';
+          let climateMessage = "Neutral atmospheric conditions. No significant impact on ball flight expected.";
+          let highlights: { label: string, value: string, icon: any, color: string }[] = [];
+
+          // Temperature Analysis
+          if (temp >= 90) {
+            climateImpulse = 'positive';
+            climateMessage = "Extreme heat will increase ball carry. Expect higher exit velocities and potentially higher scoring.";
+          } else if (temp <= 50) {
+            climateImpulse = 'negative';
+            climateMessage = "Cold air is denser, suppressing ball flight and making it harder for pitchers to grip. Likely favors the Under.";
+          }
+
+          // Wind Analysis
+          const isWindOut = windDir.includes('out') || windDir.includes('to cf') || windDir.includes('to rf') || windDir.includes('to lf');
+          const isWindIn = windDir.includes('in') || windDir.includes('from cf') || windDir.includes('from rf') || windDir.includes('from lf');
+
+          if (windSpeed >= 12) {
+            if (isWindOut) {
+              climateImpulse = 'positive';
+              climateMessage = `High winds (${windSpeed} mph) blowing OUT. This is a Significant Home Run boost. Strongly favors Over.`;
+            } else if (isWindIn) {
+              climateImpulse = 'negative';
+              climateMessage = `High winds (${windSpeed} mph) blowing IN. High-fly balls will die at the track. Strongly favors Under.`;
+            } else {
+              climateMessage = `Significant crosswinds (${windSpeed} mph) may cause erratic ball flight and defensive challenges.`;
+            }
+          } else if (windSpeed >= 8) {
+             if (isWindOut && climateImpulse !== 'negative') climateImpulse = climateImpulse === 'positive' ? 'positive' : 'positive';
+          }
+
+          // Rain Check
+          const condition = (game.weather?.condition || '').toLowerCase();
+          const rainKeywords = ['rain', 'shower', 'storm', 'drizzle', 'precip', 'thunder', 'lightning', 'mist'];
+          const isRainy = rainKeywords.some(k => condition.includes(k));
+          
+          if (isRainy) {
+            climateMessage = "Precipitation risk detected. Expect slippery conditions, potential delays, and lower offensive efficiency.";
+            climateImpulse = 'negative';
+          }
+
+          return (
+            <div className="bg-slate-900/40 rounded-xl border border-slate-800/80 p-4 shadow-xl shadow-black/20 overflow-hidden relative group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-amber-500/5 to-transparent -mr-16 -mt-16 rounded-full blur-3xl" />
+              
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-slate-950 flex items-center justify-center border border-slate-800 shadow-inner">
+                    {temp >= 85 ? <Zap className="w-5 h-5 text-amber-400" /> : <Wind className="w-5 h-5 text-blue-400" />}
+                  </div>
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-2">
+                       <span className="text-[8px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black">Climate Intelligence</span>
+                       <div className="h-px w-12 bg-slate-800" />
+                    </div>
+                    <span className="text-sm font-black text-white uppercase tracking-tight">Atmospheric Analysis</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-6">
+                  <div className="flex flex-col items-end">
+                    <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest mb-1">Scoring Bias</span>
+                    <div className={cn(
+                      "px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest shadow-sm",
+                      climateImpulse === 'positive' ? "bg-red-500/10 text-red-500 border border-red-500/20" :
+                      climateImpulse === 'negative' ? "bg-blue-500/10 text-blue-400 border border-blue-500/20" :
+                      "bg-slate-800 text-slate-400 border border-slate-700/50"
+                    )}>
+                      {climateImpulse === 'positive' ? 'Offense Boost' : climateImpulse === 'negative' ? 'Pitching Edge' : 'Neutral'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-6 mt-5 pt-4 border-t border-slate-800/50">
+                <div className="space-y-1">
+                  <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest">Temperature</span>
+                  <div className="flex items-center gap-2">
+                    <Thermometer className={cn("w-3.5 h-3.5", temp >= 85 ? "text-red-500" : temp <= 50 ? "text-blue-400" : "text-amber-500")} />
+                    <span className="text-[11px] font-bold text-white tracking-widest">{temp}°F</span>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest">Wind Vector</span>
+                  <div className="flex items-center gap-2">
+                    <Wind className={cn("w-3.5 h-3.5", windSpeed >= 10 ? "text-blue-400" : "text-slate-500")} />
+                    <span className="text-[11px] font-bold text-white tracking-widest uppercase">{windStr || 'Calm'}</span>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest">Condition</span>
+                  <div className="flex items-center gap-2">
+                    {isRainy ? <CloudRain className="w-3.5 h-3.5 text-blue-400" /> : <Sun className="w-3.5 h-3.5 text-amber-400" />}
+                    <span className="text-[11px] font-bold text-white tracking-widest uppercase truncate max-w-[80px]">{game.weather?.condition || 'Clear'}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mt-3 bg-slate-950/50 rounded-lg p-2 border border-slate-800/30">
+                 <p className="text-[9px] font-mono text-slate-400 italic leading-relaxed">
+                   "{climateMessage}"
+                 </p>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Venue Row */}
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <MapPin className="w-3 h-3 text-slate-500" />
             <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
               {game.venue?.name || 'Unknown Venue'}
             </span>
           </div>
-          {game.weather && (
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1.5">
-                <Thermometer className="w-3 h-3 text-salami-red" />
-                <span className="text-[10px] font-mono font-black text-slate-200">{game.weather.temp}°F</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Wind className="w-3 h-3 text-blue-400" />
-                <span className="text-[10px] font-mono font-black text-slate-200">{game.weather.wind}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                {(() => {
-                  const condition = (game.weather?.condition || '').toLowerCase();
-                  const status = (game.status?.detailedState || '').toLowerCase();
-                  const statusCode = (game.status?.statusCode || '').toUpperCase();
-                  const rainKeywords = ['rain', 'shower', 'storm', 'drizzle', 'precip', 'thunder', 'lightning', 'mist'];
-                  const isDelay = status.includes('delay') || statusCode === 'D' || statusCode === 'DR' || statusCode === 'DI';
-                  const isRainyOrCloudy = condition.includes('overcast') || condition.includes('cloud') || rainKeywords.some(k => condition.includes(k));
-                  const isRainy = (isDelay && isRainyOrCloudy) || rainKeywords.some(k => condition.includes(k));
-                  
-                  if (isRainy) return <CloudRain className="w-3 h-3 text-blue-400" />;
-                  if (condition.includes('cloud') || condition.includes('overcast')) return <Cloud className="w-3 h-3 text-slate-500" />;
-                  return <Sun className="w-3 h-3 text-amber-400" />;
-                })()}
-                <span className="text-[10px] font-mono font-bold text-slate-400 uppercase">
-                  {(() => {
-                    const condition = (game.weather?.condition || '').toLowerCase();
-                    const status = (game.status?.detailedState || '').toLowerCase();
-                    const statusCode = (game.status?.statusCode || '').toUpperCase();
-                    const rainKeywords = ['rain', 'shower', 'storm', 'drizzle', 'precip', 'thunder', 'lightning', 'mist'];
-                    const isDelay = status.includes('delay') || statusCode === 'D' || statusCode === 'DR' || statusCode === 'DI';
-                    const isRainyOrCloudy = condition.includes('overcast') || condition.includes('cloud') || rainKeywords.some(k => condition.includes(k));
-                    
-                    if (isDelay && isRainyOrCloudy) return 'Raining';
-                    return game.weather.condition;
-                  })()}
-                </span>
-              </div>
-            </div>
-          )}
         </div>
 
         <div className="overflow-x-auto">
@@ -908,66 +1083,6 @@ function GameDetailView({ game }: { game: MLBGame }) {
           </div>
         )}
 
-        {/* Umpire Intelligence Section */}
-        <div className="pt-4 mt-2 border-t border-slate-800/50">
-          {(() => {
-            const homePlateUmpire = game.officials?.find(o => o.officialType === 'Home Plate')?.official;
-            if (!homePlateUmpire) return (
-              <div className="flex items-center gap-2 opacity-40">
-                <Scale className="w-3 h-3 text-slate-500" />
-                <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest">Umpire: TBD</span>
-              </div>
-            );
-
-            const tendency = getUmpireTendency(homePlateUmpire.fullName) || getGenericTendency(homePlateUmpire.fullName);
-            
-            return (
-              <div className="bg-slate-950/40 rounded-lg border border-slate-800/60 p-3">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Scale className="w-3.5 h-3.5 text-blue-400" />
-                    <div className="flex flex-col">
-                      <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest">Home Plate Umpire</span>
-                      <span className="text-[11px] font-black text-white uppercase tracking-tight">{homePlateUmpire.fullName}</span>
-                    </div>
-                  </div>
-                  <div className={cn(
-                    "px-2 py-0.5 rounded text-[8px] font-mono font-black uppercase tracking-widest",
-                    tendency.tendency === 'Pitcher Friendly' ? "bg-blue-500/10 text-blue-400" :
-                    tendency.tendency === 'Hitter Friendly' ? "bg-red-500/10 text-red-400" :
-                    "bg-slate-800 text-slate-400"
-                  )}>
-                    {tendency.tendency}
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-3 gap-4 mt-3">
-                  <div className="flex flex-col">
-                    <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest mb-1">Strike Zone</span>
-                    <span className={cn(
-                      "text-[10px] font-bold uppercase",
-                      tendency.strikeZone === 'Large' ? "text-blue-400" :
-                      tendency.strikeZone === 'Small' ? "text-red-400" :
-                      "text-slate-300"
-                    )}>{tendency.strikeZone}</span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest mb-1">Avg Runs</span>
-                    <span className="text-[10px] font-bold text-white">{tendency.runsPerGame}</span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest mb-1">Strike %</span>
-                    <span className="text-[10px] font-bold text-white">{tendency.strikePercent}%</span>
-                  </div>
-                </div>
-                
-                <p className="mt-2.5 text-[8px] font-mono text-slate-500 italic leading-snug border-t border-slate-800/40 pt-2">
-                  "{tendency.description}"
-                </p>
-              </div>
-            );
-          })()}
-        </div>
       </div>
 
       {/* Diamond & Count */}

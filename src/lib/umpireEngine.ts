@@ -96,6 +96,38 @@ const UMPIRE_DATA: Record<string, UmpireTendency> = {
     runsPerGame: 8.3,
     strikePercent: 65.4,
     description: "Favors lower scoring games through a generous strike zone."
+  },
+  "Mark Carlson": {
+    name: "Mark Carlson",
+    tendency: "Neutral",
+    strikeZone: "Average",
+    runsPerGame: 9.0,
+    strikePercent: 64.1,
+    description: "Experienced umpire with a consistent and fair strike zone."
+  },
+  "Chris Guccione": {
+    name: "Chris Guccione",
+    tendency: "Neutral",
+    strikeZone: "Average",
+    runsPerGame: 8.8,
+    strikePercent: 64.5,
+    description: "Generally reliable zone with a slight lean towards pitchers in cold weather."
+  },
+  "Dan Iassogna": {
+    name: "Dan Iassogna",
+    tendency: "Hitter Friendly",
+    strikeZone: "Small",
+    runsPerGame: 9.7,
+    strikePercent: 62.8,
+    description: "Historically has a tighter strike zone, leading to higher pitch counts and more runs."
+  },
+  "James Hoye": {
+    name: "James Hoye",
+    tendency: "Pitcher Friendly",
+    strikeZone: "Large",
+    runsPerGame: 8.5,
+    strikePercent: 65.0,
+    description: "Known for a wider strike zone on the corners, aiding pitchers."
   }
 };
 
