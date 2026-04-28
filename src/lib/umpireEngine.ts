@@ -4,6 +4,7 @@ export interface UmpireTendency {
   strikeZone: 'Large' | 'Small' | 'Average';
   runsPerGame: number;
   strikePercent: number; // Avg % of pitches called strikes
+  Krate: number; // Strikeout rate multiplier or %
   description: string;
 }
 
@@ -15,6 +16,7 @@ const UMPIRE_DATA: Record<string, UmpireTendency> = {
     strikeZone: "Average",
     runsPerGame: 8.9,
     strikePercent: 64.8,
+    Krate: 0.165,
     description: "Widely considered the most accurate umpire in MLB. Very consistent zone."
   },
   "Angel Hernandez": {
@@ -23,6 +25,7 @@ const UMPIRE_DATA: Record<string, UmpireTendency> = {
     strikeZone: "Average",
     runsPerGame: 9.4,
     strikePercent: 63.2,
+    Krate: 0.175,
     description: "Highly variable strike zone. Known for unpredictable calls."
   },
   "Hunter Wendelstedt": {
@@ -31,6 +34,7 @@ const UMPIRE_DATA: Record<string, UmpireTendency> = {
     strikeZone: "Large",
     runsPerGame: 8.2,
     strikePercent: 65.5,
+    Krate: 0.21,
     description: "Traditionally has a large strike zone, favoring pitchers and the Under."
   },
   "C.B. Bucknor": {
@@ -39,6 +43,7 @@ const UMPIRE_DATA: Record<string, UmpireTendency> = {
     strikeZone: "Small",
     runsPerGame: 10.1,
     strikePercent: 62.1,
+    Krate: 0.145,
     description: "Known for a tight or inconsistent zone that can lead to more walks and high scores."
   },
   "Laz Diaz": {
@@ -47,6 +52,7 @@ const UMPIRE_DATA: Record<string, UmpireTendency> = {
     strikeZone: "Small",
     runsPerGame: 9.8,
     strikePercent: 62.5,
+    Krate: 0.155,
     description: "Tends to have a smaller zone, historically leaning towards the Over."
   },
   "Doug Eddings": {
@@ -55,6 +61,7 @@ const UMPIRE_DATA: Record<string, UmpireTendency> = {
     strikeZone: "Average",
     runsPerGame: 9.2,
     strikePercent: 63.8,
+    Krate: 0.17,
     description: "Generally balanced but can have stretches of inconsistency."
   },
   "Todd Tichenor": {
@@ -63,6 +70,7 @@ const UMPIRE_DATA: Record<string, UmpireTendency> = {
     strikeZone: "Large",
     runsPerGame: 8.4,
     strikePercent: 65.2,
+    Krate: 0.195,
     description: "Often ranks high in strike call accuracy and pitcher favorability."
   },
   "Vic Carapazza": {
@@ -71,6 +79,7 @@ const UMPIRE_DATA: Record<string, UmpireTendency> = {
     strikeZone: "Small",
     runsPerGame: 10.3,
     strikePercent: 61.8,
+    Krate: 0.14,
     description: "High offense tendencies. High ejection rate relative to league average."
   },
   "John Libka": {
@@ -79,6 +88,7 @@ const UMPIRE_DATA: Record<string, UmpireTendency> = {
     strikeZone: "Large",
     runsPerGame: 7.9,
     strikePercent: 66.1,
+    Krate: 0.225,
     description: "Statistical leader in Under outcomes in recent seasons. Very large zone."
   },
   "Bill Miller": {
@@ -87,6 +97,7 @@ const UMPIRE_DATA: Record<string, UmpireTendency> = {
     strikeZone: "Large",
     runsPerGame: 8.1,
     strikePercent: 65.8,
+    Krate: 0.205,
     description: "Veteran umpire with a wide zone, particularly on the outside corner."
   },
   "Lance Barrett": {
@@ -95,6 +106,7 @@ const UMPIRE_DATA: Record<string, UmpireTendency> = {
     strikeZone: "Large",
     runsPerGame: 8.3,
     strikePercent: 65.4,
+    Krate: 0.20,
     description: "Favors lower scoring games through a generous strike zone."
   },
   "Mark Carlson": {
@@ -103,6 +115,7 @@ const UMPIRE_DATA: Record<string, UmpireTendency> = {
     strikeZone: "Average",
     runsPerGame: 9.0,
     strikePercent: 64.1,
+    Krate: 0.18,
     description: "Experienced umpire with a consistent and fair strike zone."
   },
   "Chris Guccione": {
@@ -111,6 +124,7 @@ const UMPIRE_DATA: Record<string, UmpireTendency> = {
     strikeZone: "Average",
     runsPerGame: 8.8,
     strikePercent: 64.5,
+    Krate: 0.175,
     description: "Generally reliable zone with a slight lean towards pitchers in cold weather."
   },
   "Dan Iassogna": {
@@ -119,6 +133,7 @@ const UMPIRE_DATA: Record<string, UmpireTendency> = {
     strikeZone: "Small",
     runsPerGame: 9.7,
     strikePercent: 62.8,
+    Krate: 0.16,
     description: "Historically has a tighter strike zone, leading to higher pitch counts and more runs."
   },
   "James Hoye": {
@@ -127,6 +142,7 @@ const UMPIRE_DATA: Record<string, UmpireTendency> = {
     strikeZone: "Large",
     runsPerGame: 8.5,
     strikePercent: 65.0,
+    Krate: 0.19,
     description: "Known for a wider strike zone on the corners, aiding pitchers."
   }
 };
@@ -161,12 +177,16 @@ export function getGenericTendency(name: string): UmpireTendency {
   const baseStrike = tendency === 'Pitcher Friendly' ? 65.2 : tendency === 'Hitter Friendly' ? 62.4 : 63.8;
   const strikePercent = baseStrike + ((hash % 15) / 10);
 
+  const baseK = tendency === 'Pitcher Friendly' ? 0.20 : tendency === 'Hitter Friendly' ? 0.14 : 0.17;
+  const Krate = baseK + ((hash % 40) / 1000);
+
   return {
     name,
     tendency,
     strikeZone,
     runsPerGame: parseFloat(rpg.toFixed(1)),
     strikePercent: parseFloat(strikePercent.toFixed(1)),
+    Krate: parseFloat(Krate.toFixed(3)),
     description: `Standard ${tendency.toLowerCase()} profile. Data derived from recent league averages.`
   };
 }

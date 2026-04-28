@@ -55,6 +55,152 @@ interface GameLogProps {
   manualLines?: Record<number, number>;
 }
 
+const getClimateIntelligence = (game: MLBGame) => {
+  if (!game.weather) return null;
+
+  const temp = parseInt(game.weather.temp) || 72;
+  const windStr = game.weather.wind || "";
+  const windParts = windStr.split(' ');
+  const windSpeed = parseInt(windParts[0]) || 0;
+  const windDirRaw = windStr.toLowerCase();
+  const condition = (game.weather.condition || '').toLowerCase();
+  const venue = (game.venue?.name || '').toLowerCase();
+  
+  let impulse: 'positive' | 'negative' | 'neutral' = 'neutral';
+  
+  // Directional Detection
+  const isOut = windDirRaw.includes('out') || windDirRaw.includes('to cf') || windDirRaw.includes('to rf') || windDirRaw.includes('to lf');
+  const isIn = windDirRaw.includes('in') || windDirRaw.includes('from cf') || windDirRaw.includes('from rf') || windDirRaw.includes('from lf');
+  const isToRight = windDirRaw.includes('to rf') || windDirRaw.includes('from lf') || (windDirRaw.includes('r to l') && isIn) || (windDirRaw.includes('l to r') && isOut);
+  const isToLeft = windDirRaw.includes('to lf') || windDirRaw.includes('from rf') || (windDirRaw.includes('l to r') && isIn) || (windDirRaw.includes('r to l') && isOut);
+
+  const rainKeywords = ['rain', 'shower', 'storm', 'drizzle', 'precip', 'thunder', 'lightning', 'mist'];
+  const isRainy = rainKeywords.some(k => condition.includes(k));
+  const isHighAltitude = venue.includes('coors') || venue.includes('chase');
+  const isDome = venue.includes('tropicana') || venue.includes('loanDepot') || venue.includes('globe life') || venue.includes('minute maid') || venue.includes('american family') || venue.includes('rogers centre') || venue.includes('t-mobile') || (venue.includes('chase field') && (condition.includes('dome') || condition.includes('roof closed')));
+
+  if (isDome) {
+    const domeName = venue.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    return { 
+      impulse: 'neutral', 
+      message: `Controlled Environment at ${domeName}. Outside weather is negated; play will strictly follow baseline park factors and player mechanics.`,
+      temp, windStr, windSpeed, condition 
+    };
+  }
+
+  let techReport = "";
+  
+  // 1. Temperature Analysis (Physics of Air Density)
+  if (temp >= 94) {
+    impulse = 'positive';
+    techReport += `Sizzling ${temp}°F heat will keep the air extremely thin, maximizing ball flight. `;
+  } else if (temp >= 85) {
+    impulse = 'positive';
+    techReport += `Warm ${temp}°F conditions are typical for high-offense summer ball, favoring the carry of fly balls. `;
+  } else if (temp >= 75) {
+    techReport += `Comfortable ${temp}°F air provides standard lift with no major thermal resistance. `;
+  } else if (temp >= 65) {
+    techReport += `Mild ${temp}°F air is beginning to thicken, providing a very slight edge to standard pitching mechanics. `;
+  } else if (temp >= 55) {
+    impulse = 'negative';
+    techReport += `Cool ${temp}°F temperatures will start to "deaden" the ball's travel through the heavier atmosphere. `;
+  } else {
+    impulse = 'negative';
+    techReport += `Chilly ${temp}°F conditions create dense air "walls" that will likely stifle deep fly balls. `;
+  }
+
+  // 2. Wind Vector Analysis
+  if (windSpeed >= 18) {
+    impulse = isOut ? 'positive' : (isIn ? 'negative' : impulse);
+    techReport += `A punishing ${windSpeed}mph wind is dominating the field. `;
+    if (isOut) techReport += "Routine fly balls have a massive probability of clearing the fence. ";
+    else if (isIn) techReport += "The ball will be fighting a severe headwind; focus on the Under. ";
+    else techReport += "Violent cross-currents will make defensive tracking a major challenge. ";
+  } else if (windSpeed >= 10) {
+    if (isOut) {
+      impulse = impulse === 'negative' ? 'neutral' : 'positive';
+      techReport += `The ${windSpeed}mph tailwind is a significant asset for sluggers today. `;
+    } else if (isIn) {
+      impulse = impulse === 'positive' ? 'neutral' : 'negative';
+      techReport += `Steady ${windSpeed}mph headwind will favor control pitchers who keep the ball in the park. `;
+    } else if (isToRight) {
+      techReport += `Consistent ${windSpeed}mph push toward Right Field may favor left-handed power alleys. `;
+    } else if (isToLeft) {
+      techReport += `Consistent ${windSpeed}mph push toward Left Field may favor right-handed power alleys. `;
+    } else {
+      techReport += `Brisk ${windSpeed}mph cross-breeze detected. `;
+    }
+  } else if (windSpeed > 4) {
+    techReport += `A light ${windSpeed}mph breeze is present but unlikely to shift the balance of play significantly. `;
+  } else {
+    techReport += "Extremely calm wind conditions suggest a pure performance matchup. ";
+  }
+
+  // 3. Moisture & Environmental Factors
+  if (isRainy) {
+    impulse = 'negative';
+    techReport += "Risk of precipitation will lead to " + (temp < 60 ? "raw, difficult" : "slick, humid") + " conditions for both hands.";
+  } else if (isHighAltitude) {
+    impulse = 'positive';
+    techReport += "Altitude boost: The thinner air at this venue will turn gap-hits into home runs.";
+  } else if (condition.includes('humid')) {
+    techReport += "High humidity might make the ball feel 'heavier' for some, but typically aids carry in heat.";
+  } else if (condition.includes('clear')) {
+    techReport += "Pristine clear skies will provide hitters with excellent visibility and contrast.";
+  } else if (condition.includes('overcast')) {
+    techReport += "Overcast layers might help hide the ball's spin from the batter slightly.";
+  }
+
+  return { impulse, message: techReport.trim(), temp, windStr, windSpeed, condition };
+};
+
+const getUmpireIntelligence = (umpireName: string) => {
+  const tendency = getUmpireTendency(umpireName) || getGenericTendency(umpireName);
+  const runsPerGame = tendency.runsPerGame;
+  const strikeZone = tendency.strikeZone;
+  const Krate = tendency.Krate;
+  
+  let impulse: 'positive' | 'negative' | 'neutral' = 'neutral';
+  let techReport = "";
+
+  // 1. Strike Zone Analysis
+  if (strikeZone === 'Small') {
+    impulse = 'positive';
+    techReport += `${umpireName} is known for a "tight" or "micro" strike zone, forcing pitchers to come over the heart of the plate. `;
+  } else if (strikeZone === 'Large') {
+    impulse = 'negative';
+    techReport += `${umpireName} typically maintains an "expansive" zone, often rewarding pitchers who can paint the corners and "chase" hitters. `;
+  } else {
+    techReport += `${umpireName} generally enforces a standard, predictable strike zone with few unexpected deviations. `;
+  }
+
+  // 2. Performance Metric Analysis (Runs & K-Rate)
+  if (runsPerGame >= 10.0) {
+    impulse = 'positive';
+    techReport += `Statistically, games managed by this official average a high ${runsPerGame} runs, suggesting a severe offensive advantage. `;
+  } else if (runsPerGame <= 8.5) {
+    impulse = 'negative';
+    techReport += `With a career average of just ${runsPerGame} runs per game, this official is a notable "Pitcher's Umpire". `;
+  }
+
+  if (Krate >= 0.20) {
+    techReport += `A high strikeout frequency (${(Krate * 100).toFixed(1)}%) indicates a low tolerance for "taking" close two-strike pitches. `;
+  } else if (Krate <= 0.15) {
+    techReport += `A lower-than-average strikeout rate suggests hitters are often given the benefit of the doubt on borderline 50/50 calls. `;
+  }
+
+  // 3. Narrative Synthesis
+  if (impulse === 'positive' && runsPerGame > 9.5) {
+    techReport += "Expect high-stress innings for pitchers and frequent deep counts.";
+  } else if (impulse === 'negative' && strikeZone === 'Large') {
+    techReport += "High-velocity arms and breaking-ball specialists will likely leverage the wider margins today.";
+  } else if (impulse === 'neutral') {
+    techReport += "Performance today will likely boil down to pure player execution rather than variable officiating.";
+  }
+
+  return { impulse, message: techReport.trim(), tendency };
+};
+
 export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
   const { user } = useAuth();
   const isAdmin = user?.email?.toLowerCase() === 'mattlajiness@gmail.com';
@@ -245,21 +391,38 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                               <span className="text-[7px] font-mono font-black text-blue-400 uppercase tracking-widest">{riskMessage}</span>
                             </div>
                           )}
+                          {(() => {
+                             const intelligence = getClimateIntelligence(game);
+                             if (!intelligence || intelligence.impulse === 'neutral') return null;
+                             return (
+                               <div className={cn(
+                                 "flex items-center gap-1 px-1.5 py-0.5 rounded-full border shadow-sm",
+                                 intelligence.impulse === 'positive' 
+                                   ? "bg-red-500/10 border-red-500/20 text-red-500" 
+                                   : "bg-blue-500/10 border-blue-500/20 text-blue-400"
+                               )}>
+                                 <Zap className="w-2.5 h-2.5" />
+                                 <span className="text-[7px] font-mono font-black uppercase tracking-widest">
+                                   {intelligence.impulse === 'positive' ? 'Boost' : 'Edge'}
+                                 </span>
+                               </div>
+                             );
+                          })()}
                           <span className="text-[8px] font-mono text-slate-500 font-black uppercase tracking-widest mr-1">Details</span>
                           {(() => {
                              const homePlateUmpire = game.officials?.find(o => o.officialType === 'Home Plate')?.official;
                              if (!homePlateUmpire) return null;
-                             const tendency = getUmpireTendency(homePlateUmpire.fullName);
-                             if (!tendency || tendency.tendency === 'Neutral') return null;
+                             const intelligence = getUmpireIntelligence(homePlateUmpire.fullName);
+                             if (!intelligence || intelligence.impulse === 'neutral') return null;
                              
                              return (
                                <div className={cn(
-                                 "flex items-center gap-1 px-1.5 py-0.5 rounded shadow-sm",
-                                 tendency.tendency === 'Pitcher Friendly' ? "bg-blue-600/20 text-blue-400" : "bg-red-600/20 text-red-500"
+                                 "flex items-center gap-1 px-1.5 py-0.5 rounded shadow-sm border",
+                                 intelligence.impulse === 'negative' ? "bg-blue-500/10 border-blue-500/20 text-blue-400" : "bg-red-500/10 border-red-500/20 text-red-500"
                                )}>
                                  <Scale className="w-2.5 h-2.5" />
-                                 <span className="text-[7px] font-mono font-black uppercase tracking-widest ml-1">
-                                   {tendency.tendency === 'Pitcher Friendly' ? 'Ump: Under' : 'Ump: Over'}
+                                 <span className="text-[7px] font-mono font-black uppercase tracking-widest">
+                                   {intelligence.impulse === 'negative' ? 'Ump: Pitching' : 'Ump: Hitting'}
                                  </span>
                                </div>
                              );
@@ -327,6 +490,46 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                             <span className="text-[7px] font-mono text-slate-500 font-black mt-1 uppercase tracking-tighter">Total</span>
                           </div>
                           
+                          {/* Climate Intelligence Pulse */}
+                          {game.weather && (() => {
+                             const intelligence = getClimateIntelligence(game);
+                             if (!intelligence || intelligence.impulse === 'neutral') return null;
+                             return (
+                               <div className={cn(
+                                 "flex items-center gap-1.5 px-2 py-0.5 rounded-full border mb-1",
+                                 intelligence.impulse === 'positive' 
+                                   ? "bg-red-500/10 border-red-500/20 text-red-500" 
+                                   : "bg-blue-500/10 border-blue-500/20 text-blue-400"
+                               )}>
+                                 <Zap className="w-2.5 h-2.5" />
+                                 <span className="text-[7px] font-mono font-black uppercase tracking-widest leading-none">
+                                   {intelligence.impulse === 'positive' ? 'Offense Boost' : 'Pitching Edge'}
+                                 </span>
+                               </div>
+                             );
+                          })()}
+
+                          {/* Umpire Intelligence Pulse */}
+                          {(() => {
+                             const homePlateUmpire = game.officials?.find(o => o.officialType === 'Home Plate')?.official;
+                             if (!homePlateUmpire) return null;
+                             const intelligence = getUmpireIntelligence(homePlateUmpire.fullName);
+                             if (!intelligence || intelligence.impulse === 'neutral') return null;
+                             return (
+                               <div className={cn(
+                                 "flex items-center gap-1.5 px-2 py-0.5 rounded-full border mb-2",
+                                 intelligence.impulse === 'positive' 
+                                   ? "bg-red-500/10 border-red-500/20 text-red-500" 
+                                   : "bg-blue-500/10 border-blue-500/20 text-blue-400"
+                               )}>
+                                 <Scale className="w-2.5 h-2.5" />
+                                 <span className="text-[7px] font-mono font-black uppercase tracking-widest leading-none">
+                                   {intelligence.impulse === 'positive' ? 'Ump: Hitting' : 'Ump: Pitching'}
+                                 </span>
+                               </div>
+                             );
+                          })()}
+
                           {/* O/U Line UI */}
                           <div className="pt-2 border-t border-slate-800 w-full flex flex-col items-center">
                             <div className="flex items-center gap-1 mb-1">
@@ -780,9 +983,8 @@ function GameDetailView({ game }: { game: MLBGame }) {
             </div>
           );
 
-          const tendency = getUmpireTendency(homePlateUmpire.fullName) || getGenericTendency(homePlateUmpire.fullName);
-          const impactValue = tendency.runsPerGame - 9.0;
-          const impactLabel = impactValue > 0.5 ? 'Strong Over' : impactValue > 0.1 ? 'Slight Over' : impactValue < -0.5 ? 'Strong Under' : impactValue < -0.1 ? 'Slight Under' : 'Neutral';
+          const intelligence = getUmpireIntelligence(homePlateUmpire.fullName);
+          const { tendency, message, impulse } = intelligence;
           
           return (
             <div className="bg-slate-900/40 rounded-xl border border-slate-800/80 p-4 shadow-xl shadow-black/20 overflow-hidden relative group">
@@ -793,8 +995,8 @@ function GameDetailView({ game }: { game: MLBGame }) {
                   <div className="w-10 h-10 rounded-full bg-slate-950 flex items-center justify-center border border-slate-800 shadow-inner">
                     <Scale className={cn(
                       "w-5 h-5",
-                      tendency.tendency === 'Pitcher Friendly' ? "text-blue-400" :
-                      tendency.tendency === 'Hitter Friendly' ? "text-salami-red" :
+                      impulse === 'negative' ? "text-blue-400" :
+                      impulse === 'positive' ? "text-salami-red" :
                       "text-slate-500"
                     )} />
                   </div>
@@ -809,26 +1011,26 @@ function GameDetailView({ game }: { game: MLBGame }) {
 
                 <div className="flex items-center gap-6">
                   <div className="flex flex-col items-end">
-                    <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest mb-1">Impact on Total</span>
+                    <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest mb-1">Crew Bias</span>
                     <div className={cn(
                       "px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest shadow-sm",
-                      impactValue > 0.1 ? "bg-red-500/10 text-red-500 border border-red-500/20" :
-                      impactValue < -0.1 ? "bg-blue-500/10 text-blue-400 border border-blue-500/20" :
+                      impulse === 'positive' ? "bg-red-500/10 text-red-500 border border-red-500/20" :
+                      impulse === 'negative' ? "bg-blue-500/10 text-blue-400 border border-blue-500/20" :
                       "bg-slate-800 text-slate-400 border border-slate-700/50"
                     )}>
-                      {impactLabel}
+                      {impulse === 'positive' ? 'Hitter Advantage' : impulse === 'negative' ? 'Pitcher Advantage' : 'Balanced'}
                     </div>
                   </div>
                   
                   <div className="flex flex-col items-end">
-                    <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest mb-1">Tendency</span>
+                    <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest mb-1">Zone Quality</span>
                     <div className={cn(
                       "text-[10px] font-black uppercase tracking-widest",
-                      tendency.tendency === 'Pitcher Friendly' ? "text-blue-400" :
-                      tendency.tendency === 'Hitter Friendly' ? "text-red-500" :
+                      tendency.strikeZone === 'Large' ? "text-blue-400" :
+                      tendency.strikeZone === 'Small' ? "text-red-500" :
                       "text-slate-200"
                     )}>
-                      {tendency.tendency}
+                      {tendency.strikeZone}
                     </div>
                   </div>
                 </div>
@@ -836,24 +1038,24 @@ function GameDetailView({ game }: { game: MLBGame }) {
               
               <div className="grid grid-cols-3 gap-6 mt-5 pt-4 border-t border-slate-800/50">
                 <div className="space-y-1">
-                  <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest">Strike Zone Size</span>
+                  <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest">K Rate Pulse</span>
                   <div className="flex items-center gap-2">
                     <span className={cn(
                       "text-[11px] font-bold uppercase",
-                      tendency.strikeZone === 'Large' ? "text-blue-400" :
-                      tendency.strikeZone === 'Small' ? "text-red-500" :
+                      tendency.Krate > 0.18 ? "text-blue-400" :
+                      tendency.Krate < 0.15 ? "text-red-500" :
                       "text-slate-300"
-                    )}>{tendency.strikeZone}</span>
+                    )}>{(tendency.Krate * 100).toFixed(1)}%</span>
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest">Avg Runs/Game</span>
+                  <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest">Historical Runs</span>
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] font-bold text-white tracking-widest">{tendency.runsPerGame.toFixed(1)}</span>
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest">Call Accuracy %</span>
+                  <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest">Strike Accuracy</span>
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] font-bold text-white tracking-widest">{tendency.strikePercent}%</span>
                   </div>
@@ -862,7 +1064,7 @@ function GameDetailView({ game }: { game: MLBGame }) {
               
               <div className="mt-3 bg-slate-950/50 rounded-lg p-2 border border-slate-800/30">
                  <p className="text-[9px] font-mono text-slate-400 italic leading-relaxed">
-                   "{tendency.description}"
+                   "{message}"
                  </p>
               </div>
             </div>
@@ -870,52 +1072,9 @@ function GameDetailView({ game }: { game: MLBGame }) {
         })()}
 
         {/* Climate & Conditions Section */}
-        {game.weather && (() => {
-          const temp = parseInt(game.weather.temp) || 72;
-          const windStr = game.weather.wind || "";
-          const windSpeed = parseInt(windStr.split(' ')[0]) || 0;
-          const windDir = windStr.toLowerCase();
-          
-          let climateImpulse: 'positive' | 'negative' | 'neutral' = 'neutral';
-          let climateMessage = "Neutral atmospheric conditions. No significant impact on ball flight expected.";
-          let highlights: { label: string, value: string, icon: any, color: string }[] = [];
-
-          // Temperature Analysis
-          if (temp >= 90) {
-            climateImpulse = 'positive';
-            climateMessage = "Extreme heat will increase ball carry. Expect higher exit velocities and potentially higher scoring.";
-          } else if (temp <= 50) {
-            climateImpulse = 'negative';
-            climateMessage = "Cold air is denser, suppressing ball flight and making it harder for pitchers to grip. Likely favors the Under.";
-          }
-
-          // Wind Analysis
-          const isWindOut = windDir.includes('out') || windDir.includes('to cf') || windDir.includes('to rf') || windDir.includes('to lf');
-          const isWindIn = windDir.includes('in') || windDir.includes('from cf') || windDir.includes('from rf') || windDir.includes('from lf');
-
-          if (windSpeed >= 12) {
-            if (isWindOut) {
-              climateImpulse = 'positive';
-              climateMessage = `High winds (${windSpeed} mph) blowing OUT. This is a Significant Home Run boost. Strongly favors Over.`;
-            } else if (isWindIn) {
-              climateImpulse = 'negative';
-              climateMessage = `High winds (${windSpeed} mph) blowing IN. High-fly balls will die at the track. Strongly favors Under.`;
-            } else {
-              climateMessage = `Significant crosswinds (${windSpeed} mph) may cause erratic ball flight and defensive challenges.`;
-            }
-          } else if (windSpeed >= 8) {
-             if (isWindOut && climateImpulse !== 'negative') climateImpulse = climateImpulse === 'positive' ? 'positive' : 'positive';
-          }
-
-          // Rain Check
-          const condition = (game.weather?.condition || '').toLowerCase();
-          const rainKeywords = ['rain', 'shower', 'storm', 'drizzle', 'precip', 'thunder', 'lightning', 'mist'];
-          const isRainy = rainKeywords.some(k => condition.includes(k));
-          
-          if (isRainy) {
-            climateMessage = "Precipitation risk detected. Expect slippery conditions, potential delays, and lower offensive efficiency.";
-            climateImpulse = 'negative';
-          }
+        {(() => {
+          const intelligence = getClimateIntelligence(game);
+          if (!intelligence) return null;
 
           return (
             <div className="bg-slate-900/40 rounded-xl border border-slate-800/80 p-4 shadow-xl shadow-black/20 overflow-hidden relative group">
@@ -924,7 +1083,7 @@ function GameDetailView({ game }: { game: MLBGame }) {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-slate-950 flex items-center justify-center border border-slate-800 shadow-inner">
-                    {temp >= 85 ? <Zap className="w-5 h-5 text-amber-400" /> : <Wind className="w-5 h-5 text-blue-400" />}
+                    {intelligence.temp >= 85 ? <Zap className="w-5 h-5 text-amber-400" /> : intelligence.condition.includes('rain') ? <CloudRain className="w-5 h-5 text-blue-400" /> : <Wind className="w-5 h-5 text-blue-400" />}
                   </div>
                   <div className="flex flex-col">
                     <div className="flex items-center gap-2">
@@ -940,11 +1099,11 @@ function GameDetailView({ game }: { game: MLBGame }) {
                     <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest mb-1">Scoring Bias</span>
                     <div className={cn(
                       "px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest shadow-sm",
-                      climateImpulse === 'positive' ? "bg-red-500/10 text-red-500 border border-red-500/20" :
-                      climateImpulse === 'negative' ? "bg-blue-500/10 text-blue-400 border border-blue-500/20" :
+                      intelligence.impulse === 'positive' ? "bg-red-500/10 text-red-500 border border-red-500/20" :
+                      intelligence.impulse === 'negative' ? "bg-blue-500/10 text-blue-400 border border-blue-500/20" :
                       "bg-slate-800 text-slate-400 border border-slate-700/50"
                     )}>
-                      {climateImpulse === 'positive' ? 'Offense Boost' : climateImpulse === 'negative' ? 'Pitching Edge' : 'Neutral'}
+                      {intelligence.impulse === 'positive' ? 'Offense Boost' : intelligence.impulse === 'negative' ? 'Pitching Edge' : 'Neutral'}
                     </div>
                   </div>
                 </div>
@@ -954,21 +1113,21 @@ function GameDetailView({ game }: { game: MLBGame }) {
                 <div className="space-y-1">
                   <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest">Temperature</span>
                   <div className="flex items-center gap-2">
-                    <Thermometer className={cn("w-3.5 h-3.5", temp >= 85 ? "text-red-500" : temp <= 50 ? "text-blue-400" : "text-amber-500")} />
-                    <span className="text-[11px] font-bold text-white tracking-widest">{temp}°F</span>
+                    <Thermometer className={cn("w-3.5 h-3.5", intelligence.temp >= 85 ? "text-red-500" : intelligence.temp <= 50 ? "text-blue-400" : "text-amber-500")} />
+                    <span className="text-[11px] font-bold text-white tracking-widest">{intelligence.temp}°F</span>
                   </div>
                 </div>
                 <div className="space-y-1">
                   <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest">Wind Vector</span>
                   <div className="flex items-center gap-2">
-                    <Wind className={cn("w-3.5 h-3.5", windSpeed >= 10 ? "text-blue-400" : "text-slate-500")} />
-                    <span className="text-[11px] font-bold text-white tracking-widest uppercase">{windStr || 'Calm'}</span>
+                    <Wind className={cn("w-3.5 h-3.5", intelligence.windSpeed >= 12 ? "text-red-400" : intelligence.windSpeed >= 8 ? "text-blue-400" : "text-slate-500")} />
+                    <span className="text-[11px] font-bold text-white tracking-widest uppercase truncate max-w-[80px]">{intelligence.windStr || 'Calm'}</span>
                   </div>
                 </div>
                 <div className="space-y-1">
                   <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest">Condition</span>
                   <div className="flex items-center gap-2">
-                    {isRainy ? <CloudRain className="w-3.5 h-3.5 text-blue-400" /> : <Sun className="w-3.5 h-3.5 text-amber-400" />}
+                    {intelligence.condition.includes('rain') ? <CloudRain className="w-3.5 h-3.5 text-blue-400" /> : <Sun className="w-3.5 h-3.5 text-amber-400" />}
                     <span className="text-[11px] font-bold text-white tracking-widest uppercase truncate max-w-[80px]">{game.weather?.condition || 'Clear'}</span>
                   </div>
                 </div>
@@ -976,7 +1135,7 @@ function GameDetailView({ game }: { game: MLBGame }) {
               
               <div className="mt-3 bg-slate-950/50 rounded-lg p-2 border border-slate-800/30">
                  <p className="text-[9px] font-mono text-slate-400 italic leading-relaxed">
-                   "{climateMessage}"
+                   "{intelligence.message}"
                  </p>
               </div>
             </div>
