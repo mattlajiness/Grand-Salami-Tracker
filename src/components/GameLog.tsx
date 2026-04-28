@@ -2,8 +2,9 @@ import { useState, Fragment, useEffect } from 'react';
 import { MLBGame } from '../services/mlbService';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
-import { Activity, RefreshCw, ChevronDown, ChevronUp, User, Info, Wind, Thermometer, Cloud, Sun, CloudRain, CloudLightning, MapPin, AlertTriangle, Droplets, Zap, ShieldCheck, Target, Edit2, Save } from 'lucide-react';
+import { Activity, RefreshCw, ChevronDown, ChevronUp, User, Info, Wind, Thermometer, Cloud, Sun, CloudRain, CloudLightning, MapPin, AlertTriangle, Droplets, Zap, ShieldCheck, Target, Edit2, Save, Scale } from 'lucide-react';
 import { calculateLiveThreat } from '../lib/projectionEngine';
+import { getUmpireTendency, getGenericTendency } from '../lib/umpireEngine';
 import { useAuth } from '../contexts/AuthContext';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { collection, doc, setDoc, onSnapshot, Timestamp } from 'firebase/firestore';
@@ -112,8 +113,8 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
 
   const getRainRisk = (game: MLBGame) => {
     const condition = game.weather?.condition?.toLowerCase() || '';
-    const status = game.status.detailedState.toLowerCase();
-    const statusCode = game.status.statusCode.toUpperCase();
+    const status = (game.status?.detailedState || '').toLowerCase();
+    const statusCode = (game.status?.statusCode || '').toUpperCase();
     const rainKeywords = ['rain', 'shower', 'storm', 'drizzle', 'precip', 'thunder', 'lightning', 'mist'];
     
     // If it's a delay, check if it's likely rain-related
@@ -220,7 +221,7 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                         )}>
                           {game.status.abstractGameState === 'Live' && game.linescore?.currentInningOrdinal 
                             ? `${game.linescore.isTopInning ? 'TOP' : 'BOT'} ${game.linescore.currentInningOrdinal}`.toUpperCase()
-                            : game.status.detailedState.toUpperCase()}
+                            : (game.status?.detailedState || '').toUpperCase()}
                         </div>
                         <div className="flex items-center gap-2">
                           {game.status.abstractGameState === 'Live' && getThreatLevel(game) > 0.25 && (
@@ -245,7 +246,25 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                             </div>
                           )}
                           <span className="text-[8px] font-mono text-slate-500 font-black uppercase tracking-widest mr-1">Details</span>
-                          <span className="text-[9px] font-mono text-slate-400 font-bold">
+                          {(() => {
+                             const homePlateUmpire = game.officials?.find(o => o.officialType === 'Home Plate')?.official;
+                             if (!homePlateUmpire) return null;
+                             const tendency = getUmpireTendency(homePlateUmpire.fullName);
+                             if (!tendency || tendency.tendency === 'Neutral') return null;
+                             
+                             return (
+                               <div className={cn(
+                                 "flex items-center gap-1 px-1.5 py-0.5 rounded shadow-sm",
+                                 tendency.tendency === 'Pitcher Friendly' ? "bg-blue-600/20 text-blue-400" : "bg-red-600/20 text-red-500"
+                               )}>
+                                 <Scale className="w-2.5 h-2.5" />
+                                 <span className="text-[7px] font-mono font-black uppercase tracking-widest ml-1">
+                                   {tendency.tendency === 'Pitcher Friendly' ? 'Ump: Under' : 'Ump: Over'}
+                                 </span>
+                               </div>
+                             );
+                           })()}
+                           <span className="text-[9px] font-mono text-slate-400 font-bold">
                             {game.status.abstractGameState === 'Preview' 
                               ? new Date(game.gameDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                               : game.status.abstractGameState === 'Live' ? "IN PROGRESS" : "FINAL"}
@@ -643,6 +662,24 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                                     <span className="text-[7px] font-mono font-black text-blue-400 uppercase">{riskMessage}</span>
                                   </div>
                                 )}
+                                {(() => {
+                                  const homePlateUmpire = game.officials?.find(o => o.officialType === 'Home Plate')?.official;
+                                  if (!homePlateUmpire) return null;
+                                  const tendency = getUmpireTendency(homePlateUmpire.fullName);
+                                  if (!tendency || tendency.tendency === 'Neutral') return null;
+                                  
+                                  return (
+                                    <div 
+                                      className="flex items-center gap-1 bg-slate-900 border border-slate-800 px-2 py-0.5 rounded cursor-help"
+                                      title={`Umpire ${homePlateUmpire.fullName}: ${tendency.tendency} (${tendency.strikeZone} zone)`}
+                                    >
+                                      <Scale className={cn("w-2 h-2", tendency.tendency === 'Pitcher Friendly' ? "text-blue-400" : "text-red-500")} />
+                                      <span className={cn("text-[7px] font-mono font-black uppercase", tendency.tendency === 'Pitcher Friendly' ? "text-blue-400" : "text-red-500")}>
+                                        {tendency.tendency === 'Pitcher Friendly' ? 'UMP: P' : 'UMP: H'}
+                                      </span>
+                                    </div>
+                                  );
+                                })()}
                                 <span className="text-[10px] font-mono font-black text-salami-red">
                                   TOTAL: {totalScore}
                                 </span>
@@ -655,7 +692,7 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                               )}>
                                 {game.status.abstractGameState === 'Live' && game.linescore?.currentInningOrdinal 
                                   ? `${game.linescore.isTopInning ? 'TOP' : 'BOT'} ${game.linescore.currentInningOrdinal}`.toUpperCase()
-                                  : game.status.detailedState.toUpperCase()}
+                                : (game.status?.detailedState || '').toUpperCase()}
                               </div>
                               <div className="flex items-center gap-2 mt-1">
                                 <div className="text-[9px] font-mono text-slate-400 font-bold">
@@ -751,9 +788,9 @@ function GameDetailView({ game }: { game: MLBGame }) {
               </div>
               <div className="flex items-center gap-1.5">
                 {(() => {
-                  const condition = game.weather.condition.toLowerCase();
-                  const status = game.status.detailedState.toLowerCase();
-                  const statusCode = game.status.statusCode.toUpperCase();
+                  const condition = (game.weather?.condition || '').toLowerCase();
+                  const status = (game.status?.detailedState || '').toLowerCase();
+                  const statusCode = (game.status?.statusCode || '').toUpperCase();
                   const rainKeywords = ['rain', 'shower', 'storm', 'drizzle', 'precip', 'thunder', 'lightning', 'mist'];
                   const isDelay = status.includes('delay') || statusCode === 'D' || statusCode === 'DR' || statusCode === 'DI';
                   const isRainyOrCloudy = condition.includes('overcast') || condition.includes('cloud') || rainKeywords.some(k => condition.includes(k));
@@ -765,9 +802,9 @@ function GameDetailView({ game }: { game: MLBGame }) {
                 })()}
                 <span className="text-[10px] font-mono font-bold text-slate-400 uppercase">
                   {(() => {
-                    const condition = game.weather.condition.toLowerCase();
-                    const status = game.status.detailedState.toLowerCase();
-                    const statusCode = game.status.statusCode.toUpperCase();
+                    const condition = (game.weather?.condition || '').toLowerCase();
+                    const status = (game.status?.detailedState || '').toLowerCase();
+                    const statusCode = (game.status?.statusCode || '').toUpperCase();
                     const rainKeywords = ['rain', 'shower', 'storm', 'drizzle', 'precip', 'thunder', 'lightning', 'mist'];
                     const isDelay = status.includes('delay') || statusCode === 'D' || statusCode === 'DR' || statusCode === 'DI';
                     const isRainyOrCloudy = condition.includes('overcast') || condition.includes('cloud') || rainKeywords.some(k => condition.includes(k));
@@ -870,6 +907,67 @@ function GameDetailView({ game }: { game: MLBGame }) {
             })()}
           </div>
         )}
+
+        {/* Umpire Intelligence Section */}
+        <div className="pt-4 mt-2 border-t border-slate-800/50">
+          {(() => {
+            const homePlateUmpire = game.officials?.find(o => o.officialType === 'Home Plate')?.official;
+            if (!homePlateUmpire) return (
+              <div className="flex items-center gap-2 opacity-40">
+                <Scale className="w-3 h-3 text-slate-500" />
+                <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest">Umpire: TBD</span>
+              </div>
+            );
+
+            const tendency = getUmpireTendency(homePlateUmpire.fullName) || getGenericTendency(homePlateUmpire.fullName);
+            
+            return (
+              <div className="bg-slate-950/40 rounded-lg border border-slate-800/60 p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Scale className="w-3.5 h-3.5 text-blue-400" />
+                    <div className="flex flex-col">
+                      <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest">Home Plate Umpire</span>
+                      <span className="text-[11px] font-black text-white uppercase tracking-tight">{homePlateUmpire.fullName}</span>
+                    </div>
+                  </div>
+                  <div className={cn(
+                    "px-2 py-0.5 rounded text-[8px] font-mono font-black uppercase tracking-widest",
+                    tendency.tendency === 'Pitcher Friendly' ? "bg-blue-500/10 text-blue-400" :
+                    tendency.tendency === 'Hitter Friendly' ? "bg-red-500/10 text-red-400" :
+                    "bg-slate-800 text-slate-400"
+                  )}>
+                    {tendency.tendency}
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-3 gap-4 mt-3">
+                  <div className="flex flex-col">
+                    <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest mb-1">Strike Zone</span>
+                    <span className={cn(
+                      "text-[10px] font-bold uppercase",
+                      tendency.strikeZone === 'Large' ? "text-blue-400" :
+                      tendency.strikeZone === 'Small' ? "text-red-400" :
+                      "text-slate-300"
+                    )}>{tendency.strikeZone}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest mb-1">Avg Runs</span>
+                    <span className="text-[10px] font-bold text-white">{tendency.runsPerGame}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest mb-1">Strike %</span>
+                    <span className="text-[10px] font-bold text-white">{tendency.strikePercent}%</span>
+                  </div>
+                </div>
+                
+                <p className="mt-2.5 text-[8px] font-mono text-slate-500 italic leading-snug border-t border-slate-800/40 pt-2">
+                  "{tendency.description}"
+                </p>
+              </div>
+            );
+          })()}
+        </div>
       </div>
 
       {/* Diamond & Count */}

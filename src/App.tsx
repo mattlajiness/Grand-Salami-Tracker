@@ -110,8 +110,8 @@ export default function App() {
       // Strictly filter to ensure we aren't counting games from other days due to API data shifts
       if (game.officialDate && game.officialDate !== todayStr) return acc;
 
-      const isPostponed = game.status.detailedState.toLowerCase().includes('postponed') || 
-                         game.status.detailedState.toLowerCase().includes('canceled');
+      const isPostponed = (game.status?.detailedState || '').toLowerCase().includes('postponed') || 
+                         (game.status?.detailedState || '').toLowerCase().includes('canceled');
       if (isPostponed) return acc;
 
       const awayScore = game?.teams?.away?.score || 0;
@@ -138,7 +138,7 @@ export default function App() {
 
     // Filter out games that won't be played or are from the wrong day
     const activeGames = games.filter(g => {
-      const state = g.status.detailedState.toLowerCase();
+      const state = (g.status?.detailedState || '').toLowerCase();
       const isWrongDay = g.officialDate && g.officialDate !== todayStr;
       return !state.includes('postponed') && !state.includes('canceled') && !isWrongDay;
     });
@@ -243,8 +243,8 @@ export default function App() {
       isFinished: isActuallyFinished,
       hasRainRisk: activeGames.some(g => {
         const cond = g.weather?.condition?.toLowerCase() || '';
-        const status = g.status.detailedState.toLowerCase();
-        const statusCode = g.status.statusCode.toUpperCase();
+        const status = (g.status?.detailedState || '').toLowerCase();
+        const statusCode = g.status?.statusCode?.toUpperCase() || '';
         const isRainy = rainKeywords.some(keyword => cond.includes(keyword));
         const isDelay = status.includes('delay') || statusCode === 'D' || statusCode === 'DR' || statusCode === 'DI';
         const isDelayedAndOvercast = isDelay && (cond.includes('overcast') || cond.includes('cloud') || isRainy);
