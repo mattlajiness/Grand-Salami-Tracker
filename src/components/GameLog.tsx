@@ -800,7 +800,7 @@ function GameDetailView({ game }: { game: MLBGame }) {
                   </div>
                   <div className="flex flex-col">
                     <div className="flex items-center gap-2">
-                       <span className="text-[8px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black">Official Intelligence</span>
+                       <span className="text-[8px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black">Umpire Intelligence</span>
                        <div className="h-px w-12 bg-slate-800" />
                     </div>
                     <span className="text-sm font-black text-white uppercase tracking-tight">{homePlateUmpire.fullName}</span>
