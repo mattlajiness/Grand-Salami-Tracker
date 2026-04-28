@@ -113,14 +113,29 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
   const getRainRisk = (game: MLBGame) => {
     const condition = game.weather?.condition?.toLowerCase() || '';
     const status = game.status.detailedState.toLowerCase();
-    const rainKeywords = ['rain', 'shower', 'storm', 'drizzle', 'precip', 'thunder', 'lightning', 'mist', 'overcast'];
+    const statusCode = game.status.statusCode.toUpperCase();
+    const rainKeywords = ['rain', 'shower', 'storm', 'drizzle', 'precip', 'thunder', 'lightning', 'mist'];
     
+    // If it's a delay, check if it's likely rain-related
+    const isDelay = status.includes('delay') || statusCode === 'D' || statusCode === 'DR' || statusCode === 'DI';
+    
+    if (isDelay) {
+      const isOvercast = condition.includes('overcast') || condition.includes('cloud');
+      const isRainy = rainKeywords.some(keyword => condition.includes(keyword));
+      
+      if (isRainy || isOvercast) {
+        return `Raining (${game.status.detailedState})`;
+      }
+      return `Delayed (${game.status.detailedState})`;
+    }
+    
+    // Check for rain risk in active games
     if (rainKeywords.some(keyword => condition.includes(keyword))) {
       return `Risk (${game.weather?.condition})`;
     }
     
-    if (status.includes('delay')) {
-      return `Delayed (${game.status.detailedState})`;
+    if (condition.includes('overcast')) {
+      return `Overcast`;
     }
     
     return null;
@@ -221,7 +236,11 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                           )}
                           {riskMessage && (
                             <div className="flex items-center gap-1 bg-blue-500/20 px-1.5 py-0.5 rounded">
-                              <Droplets className="w-2.5 h-2.5 text-blue-400" />
+                              {riskMessage.startsWith('Raining') || riskMessage.includes('Risk') ? (
+                                <CloudRain className="w-2.5 h-2.5 text-blue-400" />
+                              ) : (
+                                <Droplets className="w-2.5 h-2.5 text-blue-400" />
+                              )}
                               <span className="text-[7px] font-mono font-black text-blue-400 uppercase tracking-widest">{riskMessage}</span>
                             </div>
                           )}
@@ -616,7 +635,11 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                                     className="flex items-center gap-1 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded cursor-help"
                                     title={`${riskMessage}. Game at risk of delay or cancellation.`}
                                   >
-                                    <Droplets className="w-2 h-2 text-blue-400" />
+                                    {riskMessage.startsWith('Raining') || riskMessage.includes('Risk') ? (
+                                      <CloudRain className="w-2 h-2 text-blue-400" />
+                                    ) : (
+                                      <Droplets className="w-2 h-2 text-blue-400" />
+                                    )}
                                     <span className="text-[7px] font-mono font-black text-blue-400 uppercase">{riskMessage}</span>
                                   </div>
                                 )}
@@ -727,8 +750,32 @@ function GameDetailView({ game }: { game: MLBGame }) {
                 <span className="text-[10px] font-mono font-black text-slate-200">{game.weather.wind}</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <Cloud className="w-3 h-3 text-slate-500" />
-                <span className="text-[10px] font-mono font-bold text-slate-400 uppercase">{game.weather.condition}</span>
+                {(() => {
+                  const condition = game.weather.condition.toLowerCase();
+                  const status = game.status.detailedState.toLowerCase();
+                  const statusCode = game.status.statusCode.toUpperCase();
+                  const rainKeywords = ['rain', 'shower', 'storm', 'drizzle', 'precip', 'thunder', 'lightning', 'mist'];
+                  const isDelay = status.includes('delay') || statusCode === 'D' || statusCode === 'DR' || statusCode === 'DI';
+                  const isRainyOrCloudy = condition.includes('overcast') || condition.includes('cloud') || rainKeywords.some(k => condition.includes(k));
+                  const isRainy = (isDelay && isRainyOrCloudy) || rainKeywords.some(k => condition.includes(k));
+                  
+                  if (isRainy) return <CloudRain className="w-3 h-3 text-blue-400" />;
+                  if (condition.includes('cloud') || condition.includes('overcast')) return <Cloud className="w-3 h-3 text-slate-500" />;
+                  return <Sun className="w-3 h-3 text-amber-400" />;
+                })()}
+                <span className="text-[10px] font-mono font-bold text-slate-400 uppercase">
+                  {(() => {
+                    const condition = game.weather.condition.toLowerCase();
+                    const status = game.status.detailedState.toLowerCase();
+                    const statusCode = game.status.statusCode.toUpperCase();
+                    const rainKeywords = ['rain', 'shower', 'storm', 'drizzle', 'precip', 'thunder', 'lightning', 'mist'];
+                    const isDelay = status.includes('delay') || statusCode === 'D' || statusCode === 'DR' || statusCode === 'DI';
+                    const isRainyOrCloudy = condition.includes('overcast') || condition.includes('cloud') || rainKeywords.some(k => condition.includes(k));
+                    
+                    if (isDelay && isRainyOrCloudy) return 'Raining';
+                    return game.weather.condition;
+                  })()}
+                </span>
               </div>
             </div>
           )}

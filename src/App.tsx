@@ -231,6 +231,8 @@ export default function App() {
       };
     }
 
+    const rainKeywords = ['rain', 'shower', 'storm', 'drizzle', 'precip', 'thunder', 'lightning', 'mist'];
+    
     return {
       finalCount: final,
       liveCount: live,
@@ -245,8 +247,11 @@ export default function App() {
       hasRainRisk: activeGames.some(g => {
         const cond = g.weather?.condition?.toLowerCase() || '';
         const status = g.status.detailedState.toLowerCase();
-        const rainKeywords = ['rain', 'shower', 'storm', 'drizzle', 'precip', 'thunder', 'lightning', 'mist', 'overcast'];
-        return rainKeywords.some(keyword => cond.includes(keyword)) || status.includes('delay');
+        const statusCode = g.status.statusCode.toUpperCase();
+        const isRainy = rainKeywords.some(keyword => cond.includes(keyword));
+        const isDelay = status.includes('delay') || statusCode === 'D' || statusCode === 'DR' || statusCode === 'DI';
+        const isDelayedAndOvercast = isDelay && (cond.includes('overcast') || cond.includes('cloud') || isRainy);
+        return isRainy || isDelayedAndOvercast;
       })
     };
   }, [games, historicalGames]);
