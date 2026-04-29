@@ -11,6 +11,8 @@ import { collection, doc, setDoc, onSnapshot, Timestamp } from 'firebase/firesto
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
+import { VenueParkFactors } from '../lib/leagueConstants';
+
 const parseWind = (windStr: string = '') => {
   const normalized = windStr.toLowerCase();
   const speedMatch = normalized.match(/\d+/);
@@ -41,6 +43,79 @@ const getWeatherIcon = (condition: string = '') => {
 
 
 
+const getSpecialIntelligence = (game: MLBGame) => {
+  const wind = parseWind(game.weather?.wind);
+  const homeId = game.teams.home.team.id;
+  const venueProp = game.venue?.name || '';
+  const parkFactor = VenueParkFactors[venueProp.trim()] || 1.0;
+  
+  const climate = getClimateIntelligence(game);
+  const temp = climate?.temp || 72;
+  const homePlateUmpire = game.officials?.find(o => o.officialType === 'Home Plate')?.official;
+  const ump = homePlateUmpire ? getUmpireIntelligence(homePlateUmpire.fullName) : null;
+
+  const badges: { label: string; color: string; icon: any; title?: string }[] = [];
+
+  // 1. Signature Park Events
+  if (homeId === 115) { // Coors
+    if (climate?.impulse === 'positive' || (climate?.temp && climate.temp > 70)) {
+      badges.push({ label: 'COORS SHOOTOUT', color: 'bg-red-500/20 text-red-500 border-red-500/20', icon: Zap, title: 'Rare altitude and temperature favor mass offense' });
+    } else {
+      badges.push({ label: 'ALTITUDE BOOST', color: 'bg-orange-500/10 text-orange-400 border-orange-500/20', icon: Activity, title: 'Thin air at Coors favoring fly balls' });
+    }
+  } else if (homeId === 112) { // Wrigley
+    if (wind.direction === 'OUT' && wind.speed >= 4) {
+      badges.push({ label: 'WRIGLEY SHOOTOUT', color: 'bg-red-600/20 text-red-500 border-red-500/30', icon: Zap, title: 'Wind blowing OUT at Wrigley' });
+    } else if (wind.direction === 'IN' && wind.speed >= 6) {
+      badges.push({ label: 'WRIGLEY DUEL', color: 'bg-blue-500/20 text-blue-400 border-blue-500/20', icon: ShieldCheck, title: 'Wind blowing IN at Wrigley' });
+    } else if (wind.speed >= 10) {
+      badges.push({ label: 'WRIGLEY CROSSWIND', color: 'bg-orange-500/10 text-orange-400 border-orange-500/10', icon: Wind, title: 'Brisk crosswinds at Wrigley' });
+    }
+  } else if (homeId === 133) { // Oakland
+    if (climate?.temp && climate.temp > 75) {
+      badges.push({ label: "COLY SHOOTOUT", color: 'bg-red-500/10 text-red-400 border-red-500/20', icon: Zap, title: 'Rare warm conditions in Oakland' });
+    } else {
+      badges.push({ label: "COLISEUM DUEL", color: 'bg-blue-500/10 text-blue-400 border-blue-500/20', icon: ShieldCheck, title: 'Marine layer and dense air in Oakland' });
+    }
+  } else if (homeId === 113) { // Reds
+    if (climate?.impulse === 'positive' || temp > 72) {
+      badges.push({ label: 'GAP SHOOTOUT', color: 'bg-red-500/10 text-red-400 border-red-500/20', icon: Zap, title: 'Small dimensions at GABP favor offense' });
+    }
+  } else if (parkFactor > 1.01 && climate?.impulse !== 'negative') {
+    badges.push({ label: 'HITTERS PARK', color: 'bg-red-500/10 text-red-400 border-red-500/10', icon: Zap, title: `High scoring environment at ${venueProp}` });
+  } else if (parkFactor < 0.98 && climate?.impulse !== 'positive') {
+    badges.push({ label: 'PITCHERS PARK', color: 'bg-blue-500/10 text-blue-400 border-blue-500/10', icon: ShieldCheck, title: `Low scoring environment at ${venueProp}` });
+  }
+
+  // 2. Holistic Environment Ratings
+  const isHighOffense = (climate?.impulse === 'positive' || temp > 72) && (ump?.impulse === 'positive' || parkFactor > 1.0);
+  const isPitchersDuel = (climate?.impulse === 'negative' || (temp > 0 && temp < 55)) && (ump?.impulse === 'negative' || parkFactor < 1.0);
+
+  const currentShootout = badges.some(b => b.label.includes('SHOOTOUT') || b.label.includes('RISK') || b.label.includes('BOOST') || b.label.includes('PARK'));
+  const currentDuel = badges.some(b => b.label.includes('DUEL') || b.label.includes('EDGE') || b.label.includes('PARK'));
+
+  if (isHighOffense && !currentShootout) {
+    badges.push({ label: 'SHOOTOUT RISK', color: 'bg-red-500/10 text-red-500 border-red-500/20', icon: Zap, title: 'Multiple factors favor heavy offense' });
+  } else if (isPitchersDuel && !currentDuel) {
+    badges.push({ label: 'PITCHERS DUEL', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20', icon: ShieldCheck, title: 'Multiple factors favor sharp pitching' });
+  }
+
+  // 3. Individual Intelligence (Fallback if not already covered)
+  const finalShootout = badges.some(b => b.label.includes('SHOOTOUT') || b.label.includes('RISK') || b.label.includes('BOOST') || b.label.includes('PARK'));
+  const finalDuel = badges.some(b => b.label.includes('DUEL') || b.label.includes('EDGE') || b.label.includes('PARK'));
+
+  if (!finalShootout && (climate?.impulse === 'positive' || (ump && ump.impulse === 'positive'))) {
+    const title = [climate?.message, ump?.message].filter(Boolean).join(' | ');
+    badges.push({ label: 'OFFENSE BOOST', color: 'bg-red-500/10 text-red-500 border-red-500/20', icon: Zap, title });
+  }
+  if (!finalDuel && (climate?.impulse === 'negative' || (ump && ump.impulse === 'negative'))) {
+    const title = [climate?.message, ump?.message].filter(Boolean).join(' | ');
+    badges.push({ label: 'PITCHING EDGE', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20', icon: ShieldCheck, title });
+  }
+
+  return badges;
+};
+
 const getEnvironmentalWarning = (game: MLBGame) => {
   const wind = parseWind(game.weather?.wind);
   const homeId = game.teams.home.team.id;
@@ -68,14 +143,13 @@ interface GameLogProps {
 }
 
 const getClimateIntelligence = (game: MLBGame) => {
-  if (!game.weather) return null;
-
-  const temp = parseInt(game.weather.temp) || 72;
-  const windStr = game.weather.wind || "";
+  const tempStr = game.weather?.temp || "";
+  const temp = parseInt(tempStr) || 72;
+  const windStr = game.weather?.wind || "";
   const windParts = windStr.split(' ');
   const windSpeed = parseInt(windParts[0]) || 0;
   const windDirRaw = windStr.toLowerCase();
-  const condition = (game.weather.condition || '').toLowerCase();
+  const condition = (game.weather?.condition || '').toLowerCase();
   const venue = (game.venue?.name || '').toLowerCase();
   
   let impulse: 'positive' | 'negative' | 'neutral' = 'neutral';
@@ -106,19 +180,19 @@ const getClimateIntelligence = (game: MLBGame) => {
   if (temp >= 94) {
     impulse = 'positive';
     techReport += `Sizzling ${temp}°F heat will keep the air extremely thin, maximizing ball flight. `;
-  } else if (temp >= 85) {
-    impulse = 'positive';
-    techReport += `Warm ${temp}°F conditions are typical for high-offense summer ball, favoring the carry of fly balls. `;
   } else if (temp >= 75) {
-    techReport += `Comfortable ${temp}°F air provides standard lift with no major thermal resistance. `;
+    impulse = 'positive';
+    techReport += `Warm ${temp}°F conditions are classic for higher offense, favoring the carry of fly balls. `;
   } else if (temp >= 65) {
-    techReport += `Mild ${temp}°F air is beginning to thicken, providing a very slight edge to standard pitching mechanics. `;
+    techReport += `Mild ${temp}°F air provides standard lift with minimal resistance. `;
   } else if (temp >= 55) {
     impulse = 'negative';
-    techReport += `Cool ${temp}°F temperatures will start to "deaden" the ball's travel through the heavier atmosphere. `;
-  } else {
+    techReport += `Cool ${temp}°F air is beginning to thicken, providing a slight edge to pitchers. `;
+  } else if (temp > 0) {
     impulse = 'negative';
-    techReport += `Chilly ${temp}°F conditions create dense air "walls" that will likely stifle deep fly balls. `;
+    techReport += `Chilly ${temp}°F conditions create dense air that will likely stifle deep fly balls. `;
+  } else {
+    techReport += "Temperature data normalizing... ";
   }
 
   // 2. Wind Vector Analysis
@@ -172,7 +246,10 @@ const getUmpireIntelligence = (umpireName: string) => {
   const strikeZone = tendency.strikeZone;
   const Krate = tendency.Krate;
   
-  let impulse: 'positive' | 'negative' | 'neutral' = 'neutral';
+  let impulse: 'positive' | 'negative' | 'neutral' = 
+    tendency.tendency === 'Hitter Friendly' ? 'positive' : 
+    tendency.tendency === 'Pitcher Friendly' ? 'negative' : 'neutral';
+
   let techReport = "";
 
   // 1. Strike Zone Analysis
@@ -371,16 +448,18 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                       onClick={() => toggleGame(game.gamePk)}
                     >
                       <div className="flex items-center justify-between">
-                        <div className={cn(
-                          "text-[8px] font-mono font-black px-2 py-0.5 rounded shadow-sm",
-                          game.status.abstractGameState === 'Live' ? "bg-red-600 text-white" :
-                          game.status.abstractGameState === 'Final' ? "bg-green-600 text-white" :
-                          "bg-slate-800 text-slate-400"
-                        )}>
-                          {game.status.abstractGameState === 'Live' && game.linescore?.currentInningOrdinal 
-                            ? `${game.linescore.isTopInning ? 'TOP' : 'BOT'} ${game.linescore.currentInningOrdinal}`.toUpperCase()
-                            : (game.status?.detailedState || '').toUpperCase()}
-                        </div>
+                        {game.status?.detailedState !== 'Delayed Start' ? (
+                          <div className={cn(
+                            "text-[8px] font-mono font-black px-2 py-0.5 rounded shadow-sm",
+                            game.status.abstractGameState === 'Live' ? "bg-red-600 text-white" :
+                            game.status.abstractGameState === 'Final' ? "bg-green-600 text-white" :
+                            "bg-slate-800 text-slate-400"
+                          )}>
+                            {game.status.abstractGameState === 'Live' && game.linescore?.currentInningOrdinal 
+                              ? `${game.linescore.isTopInning ? 'TOP' : 'BOT'} ${game.linescore.currentInningOrdinal}`.toUpperCase()
+                              : (game.status?.detailedState || '').toUpperCase()}
+                          </div>
+                        ) : <div />}
                         <div className="flex items-center gap-2">
                           {game.status.abstractGameState === 'Live' && getThreatLevel(game) > 0.25 && (
                              <div className={cn(
@@ -409,22 +488,26 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                               }
                               // 2. Climate Intelligence 
                               const climate = getClimateIntelligence(game);
-                              if (climate && climate.impulse !== 'neutral') {
+                              
+                              // 2. Intelligence Badges
+                              const intelBadges = getSpecialIntelligence(game);
+                              intelBadges.forEach(intel => {
                                 badges.push(
                                   <div 
-                                    key="climate"
+                                    key={intel.label}
                                     className={cn(
                                       "flex items-center gap-1 px-1.5 py-0.5 rounded border shadow-sm",
-                                      climate.impulse === 'positive' ? "bg-red-500/10 border-red-500/20 text-red-500" : "bg-blue-500/10 border-blue-500/20 text-blue-400"
+                                      intel.color
                                     )}
+                                    title={intel.title}
                                   >
-                                    <Zap className="w-2.5 h-2.5" />
-                                    <span className="text-[7px] font-mono font-black uppercase tracking-widest">
-                                      {climate.impulse === 'positive' ? 'Boost' : 'Pitching'}
+                                    <intel.icon className="w-2.5 h-2.5" />
+                                    <span className="text-[8px] font-mono font-black uppercase tracking-widest">
+                                      {intel.label}
                                     </span>
                                   </div>
                                 );
-                              }
+                              });
 
                              return badges;
                           })()}
@@ -491,25 +574,6 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                             <span className="text-[7px] font-mono text-slate-500 font-black mt-1 uppercase tracking-tighter">Total</span>
                           </div>
                           
-                          {/* Climate Intelligence Pulse */}
-                          {game.weather && (() => {
-                             const intelligence = getClimateIntelligence(game);
-                             if (!intelligence || intelligence.impulse === 'neutral') return null;
-                             return (
-                               <div className={cn(
-                                 "flex items-center gap-1.5 px-2 py-0.5 rounded-full border mb-1",
-                                 intelligence.impulse === 'positive' 
-                                   ? "bg-red-500/10 border-red-500/20 text-red-500" 
-                                   : "bg-blue-500/10 border-blue-500/20 text-blue-400"
-                               )}>
-                                 <Zap className="w-2.5 h-2.5" />
-                                 <span className="text-[7px] font-mono font-black uppercase tracking-widest leading-none">
-                                   {intelligence.impulse === 'positive' ? 'Offense Boost' : 'Pitching Edge'}
-                                 </span>
-                               </div>
-                             );
-                          })()}
-
                           {/* O/U Line UI */}
                           <div className="pt-2 border-t border-slate-800 w-full flex flex-col items-center">
                             <div className="flex items-center gap-1 mb-1">
@@ -863,23 +927,26 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
 
                                    // 2. Climate Intelligence 
                                    const climate = getClimateIntelligence(game);
-                                   if (climate && climate.impulse !== 'neutral') {
+
+                                   // 2. Intelligence Badges
+                                   const intelBadges = getSpecialIntelligence(game);
+                                   intelBadges.forEach(intel => {
                                      badges.push(
                                        <div 
-                                         key="climate"
+                                         key={intel.label}
                                          className={cn(
                                            "flex items-center gap-1 px-2 py-0.5 rounded border shadow-sm cursor-help",
-                                           climate.impulse === 'positive' ? "bg-red-500/10 border-red-500/20 text-red-500" : "bg-blue-500/10 border-blue-500/20 text-blue-400"
+                                           intel.color
                                          )}
-                                         title={climate.message}
+                                         title={intel.title}
                                        >
-                                         <Zap className="w-2.5 h-2.5" />
-                                         <span className="text-[7px] font-mono font-black uppercase tracking-widest">
-                                           {climate.impulse === 'positive' ? 'Boost' : 'Pitching'}
+                                         <intel.icon className="w-2.5 h-2.5" />
+                                         <span className="text-[8px] font-mono font-black uppercase tracking-widest">
+                                           {intel.label}
                                          </span>
                                        </div>
                                      );
-                                   }
+                                   });
 
                                    return badges;
                                 })()}
@@ -890,16 +957,18 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                               </div>
                               
                               <div className="flex items-center justify-end gap-3">
-                                <div className={cn(
-                                  "text-[9px] font-mono font-black px-2 py-1 rounded inline-block shadow-sm",
-                                  game.status.abstractGameState === 'Live' ? "bg-red-600 text-white" :
-                                  game.status.abstractGameState === 'Final' ? "bg-green-600 text-white" :
-                                  "bg-slate-800 text-slate-400"
-                                )}>
-                                  {game.status.abstractGameState === 'Live' && game.linescore?.currentInningOrdinal 
-                                    ? `${game.linescore.isTopInning ? 'TOP' : 'BOT'} ${game.linescore.currentInningOrdinal}`.toUpperCase()
-                                  : (game.status?.detailedState || '').toUpperCase()}
-                                </div>
+                                {game.status?.detailedState !== 'Delayed Start' ? (
+                                  <div className={cn(
+                                    "text-[9px] font-mono font-black px-2 py-1 rounded inline-block shadow-sm",
+                                    game.status.abstractGameState === 'Live' ? "bg-red-600 text-white" :
+                                    game.status.abstractGameState === 'Final' ? "bg-green-600 text-white" :
+                                    "bg-slate-800 text-slate-400"
+                                  )}>
+                                    {game.status.abstractGameState === 'Live' && game.linescore?.currentInningOrdinal 
+                                      ? `${game.linescore.isTopInning ? 'TOP' : 'BOT'} ${game.linescore.currentInningOrdinal}`.toUpperCase()
+                                      : (game.status?.detailedState || '').toUpperCase()}
+                                  </div>
+                                ) : <div />}
 
                                 <div className="flex items-center gap-3">
                                   <div className="text-[9px] font-mono text-slate-400 font-bold whitespace-nowrap">
