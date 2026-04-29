@@ -39,28 +39,26 @@ const getWeatherIcon = (condition: string = '') => {
   return { icon: Sun, color: 'text-amber-400' };
 };
 
-const getMatchupStrength = (game: MLBGame) => {
+
+
+const getEnvironmentalWarning = (game: MLBGame) => {
   const wind = parseWind(game.weather?.wind);
   const homeId = game.teams.home.team.id;
-  const awayEra = parseFloat(game.teams.away.probablePitcher?.era || '4.00');
-  const homeEra = parseFloat(game.teams.home.probablePitcher?.era || '4.00');
-  const combinedEra = awayEra + homeEra;
   
-  if (homeId === 115) return { label: 'COORS SHOOTOUT', color: 'text-orange-400', icon: Zap };
-  if (homeId === 133) return { label: 'OAK SHOOTOUT', color: 'text-orange-400', icon: Zap };
+  // Specific Wrigley/Coors Warnings
+  if (homeId === 115) return { label: 'THIN AIR BLOWOUT', color: 'text-orange-400', icon: Zap };
   
   if (homeId === 112) {
-    if (wind.direction === 'OUT' && wind.speed > 5) return { label: 'WRIGLEY SHOOTOUT', color: 'text-red-400', icon: Zap };
-    if (wind.direction === 'CROSS' && wind.speed > 12) return { label: 'WRIGLEY WIND RISK', color: 'text-orange-400', icon: Wind };
-    if (wind.direction === 'IN' && wind.speed > 10) return { label: 'PITCHER PARK', color: 'text-blue-400', icon: ShieldCheck };
+    if (wind.direction === 'OUT' && wind.speed > 5) return { label: 'WRIGLEY WIND BOOST', color: 'text-red-400', icon: Zap };
+    if (wind.direction === 'CROSS' && wind.speed > 12) return { label: 'WRIGLEY CROSSWIND', color: 'text-orange-400', icon: Wind };
+    if (wind.direction === 'IN' && wind.speed > 10) return { label: 'WRIGLEY HEADWIND', color: 'text-blue-400', icon: ShieldCheck };
   }
 
-  if (wind.direction === 'OUT' && wind.speed >= 12) return { label: 'WIND SHOOTOUT', color: 'text-red-400', icon: Zap };
+  // General extreme wind warnings
+  if (wind.direction === 'OUT' && wind.speed >= 12) return { label: 'WIND BOOST', color: 'text-red-400', icon: Zap };
   if (wind.direction === 'CROSS' && wind.speed >= 18) return { label: 'HIGH WIND RISK', color: 'text-orange-400', icon: Wind };
   
-  if (combinedEra > 10) return { label: 'SHOOTOUT', color: 'text-red-400', icon: Zap };
-  if (combinedEra < 7) return { label: 'PITCHER DUEL', color: 'text-blue-400', icon: ShieldCheck };
-  return { label: 'BALANCED', color: 'text-slate-400', icon: Target };
+  return null;
 };
 
 interface GameLogProps {
@@ -408,23 +406,25 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                                    <span className="text-[7px] font-mono font-black text-blue-400 uppercase tracking-widest">{risk}</span>
                                  </div>
                                );
-                             }
-
-                             // 2. Climate Intelligence 
-                             const climate = getClimateIntelligence(game);
-                             if (climate && climate.impulse !== 'neutral') {
-                               badges.push(
-                                 <div key="climate" className={cn(
-                                   "flex items-center gap-1 px-1.5 py-0.5 rounded shadow-sm border",
-                                   climate.impulse === 'positive' ? "bg-red-500/10 border-red-500/20 text-red-500" : "bg-blue-500/10 border-blue-500/20 text-blue-400"
-                                 )}>
-                                   <Zap className="w-2.5 h-2.5" />
-                                   <span className="text-[7px] font-mono font-black uppercase tracking-widest">
-                                     {climate.impulse === 'positive' ? 'Boost' : 'Pitching'}
-                                   </span>
-                                 </div>
-                               );
-                             }
+                              }
+                              // 2. Climate Intelligence 
+                              const climate = getClimateIntelligence(game);
+                              if (climate && climate.impulse !== 'neutral') {
+                                badges.push(
+                                  <div 
+                                    key="climate"
+                                    className={cn(
+                                      "flex items-center gap-1 px-1.5 py-0.5 rounded border shadow-sm",
+                                      climate.impulse === 'positive' ? "bg-red-500/10 border-red-500/20 text-red-500" : "bg-blue-500/10 border-blue-500/20 text-blue-400"
+                                    )}
+                                  >
+                                    <Zap className="w-2.5 h-2.5" />
+                                    <span className="text-[7px] font-mono font-black uppercase tracking-widest">
+                                      {climate.impulse === 'positive' ? 'Boost' : 'Pitching'}
+                                    </span>
+                                  </div>
+                                );
+                              }
 
                              return badges;
                           })()}
@@ -559,12 +559,13 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                               {game.status.abstractGameState === 'Preview' && (
                                 <div className="flex items-center gap-1">
                                   {(() => {
-                                    const strength = getMatchupStrength(game);
+                                    const warning = getEnvironmentalWarning(game);
+                                    if (!warning) return null;
                                     return (
                                       <>
-                                        <strength.icon className={cn("w-2 h-2", strength.color)} />
-                                        <span className={cn("text-[6px] font-mono font-black uppercase tracking-widest", strength.color)}>
-                                          {strength.label}
+                                        <warning.icon className={cn("w-2 h-2", warning.color)} />
+                                        <span className={cn("text-[6px] font-mono font-black uppercase tracking-widest", warning.color)}>
+                                          {warning.label}
                                         </span>
                                       </>
                                     );
@@ -718,28 +719,29 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                                     {(game.weather.wind || '').split(',')[0]}
                                   </span>
                                 </div>
-                                {game.status.abstractGameState === 'Preview' && (
-                                  <div className="mt-1 flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-950/50 border border-slate-800">
-                                    {(() => {
-                                      const strength = getMatchupStrength(game);
+                                  <div className="flex flex-col items-center gap-1 mt-1">
+                                  {game.status.abstractGameState === 'Preview' && (
+                                    (() => {
+                                      const warning = getEnvironmentalWarning(game);
+                                      if (!warning) return null;
                                       return (
-                                        <>
-                                          <strength.icon className={cn("w-2.5 h-2.5", strength.color)} />
-                                          <span className={cn("text-[7px] font-mono font-black uppercase tracking-[0.1em]", strength.color)}>
-                                            {strength.label}
+                                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-950/50 border border-slate-800">
+                                          <warning.icon className={cn("w-2.5 h-2.5", warning.color)} />
+                                          <span className={cn("text-[7px] font-mono font-black uppercase tracking-[0.1em]", warning.color)}>
+                                            {warning.label}
                                           </span>
-                                        </>
+                                        </div>
                                       );
-                                    })()}
-                                  </div>
-                                )}
+                                    })()
+                                  )}
+                                </div>
                               </div>
                             ) : (
-                              <div className="flex flex-col items-center opacity-40">
+                              <div className="flex flex-col items-center gap-1 opacity-40">
                                 <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest leading-none">
                                   {[139, 158, 141, 136, 117, 109, 146, 140].includes(game.teams.home.team.id) ? 'Indoor' : 'Outdoor'}
                                 </span>
-                                <span className="text-[7px] font-mono text-slate-600 uppercase tracking-tighter mt-1">No Data</span>
+                                <span className="text-[7px] font-mono text-slate-600 uppercase tracking-tighter mt-1">No Weather Data</span>
                               </div>
                             )}
                           </td>
@@ -1075,7 +1077,7 @@ function GameDetailView({ game }: { game: MLBGame }) {
     );
   })();
 
-  const ClimateIntelligenceModule = (() => {
+  const WeatherIntelligenceModule = (() => {
     const intelligence = getClimateIntelligence(game);
     if (!intelligence) return null;
 
@@ -1094,7 +1096,7 @@ function GameDetailView({ game }: { game: MLBGame }) {
             </div>
             <div className="flex flex-col min-w-0">
               <div className="flex items-center gap-2">
-                 <span className="text-[7px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black whitespace-nowrap">Climate Intelligence</span>
+                 <span className="text-[7px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black whitespace-nowrap">Weather Intelligence</span>
                  <div className="h-px w-8 bg-slate-800" />
               </div>
               <span className="text-xs font-black text-white uppercase tracking-tight truncate">Atmospheric Analysis</span>
@@ -1154,180 +1156,199 @@ function GameDetailView({ game }: { game: MLBGame }) {
     );
   })();
 
-  const TableModule = (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <MapPin className="w-3 h-3 text-slate-500" />
-          <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
-            {game.venue?.name || 'Unknown Venue'}
-          </span>
-        </div>
-      </div>
-
-      <div className="overflow-x-auto">
-        <table className="w-full text-[10px] font-mono border-collapse">
-          <thead>
-            <tr className="text-slate-500 border-b border-slate-800">
-              <th className="text-left py-2 font-black uppercase tracking-widest">Team</th>
-              {linescore.innings?.map(inn => (
-                <th key={inn.num} className="text-center px-2 py-2">{inn.num}</th>
-              ))}
-              <th className="text-center px-3 py-2 border-l border-slate-800 font-black text-white">R</th>
-              <th className="text-center px-3 py-2 text-slate-500">H</th>
-              <th className="text-center px-3 py-2 text-slate-500">E</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-800">
-            <tr>
-              <td className="py-3 font-bold text-slate-300 uppercase tracking-tighter">
-                {game.teams.away.team.name.split(' ').pop()}
-              </td>
-              {linescore.innings?.map(inn => (
-                <td key={inn.num} className="text-center px-2 py-3 text-slate-500">{inn.away.runs ?? '-'}</td>
-              ))}
-              <td className="text-center px-3 py-3 border-l border-slate-800 font-black text-salami-red bg-slate-950/50">
-                {linescore.teams.away.runs ?? 0}
-              </td>
-              <td className="text-center px-3 py-3 text-slate-500">{linescore.teams.away.hits ?? 0}</td>
-              <td className="text-center px-3 py-3 text-slate-500">{linescore.teams.away.errors ?? 0}</td>
-            </tr>
-            <tr>
-              <td className="py-3 font-bold text-slate-300 uppercase tracking-tighter">
-                {game.teams.home.team.name.split(' ').pop()}
-              </td>
-              {linescore.innings?.map(inn => (
-                <td key={inn.num} className="text-center px-2 py-3 text-slate-500">{inn.home.runs ?? '-'}</td>
-              ))}
-              <td className="text-center px-3 py-3 border-l border-slate-800 font-black text-salami-red bg-slate-950/50">
-                {linescore.teams.home.runs ?? 0}
-              </td>
-              <td className="text-center px-3 py-3 text-slate-500">{linescore.teams.home.hits ?? 0}</td>
-              <td className="text-center px-3 py-3 text-slate-500">{linescore.teams.home.errors ?? 0}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      {isLive && (
-        <div className="flex flex-wrap gap-4 pt-2">
-          <div className="flex items-center gap-2 bg-slate-950 px-3 py-2 rounded-lg border border-slate-800">
-            <User className="w-3 h-3 text-salami-red" />
-            <div className="flex flex-col">
-              <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest">At Bat</span>
-              <span className="text-[10px] font-bold text-white">{linescore.offense?.batter?.fullName || '---'}</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 bg-slate-950 px-3 py-2 rounded-lg border border-slate-800">
-            <Activity className="w-3 h-3 text-slate-500" />
-            <div className="flex flex-col">
-              <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest">Pitching</span>
-              <span className="text-[10px] font-bold text-white">{linescore.defense?.pitcher?.fullName || '---'}</span>
-            </div>
-          </div>
-          {(() => {
-            const offense = linescore.offense;
-            const hasRISP = !!offense?.second || !!offense?.third;
-            if (!hasRISP) return null;
-
-            const threat = calculateLiveThreat({
-              first: !!offense?.first,
-              second: !!offense?.second,
-              third: !!offense?.third,
-              outs: linescore.outs || 0
-            });
-            
-            if (threat <= 0.1) return null;
-            
-            return (
-              <div className={cn(
-                "flex items-center gap-2 px-3 py-2 rounded-lg border",
-                threat > 0.8 ? "bg-red-500/10 border-red-500/20 text-red-500" : "bg-orange-500/10 border-orange-500/20 text-orange-500"
-              )}>
-                <AlertTriangle className="w-3 h-3" />
-                <div className="flex flex-col">
-                  <span className="text-[7px] font-mono uppercase tracking-widest opacity-70">Live Threat Level</span>
-                  <span className="text-[10px] font-bold uppercase">{threat > 0.8 ? 'Extremely High' : 'Elevated'} ({threat.toFixed(2)})</span>
-                </div>
-              </div>
-            );
-          })()}
-        </div>
-      )}
-    </div>
-  );
-
-  const DiamondModule = (
-    <div className="flex flex-col items-center justify-center space-y-6 md:border-l md:border-slate-800 md:pl-8">
-      {isLive ? (
-        <>
-          <div className="relative w-24 h-24 rotate-45 border-2 border-slate-800">
-            <div className={cn("absolute -top-2 -left-2 w-4 h-4 border border-slate-700", linescore.offense?.second ? "bg-salami-red shadow-[0_0_10px_rgba(225,29,72,0.5)]" : "bg-slate-900")} title="2nd Base" />
-            <div className={cn("absolute -bottom-2 -left-2 w-4 h-4 border border-slate-700", linescore.offense?.third ? "bg-salami-red shadow-[0_0_10px_rgba(225,29,72,0.5)]" : "bg-slate-900")} title="3rd Base" />
-            <div className={cn("absolute -top-2 -right-2 w-4 h-4 border border-slate-700", linescore.offense?.first ? "bg-salami-red shadow-[0_0_10px_rgba(225,29,72,0.5)]" : "bg-slate-900")} title="1st Base" />
-            <div className="absolute -bottom-2 -right-2 w-4 h-4 border border-slate-700 bg-slate-800" title="Home Plate" />
-          </div>
-
-          <div className="flex flex-col items-center gap-2">
-            <div className="flex gap-4">
-              <div className="flex flex-col items-center">
-                <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest">Balls</span>
-                <div className="flex gap-1 mt-1">
-                  {[1, 2, 3].map(i => (
-                    <div key={i} className={cn("w-2 h-2 rounded-full", (linescore.balls || 0) >= i ? "bg-green-500" : "bg-slate-800")} />
-                  ))}
-                </div>
-              </div>
-              <div className="flex flex-col items-center">
-                <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest">Strikes</span>
-                <div className="flex gap-1 mt-1">
-                  {[1, 2].map(i => (
-                    <div key={i} className={cn("w-2 h-2 rounded-full", (linescore.strikes || 0) >= i ? "bg-salami-red" : "bg-slate-800")} />
-                  ))}
-                </div>
-              </div>
-              <div className="flex flex-col items-center">
-                <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest">Outs</span>
-                <div className="flex gap-1 mt-1">
-                  {[1, 2].map(i => (
-                    <div key={i} className={cn("w-2 h-2 rounded-full", (linescore.outs || 0) >= i ? "bg-white" : "bg-slate-800")} />
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </>
-      ) : (
-        <div className="flex flex-col items-center text-center space-y-2">
-          <Info className="w-8 h-8 text-slate-700" />
-          <p className="text-[9px] font-mono text-slate-600 uppercase tracking-widest leading-relaxed">
-            {isFinal ? 'Game Complete' : 'Game Scheduled'}
-          </p>
-        </div>
-      )}
-    </div>
-  );
-
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2">
-          {TableModule}
+          {(() => {
+            const TableModule = (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-3 h-3 text-slate-500" />
+                    <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
+                      {game.venue?.name || 'Unknown Venue'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-[10px] font-mono border-collapse">
+                    <thead>
+                      <tr className="text-slate-500 border-b border-slate-800">
+                        <th className="text-left py-2 font-black uppercase tracking-widest">Team</th>
+                        {linescore.innings?.map(inn => (
+                          <th key={inn.num} className="text-center px-2 py-2">{inn.num}</th>
+                        ))}
+                        <th className="text-center px-3 py-2 border-l border-slate-800 font-black text-white">R</th>
+                        <th className="text-center px-3 py-2 text-slate-500">H</th>
+                        <th className="text-center px-3 py-2 text-slate-500">E</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800">
+                      <tr>
+                        <td className="py-3 font-bold text-slate-300 uppercase tracking-tighter">
+                          {game.teams.away.team.name.split(' ').pop()}
+                        </td>
+                        {linescore.innings?.map(inn => (
+                          <td key={inn.num} className="text-center px-2 py-3 text-slate-500">{inn.away.runs ?? '-'}</td>
+                        ))}
+                        <td className="text-center px-3 py-3 border-l border-slate-800 font-black text-salami-red bg-slate-950/50">
+                          {linescore.teams.away.runs ?? 0}
+                        </td>
+                        <td className="text-center px-3 py-3 text-slate-500">{linescore.teams.away.hits ?? 0}</td>
+                        <td className="text-center px-3 py-3 text-slate-500">{linescore.teams.away.errors ?? 0}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-3 font-bold text-slate-300 uppercase tracking-tighter">
+                          {game.teams.home.team.name.split(' ').pop()}
+                        </td>
+                        {linescore.innings?.map(inn => (
+                          <td key={inn.num} className="text-center px-2 py-3 text-slate-500">{inn.home.runs ?? '-'}</td>
+                        ))}
+                        <td className="text-center px-3 py-3 border-l border-slate-800 font-black text-salami-red bg-slate-950/50">
+                          {linescore.teams.home.runs ?? 0}
+                        </td>
+                        <td className="text-center px-3 py-3 text-slate-500">{linescore.teams.home.hits ?? 0}</td>
+                        <td className="text-center px-3 py-3 text-slate-500">{linescore.teams.home.errors ?? 0}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {isLive && (
+                  <div className="flex flex-wrap gap-4 pt-2">
+                    <div className="flex items-center gap-2 bg-slate-950 px-3 py-2 rounded-lg border border-slate-800">
+                      <User className="w-3 h-3 text-salami-red" />
+                      <div className="flex flex-col">
+                        <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest">At Bat</span>
+                        <span className="text-[10px] font-bold text-white">{linescore.offense?.batter?.fullName || '---'}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 bg-slate-950 px-3 py-2 rounded-lg border border-slate-800">
+                      <Activity className="w-3 h-3 text-slate-500" />
+                      <div className="flex flex-col">
+                        <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest">Pitching</span>
+                        <span className="text-[10px] font-bold text-white">{linescore.defense?.pitcher?.fullName || '---'}</span>
+                      </div>
+                    </div>
+                    {(() => {
+                      const offense = linescore.offense;
+                      const hasRISP = !!offense?.second || !!offense?.third;
+                      if (!hasRISP) return null;
+
+                      const threat = calculateLiveThreat({
+                        first: !!offense?.first,
+                        second: !!offense?.second,
+                        third: !!offense?.third,
+                        outs: linescore.outs || 0
+                      });
+                      
+                      if (threat <= 0.1) return null;
+                      
+                      return (
+                        <div className={cn(
+                          "flex items-center gap-2 px-3 py-2 rounded-lg border",
+                          threat > 0.8 ? "bg-red-500/10 border-red-500/20 text-red-500" : "bg-orange-500/10 border-orange-500/20 text-orange-500"
+                        )}>
+                          <AlertTriangle className="w-3 h-3" />
+                          <div className="flex flex-col">
+                            <span className="text-[7px] font-mono uppercase tracking-widest opacity-70">Live Threat Level</span>
+                            <span className="text-[10px] font-bold uppercase">{threat > 0.8 ? 'Extremely High' : 'Elevated'} ({threat.toFixed(2)})</span>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+              </div>
+            );
+            return TableModule;
+          })()}
         </div>
         <div>
-          {DiamondModule}
+          {(() => {
+            const DiamondModule = (
+              <div className="flex flex-col items-center justify-center space-y-8 md:border-l md:border-slate-800 md:pl-8 h-full">
+                {isLive ? (
+                  <>
+                    <div className="relative w-32 h-32 flex items-center justify-center">
+                      {/* The Diamond Border */}
+                      <div className="absolute w-24 h-24 rotate-45 border-2 border-slate-800 bg-slate-950/20 shadow-inner" />
+                      
+                      {/* Bases */}
+                      <div className="relative w-24 h-24 rotate-45">
+                        <div className={cn(
+                          "absolute -top-2 -left-2 w-4 h-4 border border-slate-700 transition-all duration-300", 
+                          linescore.offense?.second ? "bg-salami-red shadow-[0_0_15px_rgba(225,29,72,0.7)] z-10 scale-110" : "bg-slate-900"
+                        )} title="2nd Base" />
+                        <div className={cn(
+                          "absolute -bottom-2 -left-2 w-4 h-4 border border-slate-700 transition-all duration-300", 
+                          linescore.offense?.third ? "bg-salami-red shadow-[0_0_15px_rgba(225,29,72,0.7)] z-10 scale-110" : "bg-slate-900"
+                        )} title="3rd Base" />
+                        <div className={cn(
+                          "absolute -top-2 -right-2 w-4 h-4 border border-slate-700 transition-all duration-300", 
+                          linescore.offense?.first ? "bg-salami-red shadow-[0_0_15px_rgba(225,29,72,0.7)] z-10 scale-110" : "bg-slate-900"
+                        )} title="1st Base" />
+                        <div className="absolute -bottom-2 -right-2 w-4 h-4 border border-slate-700 bg-slate-800" title="Home Plate" />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col items-center gap-3 w-full">
+                      <div className="flex gap-6">
+                        <div className="flex flex-col items-center">
+                          <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest font-black">Balls</span>
+                          <div className="flex gap-1.5 mt-1">
+                            {[1, 2, 3].map(i => (
+                              <div key={i} className={cn("w-2 h-2 rounded-full", (linescore.balls || 0) >= i ? "bg-green-500" : "bg-slate-800")} />
+                            ))}
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-center">
+                          <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest font-black">Strikes</span>
+                          <div className="flex gap-1.5 mt-1">
+                            {[1, 2].map(i => (
+                              <div key={i} className={cn("w-2 h-2 rounded-full", (linescore.strikes || 0) >= i ? "bg-salami-red" : "bg-slate-800")} />
+                            ))}
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-center">
+                          <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest font-black">Outs</span>
+                          <div className="flex gap-1.5 mt-1">
+                            {[1, 2].map(i => (
+                              <div key={i} className={cn("w-2 h-2 rounded-full", (linescore.outs || 0) >= i ? "bg-white" : "bg-slate-800")} />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center text-center space-y-2">
+                    <Info className="w-8 h-8 text-slate-700" />
+                    <p className="text-[9px] font-mono text-slate-600 uppercase tracking-widest leading-relaxed">
+                      {isFinal ? 'Game Complete' : 'Game Scheduled'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            );
+            return DiamondModule;
+          })()}
         </div>
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-6 border-t border-slate-800/50">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-4">
         <div className="flex flex-col h-full">
            {UmpireIntelligenceModule}
         </div>
         <div className="flex flex-col h-full">
-           {ClimateIntelligenceModule}
+           {WeatherIntelligenceModule}
         </div>
       </div>
     </div>
   );
 }
+
+
 

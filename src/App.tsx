@@ -391,6 +391,8 @@ export default function App() {
                   </div>
                 )}
 
+
+
                 <WagerTracker 
                   currentTotal={currentTotal}
                   playedInnings={stats.playedInnings}
