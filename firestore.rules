@@ -86,9 +86,22 @@ service cloud.firestore {
              (data.get('createdAt', request.time) is timestamp);
     }
 
+    function isValidFeedback(data) {
+      return data.userId == request.auth.uid &&
+             data.message is string && data.message.size() > 0 && data.message.size() < 2000 &&
+             (data.get('email', '') is string) &&
+             (data.get('page', '') is string) &&
+             (data.get('createdAt', request.time) is timestamp);
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
+
+    match /feedback/{feedbackId} {
+      allow create: if isAuthenticated() && isValidFeedback(request.resource.data);
+      allow read: if isAdmin();
+    }
 
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin();

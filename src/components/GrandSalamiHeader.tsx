@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { TrendingDown, TrendingUp, AlertTriangle, ChevronRight, BarChart3, Database, CloudRain, Wind, Trophy, RefreshCw, Calendar, HelpCircle, LogIn, LogOut, User as UserIcon, Clock, Thermometer, Check, Twitter, UserPlus, Target, ShoppingBag, Activity } from 'lucide-react';
+import { TrendingDown, TrendingUp, AlertTriangle, ChevronRight, BarChart3, Database, CloudRain, Wind, Trophy, RefreshCw, Calendar, HelpCircle, LogIn, LogOut, User as UserIcon, Clock, Thermometer, Check, Twitter, UserPlus, Target, ShoppingBag, Activity, MessageSquare } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../lib/utils';
@@ -224,6 +224,19 @@ export function GrandSalamiHeader({
             <HelpCircle className="w-3 h-3 text-salami-red" />
             <span className="hidden sm:inline">Knowledge Base</span>
             <span className="sm:hidden">KB</span>
+          </button>
+
+          <button 
+            onClick={() => {
+              const el = document.getElementById('feedback-section');
+              el?.scrollIntoView({ behavior: 'smooth' });
+              window.dispatchEvent(new CustomEvent('open-feedback-form'));
+            }}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all text-[9px] font-mono font-black uppercase tracking-widest bg-indigo-600/10 hover:bg-indigo-600/20 border-indigo-500/30 text-indigo-400 group"
+          >
+            <MessageSquare className="w-3 h-3 text-indigo-400" />
+            <span className="hidden sm:inline">Feedback</span>
+            <span className="sm:hidden">Bug?</span>
           </button>
 
           <a 

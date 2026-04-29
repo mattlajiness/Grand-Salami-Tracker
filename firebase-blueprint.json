@@ -61,6 +61,19 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "date", "side"]
+    },
+    "Feedback": {
+      "title": "User Feedback",
+      "description": "General feedback or bug reports from users.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "email": { "type": "string" },
+        "message": { "type": "string" },
+        "page": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "message", "createdAt"]
     }
   },
   "firestore": {
@@ -83,6 +96,10 @@
     "/deliVotes/{voteId}": {
       "schema": "DeliVote",
       "description": "Public community votes"
+    },
+    "/feedback/{feedbackId}": {
+      "schema": "Feedback",
+      "description": "User feedback messages"
     }
   }
 }

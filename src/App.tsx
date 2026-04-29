@@ -12,6 +12,7 @@ import { InfoSection } from './components/InfoSection';
 import { LogoExport } from './components/LogoExport';
 import { UserAdminPanel } from './components/UserAdminPanel';
 import { WagerHistory } from './components/WagerHistory';
+import { FeedbackSection } from './components/FeedbackSection';
 import { Calendar, Share2, Droplets, Activity } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { useAuth } from './contexts/AuthContext';
@@ -452,6 +453,8 @@ export default function App() {
             isOpen={isHistoryModalOpen} 
             onClose={() => setIsHistoryModalOpen(false)} 
           />
+
+          <FeedbackSection />
         </div>
       </main>
 
