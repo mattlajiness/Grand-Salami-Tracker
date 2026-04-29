@@ -25,6 +25,20 @@ const parseWind = (windStr: string = '') => {
   return { direction: 'CROSS', speed };
 };
 
+const getWeatherIcon = (condition: string = '') => {
+  const c = condition.toLowerCase();
+  if (c.includes('thunder') || c.includes('lightning') || c.includes('storm')) {
+    return { icon: CloudLightning, color: 'text-yellow-400' };
+  }
+  if (c.includes('rain') || c.includes('shower') || c.includes('drizzle') || c.includes('mist')) {
+    return { icon: CloudRain, color: 'text-blue-400' };
+  }
+  if (c.includes('overcast') || c.includes('cloud') || c.includes('gloomy') || c.includes('fog')) {
+    return { icon: Cloud, color: 'text-slate-400' };
+  }
+  return { icon: Sun, color: 'text-amber-400' };
+};
+
 const getMatchupStrength = (game: MLBGame) => {
   const wind = parseWind(game.weather?.wind);
   const homeId = game.teams.home.team.id;
@@ -496,30 +510,6 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                              );
                           })()}
 
-                          {/* Umpire Intelligence Pulse */}
-                          {(() => {
-                             const homePlateUmpire = game.officials?.find(o => o.officialType === 'Home Plate')?.official;
-                             if (homePlateUmpire) {
-                               const intelligence = getUmpireIntelligence(homePlateUmpire.fullName);
-                               if (intelligence && intelligence.impulse !== 'neutral') {
-                                 return (
-                                   <div className={cn(
-                                     "flex items-center gap-1.5 px-2 py-0.5 rounded-full border mb-1",
-                                     intelligence.impulse === 'positive' 
-                                       ? "bg-red-500/10 border-red-500/20 text-red-500" 
-                                       : "bg-blue-500/10 border-blue-500/20 text-blue-400"
-                                   )}>
-                                     <Scale className="w-2.5 h-2.5" />
-                                     <span className="text-[7px] font-mono font-black uppercase tracking-widest leading-none">
-                                       {intelligence.impulse === 'positive' ? 'Ump: Hitting' : 'Ump: Pitching'}
-                                     </span>
-                                   </div>
-                                 );
-                               }
-                             }
-                             return null;
-                          })()}
-
                           {/* O/U Line UI */}
                           <div className="pt-2 border-t border-slate-800 w-full flex flex-col items-center">
                             <div className="flex items-center gap-1 mb-1">
@@ -553,12 +543,15 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
 
                           {game.weather && (
                             <div className="flex flex-col items-center pt-1 border-t border-slate-800 w-full justify-center">
-                              <div className="flex items-center gap-2 mb-1">
+                              <div className="flex items-center gap-3 mb-1">
                                 <div className="flex items-center gap-1">
-                                  <Thermometer className="w-2.5 h-2.5 text-salami-red" />
-                                  <span className="text-[10px] font-mono font-black text-slate-300">{game.weather.temp}°</span>
+                                  {(() => {
+                                    const weather = getWeatherIcon(game.weather?.condition);
+                                    return <weather.icon className={cn("w-2.5 h-2.5", weather.color)} />;
+                                  })()}
+                                  <span className="text-[10px] font-mono font-black text-slate-300 ml-0.5">{game.weather.temp}°</span>
                                 </div>
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-1 border-l border-slate-800 pl-2">
                                   <Wind className="w-2.5 h-2.5 text-blue-400" />
                                   <span className="text-[10px] font-mono font-bold text-slate-500">{(game.weather.wind || '').split(' ')[0]}</span>
                                 </div>
@@ -710,9 +703,14 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                           <td className="px-6 py-5 text-center bg-slate-900/30">
                             {game.weather ? (
                               <div className="inline-flex flex-col items-center gap-1">
-                                <div className="flex items-center gap-2">
-                                  <Thermometer className="w-3 h-3 text-salami-red" />
-                                  <span className="text-xs font-mono font-black text-white">{game.weather.temp}°</span>
+                                <div className="flex items-center gap-3">
+                                  <div className="flex items-center gap-1.5">
+                                    {(() => {
+                                      const weather = getWeatherIcon(game.weather.condition);
+                                      return <weather.icon className={cn("w-3.5 h-3.5", weather.color)} />;
+                                    })()}
+                                    <span className="text-xs font-mono font-black text-white">{game.weather.temp}°</span>
+                                  </div>
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <Wind className="w-3 h-3 text-blue-400" />
@@ -1088,7 +1086,11 @@ function GameDetailView({ game }: { game: MLBGame }) {
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 relative z-10">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-slate-950 flex items-center justify-center border border-slate-800 shadow-inner shrink-0">
-              {intelligence.temp >= 85 ? <Zap className="w-4 h-4 text-amber-400" /> : intelligence.condition.includes('rain') ? <CloudRain className="w-4 h-4 text-blue-400" /> : <Wind className="w-4 h-4 text-blue-400" />}
+              {(() => {
+                const weather = getWeatherIcon(intelligence.condition);
+                if (intelligence.temp >= 90) return <Zap className="w-4 h-4 text-amber-500" />;
+                return <weather.icon className={cn("w-4 h-4", weather.color)} />;
+              })()}
             </div>
             <div className="flex flex-col min-w-0">
               <div className="flex items-center gap-2">
@@ -1132,7 +1134,10 @@ function GameDetailView({ game }: { game: MLBGame }) {
           <div className="space-y-0.5 text-right">
             <span className="text-[6px] font-mono text-slate-600 uppercase tracking-widest">Condition</span>
             <div className="flex items-center justify-end gap-1.5 min-w-0">
-              {intelligence.condition.includes('rain') ? <CloudRain className="w-3 h-3 text-blue-400 shrink-0" /> : <Sun className="w-3 h-3 text-amber-400 shrink-0" />}
+              {(() => {
+                const weather = getWeatherIcon(intelligence.condition);
+                return <weather.icon className={cn("w-3 h-3 shrink-0", weather.color)} />;
+              })()}
               <span className="text-[10px] font-bold text-white tracking-widest uppercase truncate">{game.weather?.condition?.split(' ')[0] || 'Clear'}</span>
             </div>
           </div>
@@ -1305,7 +1310,7 @@ function GameDetailView({ game }: { game: MLBGame }) {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="md:col-span-2">
           {TableModule}
         </div>

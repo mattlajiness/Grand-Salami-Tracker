@@ -317,7 +317,7 @@ export default function App() {
     <div className="min-h-screen bg-slate-950 pb-12 transition-colors duration-300">
       <Toaster position="top-center" richColors theme="dark" />
       
-      <main className="max-w-5xl mx-auto px-4 pt-8">
+      <main className="max-w-7xl mx-auto px-4 pt-8">
         <div className="space-y-6">
           {stats.hasRainRisk && (
             <motion.div 
@@ -379,12 +379,12 @@ export default function App() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="order-1 lg:order-1 lg:col-span-2">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              <div className="order-1 lg:order-1 lg:col-span-3">
                 <GameLog games={games} gameLines={gameLines} manualLines={gameLines} />
               </div>
               
-              <div className="order-2 lg:order-2 space-y-6">
+              <div className="order-2 lg:order-2 lg:col-span-1 space-y-6">
                 {isAdmin && (
                   <div className="space-y-6">
                     <UserAdminPanel />
