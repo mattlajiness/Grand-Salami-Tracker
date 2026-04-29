@@ -462,10 +462,16 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                         ) : <div />}
                         <div className="flex items-center gap-2">
                           {game.status.abstractGameState === 'Live' && getThreatLevel(game) > 0.25 && (
-                             <div className={cn(
-                               "flex items-center gap-1 px-1.5 py-0.5 rounded shadow-sm",
-                               getThreatLevel(game) > 0.7 ? "bg-red-600 text-white" : "bg-salami-red/20 text-salami-red"
-                             )}>
+                             <div 
+                               className={cn(
+                                 "flex items-center gap-1 px-1.5 py-0.5 rounded shadow-sm cursor-help",
+                                 getThreatLevel(game) > 0.7 ? "bg-red-600 text-white" : "bg-salami-red/20 text-salami-red"
+                               )}
+                               onClick={(e) => {
+                                 e.stopPropagation();
+                                 toast.info(`Live scoring threat: ${getThreatLevel(game).toFixed(2)} expected runs`, { duration: 3000, position: 'bottom-center' });
+                               }}
+                             >
                                <AlertTriangle className={cn("w-3 h-3", getThreatLevel(game) > 0.7 ? "text-white" : "text-salami-red")} />
                                <span className="text-[7px] font-mono font-black uppercase tracking-widest">
                                  {getThreatLevel(game) > 0.7 ? 'High Threat' : 'Threat'}
@@ -480,7 +486,14 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                              if (risk) {
                                const isRain = risk.startsWith('Raining') || risk.includes('Risk');
                                badges.push(
-                                 <div key="risk" className="flex items-center gap-1 bg-blue-500/20 px-1.5 py-0.5 rounded">
+                                 <div 
+                                   key="risk" 
+                                   className="flex items-center gap-1 bg-blue-500/20 px-1.5 py-0.5 rounded cursor-help"
+                                   onClick={(e) => {
+                                     e.stopPropagation();
+                                     toast.info(`${risk}. Game at risk of delay or cancellation.`, { duration: 3000, position: 'bottom-center' });
+                                   }}
+                                 >
                                    {isRain ? <CloudRain className="w-2.5 h-2.5 text-blue-400" /> : <Droplets className="w-2.5 h-2.5 text-blue-400" />}
                                    <span className="text-[7px] font-mono font-black text-blue-400 uppercase tracking-widest">{risk}</span>
                                  </div>
@@ -496,10 +509,14 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                                   <div 
                                     key={intel.label}
                                     className={cn(
-                                      "flex items-center gap-1 px-1.5 py-0.5 rounded border shadow-sm",
+                                      "flex items-center gap-1 px-1.5 py-0.5 rounded border shadow-sm cursor-help",
                                       intel.color
                                     )}
                                     title={intel.title}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (intel.title) toast.info(intel.title, { duration: 3000, position: 'bottom-center' });
+                                    }}
                                   >
                                     <intel.icon className="w-2.5 h-2.5" />
                                     <span className="text-[8px] font-mono font-black uppercase tracking-widest">
@@ -899,6 +916,10 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                                       getThreatLevel(game) > 0.7 ? "bg-red-600 border-red-500 text-white" : "bg-salami-red/10 border-salami-red/20 text-salami-red"
                                     )}
                                     title={`Live scoring threat: ${getThreatLevel(game).toFixed(2)} expected runs`}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toast.info(`Live scoring threat: ${getThreatLevel(game).toFixed(2)} expected runs`, { duration: 3000, position: 'bottom-center' });
+                                    }}
                                   >
                                     <AlertTriangle className={cn("w-3 h-3", getThreatLevel(game) > 0.7 ? "text-white" : "text-salami-red")} />
                                     <span className="text-[8px] font-mono font-black uppercase tracking-tighter">
@@ -918,6 +939,10 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                                          key="risk"
                                          className="flex items-center gap-1 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded cursor-help"
                                          title={`${riskMessage}. Game at risk of delay or cancellation.`}
+                                         onClick={(e) => {
+                                           e.stopPropagation();
+                                           toast.info(`${riskMessage}. Game at risk of delay or cancellation.`, { duration: 3000, position: 'bottom-center' });
+                                         }}
                                        >
                                          {isRain ? <CloudRain className="w-2.5 h-2.5 text-blue-400" /> : <Droplets className="w-2.5 h-2.5 text-blue-400" />}
                                          <span className="text-[7px] font-mono font-black text-blue-400 uppercase tracking-widest">{riskMessage}</span>
@@ -939,6 +964,10 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                                            intel.color
                                          )}
                                          title={intel.title}
+                                         onClick={(e) => {
+                                           e.stopPropagation();
+                                           if (intel.title) toast.info(intel.title, { duration: 3000, position: 'bottom-center' });
+                                         }}
                                        >
                                          <intel.icon className="w-2.5 h-2.5" />
                                          <span className="text-[8px] font-mono font-black uppercase tracking-widest">
