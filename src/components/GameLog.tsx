@@ -381,56 +381,43 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                                </span>
                              </div>
                           )}
-                          {riskMessage && (
-                            <div className="flex items-center gap-1 bg-blue-500/20 px-1.5 py-0.5 rounded">
-                              {riskMessage.startsWith('Raining') || riskMessage.includes('Risk') ? (
-                                <CloudRain className="w-2.5 h-2.5 text-blue-400" />
-                              ) : (
-                                <Droplets className="w-2.5 h-2.5 text-blue-400" />
-                              )}
-                              <span className="text-[7px] font-mono font-black text-blue-400 uppercase tracking-widest">{riskMessage}</span>
-                            </div>
-                          )}
                           {(() => {
-                             const intelligence = getClimateIntelligence(game);
-                             if (!intelligence || intelligence.impulse === 'neutral') return null;
-                             return (
-                               <div className={cn(
-                                 "flex items-center gap-1 px-1.5 py-0.5 rounded-full border shadow-sm",
-                                 intelligence.impulse === 'positive' 
-                                   ? "bg-red-500/10 border-red-500/20 text-red-500" 
-                                   : "bg-blue-500/10 border-blue-500/20 text-blue-400"
-                               )}>
-                                 <Zap className="w-2.5 h-2.5" />
-                                 <span className="text-[7px] font-mono font-black uppercase tracking-widest">
-                                   {intelligence.impulse === 'positive' ? 'Boost' : 'Edge'}
-                                 </span>
-                               </div>
-                             );
-                          })()}
-                          <span className="text-[8px] font-mono text-slate-500 font-black uppercase tracking-widest mr-1">Details</span>
-                          {(() => {
-                             const homePlateUmpire = game.officials?.find(o => o.officialType === 'Home Plate')?.official;
-                             if (!homePlateUmpire) return null;
-                             const intelligence = getUmpireIntelligence(homePlateUmpire.fullName);
-                             if (!intelligence || intelligence.impulse === 'neutral') return null;
+                             const badges = [];
                              
-                             return (
-                               <div className={cn(
-                                 "flex items-center gap-1 px-1.5 py-0.5 rounded shadow-sm border",
-                                 intelligence.impulse === 'negative' ? "bg-blue-500/10 border-blue-500/20 text-blue-400" : "bg-red-500/10 border-red-500/20 text-red-500"
-                               )}>
-                                 <Scale className="w-2.5 h-2.5" />
-                                 <span className="text-[7px] font-mono font-black uppercase tracking-widest">
-                                   {intelligence.impulse === 'negative' ? 'Ump: Pitching' : 'Ump: Hitting'}
-                                 </span>
-                               </div>
-                             );
-                           })()}
-                           <span className="text-[9px] font-mono text-slate-400 font-bold">
+                             // 1. Weather/Risk
+                             const risk = getRainRisk(game);
+                             if (risk) {
+                               const isRain = risk.startsWith('Raining') || risk.includes('Risk');
+                               badges.push(
+                                 <div key="risk" className="flex items-center gap-1 bg-blue-500/20 px-1.5 py-0.5 rounded">
+                                   {isRain ? <CloudRain className="w-2.5 h-2.5 text-blue-400" /> : <Droplets className="w-2.5 h-2.5 text-blue-400" />}
+                                   <span className="text-[7px] font-mono font-black text-blue-400 uppercase tracking-widest">{risk}</span>
+                                 </div>
+                               );
+                             }
+
+                             // 2. Climate Intelligence 
+                             const climate = getClimateIntelligence(game);
+                             if (climate && climate.impulse !== 'neutral') {
+                               badges.push(
+                                 <div key="climate" className={cn(
+                                   "flex items-center gap-1 px-1.5 py-0.5 rounded shadow-sm border",
+                                   climate.impulse === 'positive' ? "bg-red-500/10 border-red-500/20 text-red-500" : "bg-blue-500/10 border-blue-500/20 text-blue-400"
+                                 )}>
+                                   <Zap className="w-2.5 h-2.5" />
+                                   <span className="text-[7px] font-mono font-black uppercase tracking-widest">
+                                     {climate.impulse === 'positive' ? 'Boost' : 'Pitching'}
+                                   </span>
+                                 </div>
+                               );
+                             }
+
+                             return badges;
+                          })()}
+                          <span className="text-[9px] font-mono text-slate-400 font-bold whitespace-nowrap ml-1">
                             {game.status.abstractGameState === 'Preview' 
                               ? new Date(game.gameDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                              : game.status.abstractGameState === 'Live' ? "IN PROGRESS" : "FINAL"}
+                              : game.status.abstractGameState === 'Live' ? "LIVE" : "FINAL"}
                           </span>
                           {isExpanded ? <ChevronUp className="w-3 h-3 text-slate-400" /> : <ChevronDown className="w-3 h-3 text-slate-400" />}
                         </div>
@@ -512,22 +499,25 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                           {/* Umpire Intelligence Pulse */}
                           {(() => {
                              const homePlateUmpire = game.officials?.find(o => o.officialType === 'Home Plate')?.official;
-                             if (!homePlateUmpire) return null;
-                             const intelligence = getUmpireIntelligence(homePlateUmpire.fullName);
-                             if (!intelligence || intelligence.impulse === 'neutral') return null;
-                             return (
-                               <div className={cn(
-                                 "flex items-center gap-1.5 px-2 py-0.5 rounded-full border mb-2",
-                                 intelligence.impulse === 'positive' 
-                                   ? "bg-red-500/10 border-red-500/20 text-red-500" 
-                                   : "bg-blue-500/10 border-blue-500/20 text-blue-400"
-                               )}>
-                                 <Scale className="w-2.5 h-2.5" />
-                                 <span className="text-[7px] font-mono font-black uppercase tracking-widest leading-none">
-                                   {intelligence.impulse === 'positive' ? 'Ump: Hitting' : 'Ump: Pitching'}
-                                 </span>
-                               </div>
-                             );
+                             if (homePlateUmpire) {
+                               const intelligence = getUmpireIntelligence(homePlateUmpire.fullName);
+                               if (intelligence && intelligence.impulse !== 'neutral') {
+                                 return (
+                                   <div className={cn(
+                                     "flex items-center gap-1.5 px-2 py-0.5 rounded-full border mb-1",
+                                     intelligence.impulse === 'positive' 
+                                       ? "bg-red-500/10 border-red-500/20 text-red-500" 
+                                       : "bg-blue-500/10 border-blue-500/20 text-blue-400"
+                                   )}>
+                                     <Scale className="w-2.5 h-2.5" />
+                                     <span className="text-[7px] font-mono font-black uppercase tracking-widest leading-none">
+                                       {intelligence.impulse === 'positive' ? 'Ump: Hitting' : 'Ump: Pitching'}
+                                     </span>
+                                   </div>
+                                 );
+                               }
+                             }
+                             return null;
                           })()}
 
                           {/* O/U Line UI */}
@@ -834,8 +824,8 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                             </div>
                           </td>
                           <td className="px-6 py-5 text-right">
-                            <div className="flex flex-col items-end gap-1">
-                              <div className="flex items-center gap-2 mb-1">
+                            <div className="flex flex-col items-end gap-2">
+                              <div className="flex items-center justify-end flex-wrap gap-2 mb-1">
                                 {game.status.abstractGameState === 'Live' && getThreatLevel(game) > 0.25 && (
                                   <motion.div 
                                     animate={{ opacity: [1, 0.5, 1], scale: getThreatLevel(game) > 0.7 ? [1, 1.05, 1] : 1 }} 
@@ -847,65 +837,80 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                                     title={`Live scoring threat: ${getThreatLevel(game).toFixed(2)} expected runs`}
                                   >
                                     <AlertTriangle className={cn("w-3 h-3", getThreatLevel(game) > 0.7 ? "text-white" : "text-salami-red")} />
-                                    <span className="text-[8px] font-mono font-black uppercase">
+                                    <span className="text-[8px] font-mono font-black uppercase tracking-tighter">
                                       {getThreatLevel(game) > 0.7 ? 'HIGH THREAT' : 'LIVE THREAT'}
                                     </span>
                                   </motion.div>
                                 )}
-                                {riskMessage && (
-                                  <div 
-                                    className="flex items-center gap-1 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded cursor-help"
-                                    title={`${riskMessage}. Game at risk of delay or cancellation.`}
-                                  >
-                                    {riskMessage.startsWith('Raining') || riskMessage.includes('Risk') ? (
-                                      <CloudRain className="w-2 h-2 text-blue-400" />
-                                    ) : (
-                                      <Droplets className="w-2 h-2 text-blue-400" />
-                                    )}
-                                    <span className="text-[7px] font-mono font-black text-blue-400 uppercase">{riskMessage}</span>
-                                  </div>
-                                )}
+                                
                                 {(() => {
-                                  const homePlateUmpire = game.officials?.find(o => o.officialType === 'Home Plate')?.official;
-                                  if (!homePlateUmpire) return null;
-                                  const tendency = getUmpireTendency(homePlateUmpire.fullName);
-                                  if (!tendency || tendency.tendency === 'Neutral') return null;
-                                  
-                                  return (
-                                    <div 
-                                      className="flex items-center gap-1 bg-slate-900 border border-slate-800 px-2 py-0.5 rounded cursor-help"
-                                      title={`Umpire ${homePlateUmpire.fullName}: ${tendency.tendency} (${tendency.strikeZone} zone)`}
-                                    >
-                                      <Scale className={cn("w-2 h-2", tendency.tendency === 'Pitcher Friendly' ? "text-blue-400" : "text-red-500")} />
-                                      <span className={cn("text-[7px] font-mono font-black uppercase", tendency.tendency === 'Pitcher Friendly' ? "text-blue-400" : "text-red-500")}>
-                                        {tendency.tendency === 'Pitcher Friendly' ? 'UMP: P' : 'UMP: H'}
-                                      </span>
-                                    </div>
-                                  );
+                                   const badges = [];
+                                   
+                                   // 1. Rain Risk
+                                   if (riskMessage) {
+                                     const isRain = riskMessage.startsWith('Raining') || riskMessage.includes('Risk');
+                                     badges.push(
+                                       <div 
+                                         key="risk"
+                                         className="flex items-center gap-1 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded cursor-help"
+                                         title={`${riskMessage}. Game at risk of delay or cancellation.`}
+                                       >
+                                         {isRain ? <CloudRain className="w-2.5 h-2.5 text-blue-400" /> : <Droplets className="w-2.5 h-2.5 text-blue-400" />}
+                                         <span className="text-[7px] font-mono font-black text-blue-400 uppercase tracking-widest">{riskMessage}</span>
+                                       </div>
+                                     );
+                                   }
+
+                                   // 2. Climate Intelligence 
+                                   const climate = getClimateIntelligence(game);
+                                   if (climate && climate.impulse !== 'neutral') {
+                                     badges.push(
+                                       <div 
+                                         key="climate"
+                                         className={cn(
+                                           "flex items-center gap-1 px-2 py-0.5 rounded border shadow-sm cursor-help",
+                                           climate.impulse === 'positive' ? "bg-red-500/10 border-red-500/20 text-red-500" : "bg-blue-500/10 border-blue-500/20 text-blue-400"
+                                         )}
+                                         title={climate.message}
+                                       >
+                                         <Zap className="w-2.5 h-2.5" />
+                                         <span className="text-[7px] font-mono font-black uppercase tracking-widest">
+                                           {climate.impulse === 'positive' ? 'Boost' : 'Pitching'}
+                                         </span>
+                                       </div>
+                                     );
+                                   }
+
+                                   return badges;
                                 })()}
-                                <span className="text-[10px] font-mono font-black text-salami-red">
+                                
+                                <span className="text-[10px] font-mono font-black text-salami-red ml-1">
                                   TOTAL: {totalScore}
                                 </span>
                               </div>
-                              <div className={cn(
-                                "text-[9px] font-mono font-black px-2 py-1 rounded inline-block shadow-sm",
-                                game.status.abstractGameState === 'Live' ? "bg-red-600 text-white" :
-                                game.status.abstractGameState === 'Final' ? "bg-green-600 text-white" :
-                                "bg-slate-800 text-slate-400"
-                              )}>
-                                {game.status.abstractGameState === 'Live' && game.linescore?.currentInningOrdinal 
-                                  ? `${game.linescore.isTopInning ? 'TOP' : 'BOT'} ${game.linescore.currentInningOrdinal}`.toUpperCase()
-                                : (game.status?.detailedState || '').toUpperCase()}
-                              </div>
-                              <div className="flex items-center gap-2 mt-1">
-                                <div className="text-[9px] font-mono text-slate-400 font-bold">
-                                  {game.status.abstractGameState === 'Preview' 
-                                    ? new Date(game.gameDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                                    : game.status.abstractGameState === 'Live' ? "IN PROGRESS" : "FINAL"}
+                              
+                              <div className="flex items-center justify-end gap-3">
+                                <div className={cn(
+                                  "text-[9px] font-mono font-black px-2 py-1 rounded inline-block shadow-sm",
+                                  game.status.abstractGameState === 'Live' ? "bg-red-600 text-white" :
+                                  game.status.abstractGameState === 'Final' ? "bg-green-600 text-white" :
+                                  "bg-slate-800 text-slate-400"
+                                )}>
+                                  {game.status.abstractGameState === 'Live' && game.linescore?.currentInningOrdinal 
+                                    ? `${game.linescore.isTopInning ? 'TOP' : 'BOT'} ${game.linescore.currentInningOrdinal}`.toUpperCase()
+                                  : (game.status?.detailedState || '').toUpperCase()}
                                 </div>
-                                <div className="flex items-center gap-1 group-hover:text-salami-red transition-colors">
-                                  <span className="text-[8px] font-mono text-slate-500 font-black uppercase tracking-widest">Details</span>
-                                  {isExpanded ? <ChevronUp className="w-3 h-3 text-slate-400 group-hover:text-salami-red" /> : <ChevronDown className="w-3 h-3 text-slate-400 group-hover:text-salami-red" />}
+
+                                <div className="flex items-center gap-3">
+                                  <div className="text-[9px] font-mono text-slate-400 font-bold whitespace-nowrap">
+                                    {game.status.abstractGameState === 'Preview' 
+                                      ? new Date(game.gameDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                      : game.status.abstractGameState === 'Live' ? "LIVE" : "FINAL"}
+                                  </div>
+                                  <div className="flex items-center gap-1 group-hover:text-salami-red transition-colors whitespace-nowrap">
+                                    <span className="text-[8px] font-mono text-slate-500 font-black uppercase tracking-widest">Details</span>
+                                    {isExpanded ? <ChevronUp className="w-3 h-3 text-slate-400 group-hover:text-salami-red" /> : <ChevronDown className="w-3 h-3 text-slate-400 group-hover:text-salami-red" />}
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -919,7 +924,7 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                               exit={{ opacity: 0 }}
                               className="bg-slate-900/50"
                             >
-                              <td colSpan={3} className="px-6 py-6 border-t border-slate-800">
+                              <td colSpan={4} className="px-6 py-6 border-t border-slate-800">
                                 <GameDetailView game={game} />
                               </td>
                             </motion.tr>
