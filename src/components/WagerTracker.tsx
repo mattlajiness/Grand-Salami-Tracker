@@ -212,26 +212,31 @@ export function WagerTracker({
 
   // Notification Logic
   useEffect(() => {
-    if (!notificationsEnabled || !status || betLine === '' || !isFinished) return;
+    // We allow WON/LOST mid-game (settled), but PUSH requires isFinished
+    if (!notificationsEnabled || !status || betLine === '') return;
+    
+    // If not finished, we only notify if it's already WON or LOST (early settlement)
+    if (!isFinished && status !== 'WON' && status !== 'LOST') return;
 
     const notificationKey = `notified_${today}_${betLine}_${betType}_${status}`;
     const alreadyNotified = localStorage.getItem(notificationKey);
 
     if (alreadyNotified) return;
 
-    // 1. Terminal States (WON/LOST/PUSH) - Wager is only notified when officially settled
+    // 1. Terminal States (WON/LOST/PUSH) - Wager is notified when settled either mid-game or at end
     if (status === 'WON' && lastNotifiedStatus.current !== 'WON') {
       playSound('win');
       triggerWinCelebration();
       setShowResultModal(true);
+      const msg = isFinished ? "SLATE FINAL" : "LEVEL REACHED EARLY";
       toast.success('WAGER WON! 🏆', {
-        description: `Total: ${currentTotal} (Line: ${betLine})`,
+        description: `${msg} - Total: ${currentTotal} (Line: ${betLine})`,
         duration: 15000,
       });
-      sendBrowserNotification('WAGER WON! 🏆', `Final Total: ${currentTotal} (Line: ${betLine})`);
+      sendBrowserNotification('WAGER WON! 🏆', `Status: ${msg}. Final Total: ${currentTotal} (Line: ${betLine})`);
       lastNotifiedStatus.current = 'WON';
       localStorage.setItem(notificationKey, 'true');
-    } else if (status === 'PUSH' && lastNotifiedStatus.current !== 'PUSH') {
+    } else if (status === 'PUSH' && isFinished && lastNotifiedStatus.current !== 'PUSH') {
       playSound('win');
       setShowResultModal(true);
       toast.info('WAGER PUSHED 🤝', {
@@ -244,16 +249,34 @@ export function WagerTracker({
     } else if (status === 'LOST' && lastNotifiedStatus.current !== 'LOST') {
       playSound('loss');
       setShowResultModal(true);
+      const msg = isFinished ? "SLATE FINAL" : "LINE EXCEEDED";
       toast.error('WAGER LOST ❌', {
-        description: `Total: ${currentTotal} (Line: ${betLine})`,
+        description: `${msg} - Total: ${currentTotal} (Line: ${betLine})`,
         duration: 15000,
       });
-      sendBrowserNotification('WAGER LOST ❌', `Total: ${currentTotal} (Line: ${betLine})`);
+      sendBrowserNotification('WAGER LOST ❌', `Status: ${msg}. Total: ${currentTotal} (Line: ${betLine})`);
       lastNotifiedStatus.current = 'LOST';
       localStorage.setItem(notificationKey, 'true');
     } 
-    // 2. Intermediate Pace Alerts REMOVED to prevent premature/buggy notifications
-  }, [status, notificationsEnabled, currentTotal, betLine, projectedTotal, betType]);
+  }, [status, notificationsEnabled, currentTotal, betLine, projectedTotal, betType, isFinished, today]);
+
+  // Proactive Permission Check
+  useEffect(() => {
+    if (notificationsEnabled && betLine !== '' && "Notification" in window) {
+      if (Notification.permission === "default") {
+        Notification.requestPermission();
+      } else if (Notification.permission === "denied") {
+        // Only toast once per session if denied but feature is "on"
+        const sessionKey = 'denied_notified';
+        if (!sessionStorage.getItem(sessionKey)) {
+          toast.warning('NOTIFICATIONS BLOCKED 🚫', {
+            description: 'Check your browser settings to allow SALAMI-PACE alerts.'
+          });
+          sessionStorage.setItem(sessionKey, 'true');
+        }
+      }
+    }
+  }, [notificationsEnabled, betLine]);
 
   const sendBrowserNotification = (title: string, body: string) => {
     if (!("Notification" in window)) return;
@@ -262,6 +285,10 @@ export function WagerTracker({
     const isIframe = window.self !== window.top;
     if (isIframe) {
       console.warn('Notifications typically blocked in iframes. Open app in new tab.');
+      // Special instruction toast for iframe users
+      toast.info('TIP: OPEN IN NEW TAB 🚀', {
+        description: 'For full push notifications, open Salami Tracker in its own browser tab.'
+      });
     }
     
     try {

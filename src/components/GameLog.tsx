@@ -299,7 +299,7 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
               Daily Scorecard
             </h2>
             <span className="text-[8px] font-mono text-slate-500 uppercase tracking-[0.2em] mt-0.5">
-              Click any game for live diamond & box score
+              Live updates • Umpire & Climate Intelligence available in game details
             </span>
           </div>
         </div>
@@ -968,332 +968,375 @@ function GameDetailView({ game }: { game: MLBGame }) {
     </div>
   );
 
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-      {/* Detail Content */}
-      <div className="md:col-span-2 space-y-6">
-        {/* Umpire Intelligence Section - Moved up for prominence */}
-        {(() => {
-          const homePlateUmpire = game.officials?.find(o => o.officialType === 'Home Plate')?.official;
-          
-          if (!homePlateUmpire) return (
-            <div className="bg-slate-900/40 rounded-xl border border-slate-800/80 p-4 shadow-xl shadow-black/20 flex items-center justify-center gap-3">
-              <Scale className="w-4 h-4 text-slate-700 animate-pulse" />
-              <span className="text-[10px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black">Umpire Assignment Pending</span>
+  const isLive = game.status.abstractGameState === 'Live';
+  const isFinal = game.status.abstractGameState === 'Final';
+  const isActive = isLive || isFinal;
+
+  const UmpireIntelligenceModule = (() => {
+    const homePlateUmpire = game.officials?.find(o => o.officialType === 'Home Plate')?.official;
+    
+    if (!homePlateUmpire) return (
+      <div className="bg-slate-900/40 rounded-xl border border-slate-800/80 p-4 shadow-xl shadow-black/20 flex items-center justify-center gap-3">
+        <Scale className="w-4 h-4 text-slate-700 animate-pulse" />
+        <span className="text-[10px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black">Umpire Assignment Pending</span>
+      </div>
+    );
+
+    const intelligence = getUmpireIntelligence(homePlateUmpire.fullName);
+    const { tendency, message, impulse } = intelligence;
+    
+    return (
+      <div className="bg-slate-900/40 rounded-xl border border-slate-800/80 p-4 shadow-xl shadow-black/20 overflow-hidden relative group h-full">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/5 to-transparent -mr-16 -mt-16 rounded-full blur-3xl group-hover:from-blue-500/10 transition-all duration-700" />
+        
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-slate-950 flex items-center justify-center border border-slate-800 shadow-inner">
+              <Scale className={cn(
+                "w-5 h-5",
+                impulse === 'negative' ? "text-blue-400" :
+                impulse === 'positive' ? "text-salami-red" :
+                "text-slate-500"
+              )} />
             </div>
-          );
-
-          const intelligence = getUmpireIntelligence(homePlateUmpire.fullName);
-          const { tendency, message, impulse } = intelligence;
-          
-          return (
-            <div className="bg-slate-900/40 rounded-xl border border-slate-800/80 p-4 shadow-xl shadow-black/20 overflow-hidden relative group">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/5 to-transparent -mr-16 -mt-16 rounded-full blur-3xl group-hover:from-blue-500/10 transition-all duration-700" />
-              
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-slate-950 flex items-center justify-center border border-slate-800 shadow-inner">
-                    <Scale className={cn(
-                      "w-5 h-5",
-                      impulse === 'negative' ? "text-blue-400" :
-                      impulse === 'positive' ? "text-salami-red" :
-                      "text-slate-500"
-                    )} />
-                  </div>
-                  <div className="flex flex-col">
-                    <div className="flex items-center gap-2">
-                       <span className="text-[8px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black">Umpire Intelligence</span>
-                       <div className="h-px w-12 bg-slate-800" />
-                    </div>
-                    <span className="text-sm font-black text-white uppercase tracking-tight">{homePlateUmpire.fullName}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-6">
-                  <div className="flex flex-col items-end">
-                    <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest mb-1">Crew Bias</span>
-                    <div className={cn(
-                      "px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest shadow-sm",
-                      impulse === 'positive' ? "bg-red-500/10 text-red-500 border border-red-500/20" :
-                      impulse === 'negative' ? "bg-blue-500/10 text-blue-400 border border-blue-500/20" :
-                      "bg-slate-800 text-slate-400 border border-slate-700/50"
-                    )}>
-                      {impulse === 'positive' ? 'Hitter Advantage' : impulse === 'negative' ? 'Pitcher Advantage' : 'Balanced'}
-                    </div>
-                  </div>
-                  
-                  <div className="flex flex-col items-end">
-                    <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest mb-1">Zone Quality</span>
-                    <div className={cn(
-                      "text-[10px] font-black uppercase tracking-widest",
-                      tendency.strikeZone === 'Large' ? "text-blue-400" :
-                      tendency.strikeZone === 'Small' ? "text-red-500" :
-                      "text-slate-200"
-                    )}>
-                      {tendency.strikeZone}
-                    </div>
-                  </div>
-                </div>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                 <span className="text-[8px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black">Umpire Intelligence</span>
+                 <div className="h-px w-12 bg-slate-800" />
               </div>
-              
-              <div className="grid grid-cols-3 gap-6 mt-5 pt-4 border-t border-slate-800/50">
-                <div className="space-y-1">
-                  <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest">K Rate Pulse</span>
-                  <div className="flex items-center gap-2">
-                    <span className={cn(
-                      "text-[11px] font-bold uppercase",
-                      tendency.Krate > 0.18 ? "text-blue-400" :
-                      tendency.Krate < 0.15 ? "text-red-500" :
-                      "text-slate-300"
-                    )}>{(tendency.Krate * 100).toFixed(1)}%</span>
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest">Historical Runs</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-bold text-white tracking-widest">{tendency.runsPerGame.toFixed(1)}</span>
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest">Strike Accuracy</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-bold text-white tracking-widest">{tendency.strikePercent}%</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="mt-3 bg-slate-950/50 rounded-lg p-2 border border-slate-800/30">
-                 <p className="text-[9px] font-mono text-slate-400 italic leading-relaxed">
-                   "{message}"
-                 </p>
+              <span className="text-sm font-black text-white uppercase tracking-tight">{homePlateUmpire.fullName}</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-6">
+            <div className="flex flex-col items-end">
+              <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest mb-1">Crew Bias</span>
+              <div className={cn(
+                "px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest shadow-sm",
+                impulse === 'positive' ? "bg-red-500/10 text-red-500 border border-red-500/20" :
+                impulse === 'negative' ? "bg-blue-500/10 text-blue-400 border border-blue-500/20" :
+                "bg-slate-800 text-slate-400 border border-slate-700/50"
+              )}>
+                {impulse === 'positive' ? 'Hitter Advantage' : impulse === 'negative' ? 'Pitcher Advantage' : 'Balanced'}
               </div>
             </div>
-          );
-        })()}
-
-        {/* Climate & Conditions Section */}
-        {(() => {
-          const intelligence = getClimateIntelligence(game);
-          if (!intelligence) return null;
-
-          return (
-            <div className="bg-slate-900/40 rounded-xl border border-slate-800/80 p-4 shadow-xl shadow-black/20 overflow-hidden relative group">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-amber-500/5 to-transparent -mr-16 -mt-16 rounded-full blur-3xl" />
-              
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-slate-950 flex items-center justify-center border border-slate-800 shadow-inner">
-                    {intelligence.temp >= 85 ? <Zap className="w-5 h-5 text-amber-400" /> : intelligence.condition.includes('rain') ? <CloudRain className="w-5 h-5 text-blue-400" /> : <Wind className="w-5 h-5 text-blue-400" />}
-                  </div>
-                  <div className="flex flex-col">
-                    <div className="flex items-center gap-2">
-                       <span className="text-[8px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black">Climate Intelligence</span>
-                       <div className="h-px w-12 bg-slate-800" />
-                    </div>
-                    <span className="text-sm font-black text-white uppercase tracking-tight">Atmospheric Analysis</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-6">
-                  <div className="flex flex-col items-end">
-                    <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest mb-1">Scoring Bias</span>
-                    <div className={cn(
-                      "px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest shadow-sm",
-                      intelligence.impulse === 'positive' ? "bg-red-500/10 text-red-500 border border-red-500/20" :
-                      intelligence.impulse === 'negative' ? "bg-blue-500/10 text-blue-400 border border-blue-500/20" :
-                      "bg-slate-800 text-slate-400 border border-slate-700/50"
-                    )}>
-                      {intelligence.impulse === 'positive' ? 'Offense Boost' : intelligence.impulse === 'negative' ? 'Pitching Edge' : 'Neutral'}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-6 mt-5 pt-4 border-t border-slate-800/50">
-                <div className="space-y-1">
-                  <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest">Temperature</span>
-                  <div className="flex items-center gap-2">
-                    <Thermometer className={cn("w-3.5 h-3.5", intelligence.temp >= 85 ? "text-red-500" : intelligence.temp <= 50 ? "text-blue-400" : "text-amber-500")} />
-                    <span className="text-[11px] font-bold text-white tracking-widest">{intelligence.temp}°F</span>
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest">Wind Vector</span>
-                  <div className="flex items-center gap-2">
-                    <Wind className={cn("w-3.5 h-3.5", intelligence.windSpeed >= 12 ? "text-red-400" : intelligence.windSpeed >= 8 ? "text-blue-400" : "text-slate-500")} />
-                    <span className="text-[11px] font-bold text-white tracking-widest uppercase truncate max-w-[80px]">{intelligence.windStr || 'Calm'}</span>
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest">Condition</span>
-                  <div className="flex items-center gap-2">
-                    {intelligence.condition.includes('rain') ? <CloudRain className="w-3.5 h-3.5 text-blue-400" /> : <Sun className="w-3.5 h-3.5 text-amber-400" />}
-                    <span className="text-[11px] font-bold text-white tracking-widest uppercase truncate max-w-[80px]">{game.weather?.condition || 'Clear'}</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="mt-3 bg-slate-950/50 rounded-lg p-2 border border-slate-800/30">
-                 <p className="text-[9px] font-mono text-slate-400 italic leading-relaxed">
-                   "{intelligence.message}"
-                 </p>
+            
+            <div className="flex flex-col items-end">
+              <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest mb-1">Zone Quality</span>
+              <div className={cn(
+                "text-[10px] font-black uppercase tracking-widest",
+                tendency.strikeZone === 'Large' ? "text-blue-400" :
+                tendency.strikeZone === 'Small' ? "text-red-500" :
+                "text-slate-200"
+              )}>
+                {tendency.strikeZone}
               </div>
             </div>
-          );
-        })()}
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-3 gap-6 mt-5 pt-4 border-t border-slate-800/50">
+          <div className="space-y-1">
+            <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest">K Rate Pulse</span>
+            <div className="flex items-center gap-2">
+              <span className={cn(
+                "text-[11px] font-bold uppercase",
+                tendency.Krate > 0.18 ? "text-blue-400" :
+                tendency.Krate < 0.15 ? "text-red-500" :
+                "text-slate-300"
+              )}>{(tendency.Krate * 100).toFixed(1)}%</span>
+            </div>
+          </div>
+          <div className="space-y-1">
+            <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest">Historical Runs</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold text-white tracking-widest">{tendency.runsPerGame.toFixed(1)}</span>
+            </div>
+          </div>
+          <div className="space-y-1">
+            <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest">Strike Accuracy</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold text-white tracking-widest">{tendency.strikePercent}%</span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="mt-3 bg-slate-950/50 rounded-lg p-2 border border-slate-800/30">
+           <p className="text-[9px] font-mono text-slate-400 italic leading-relaxed">
+             "{message}"
+           </p>
+        </div>
+      </div>
+    );
+  })();
 
-        {/* Venue Row */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <MapPin className="w-3 h-3 text-slate-500" />
-            <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
-              {game.venue?.name || 'Unknown Venue'}
-            </span>
+  const ClimateIntelligenceModule = (() => {
+    const intelligence = getClimateIntelligence(game);
+    if (!intelligence) return null;
+
+    return (
+      <div className="bg-slate-900/40 rounded-xl border border-slate-800/80 p-4 shadow-xl shadow-black/20 overflow-hidden relative group h-full">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-amber-500/5 to-transparent -mr-16 -mt-16 rounded-full blur-3xl" />
+        
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-slate-950 flex items-center justify-center border border-slate-800 shadow-inner">
+              {intelligence.temp >= 85 ? <Zap className="w-5 h-5 text-amber-400" /> : intelligence.condition.includes('rain') ? <CloudRain className="w-5 h-5 text-blue-400" /> : <Wind className="w-5 h-5 text-blue-400" />}
+            </div>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                 <span className="text-[8px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black">Climate Intelligence</span>
+                 <div className="h-px w-12 bg-slate-800" />
+              </div>
+              <span className="text-sm font-black text-white uppercase tracking-tight">Atmospheric Analysis</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-6">
+            <div className="flex flex-col items-end">
+              <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest mb-1">Scoring Bias</span>
+              <div className={cn(
+                "px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest shadow-sm",
+                intelligence.impulse === 'positive' ? "bg-red-500/10 text-red-500 border border-red-500/20" :
+                intelligence.impulse === 'negative' ? "bg-blue-500/10 text-blue-400 border border-blue-500/20" :
+                "bg-slate-800 text-slate-400 border border-slate-700/50"
+              )}>
+                {intelligence.impulse === 'positive' ? 'Offense Boost' : intelligence.impulse === 'negative' ? 'Pitching Edge' : 'Neutral'}
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-[10px] font-mono border-collapse">
-            <thead>
-              <tr className="text-slate-500 border-b border-slate-800">
-                <th className="text-left py-2 font-black uppercase tracking-widest">Team</th>
-                {linescore.innings?.map(inn => (
-                  <th key={inn.num} className="text-center px-2 py-2">{inn.num}</th>
-                ))}
-                <th className="text-center px-3 py-2 border-l border-slate-800 font-black text-white">R</th>
-                <th className="text-center px-3 py-2 text-slate-500">H</th>
-                <th className="text-center px-3 py-2 text-slate-500">E</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800">
-              <tr>
-                <td className="py-3 font-bold text-slate-300 uppercase tracking-tighter">
-                  {game.teams.away.team.name.split(' ').pop()}
-                </td>
-                {linescore.innings?.map(inn => (
-                  <td key={inn.num} className="text-center px-2 py-3 text-slate-500">{inn.away.runs ?? '-'}</td>
-                ))}
-                <td className="text-center px-3 py-3 border-l border-slate-800 font-black text-salami-red bg-slate-950/50">
-                  {linescore.teams.away.runs ?? 0}
-                </td>
-                <td className="text-center px-3 py-3 text-slate-500">{linescore.teams.away.hits ?? 0}</td>
-                <td className="text-center px-3 py-3 text-slate-500">{linescore.teams.away.errors ?? 0}</td>
-              </tr>
-              <tr>
-                <td className="py-3 font-bold text-slate-300 uppercase tracking-tighter">
-                  {game.teams.home.team.name.split(' ').pop()}
-                </td>
-                {linescore.innings?.map(inn => (
-                  <td key={inn.num} className="text-center px-2 py-3 text-slate-500">{inn.home.runs ?? '-'}</td>
-                ))}
-                <td className="text-center px-3 py-3 border-l border-slate-800 font-black text-salami-red bg-slate-950/50">
-                  {linescore.teams.home.runs ?? 0}
-                </td>
-                <td className="text-center px-3 py-3 text-slate-500">{linescore.teams.home.hits ?? 0}</td>
-                <td className="text-center px-3 py-3 text-slate-500">{linescore.teams.home.errors ?? 0}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        {game.status.abstractGameState === 'Live' && (
-          <div className="flex flex-wrap gap-4 pt-2">
-            <div className="flex items-center gap-2 bg-slate-950 px-3 py-2 rounded-lg border border-slate-800">
-              <User className="w-3 h-3 text-salami-red" />
-              <div className="flex flex-col">
-                <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest">At Bat</span>
-                <span className="text-[10px] font-bold text-white">{linescore.offense?.batter?.fullName || '---'}</span>
-              </div>
+        <div className="grid grid-cols-3 gap-6 mt-5 pt-4 border-t border-slate-800/50">
+          <div className="space-y-1">
+            <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest">Temperature</span>
+            <div className="flex items-center gap-2">
+              <Thermometer className={cn("w-3.5 h-3.5", intelligence.temp >= 85 ? "text-red-500" : intelligence.temp <= 50 ? "text-blue-400" : "text-amber-500")} />
+              <span className="text-[11px] font-bold text-white tracking-widest">{intelligence.temp}°F</span>
             </div>
-            <div className="flex items-center gap-2 bg-slate-950 px-3 py-2 rounded-lg border border-slate-800">
-              <Activity className="w-3 h-3 text-slate-500" />
-              <div className="flex flex-col">
-                <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest">Pitching</span>
-                <span className="text-[10px] font-bold text-white">{linescore.defense?.pitcher?.fullName || '---'}</span>
-              </div>
-            </div>
-            {(() => {
-              const offense = linescore.offense;
-              const hasRISP = !!offense?.second || !!offense?.third;
-              if (!hasRISP) return null;
-
-              const threat = calculateLiveThreat({
-                first: !!offense?.first,
-                second: !!offense?.second,
-                third: !!offense?.third,
-                outs: linescore.outs || 0
-              });
-              
-              if (threat <= 0.1) return null;
-              
-              return (
-                <div className={cn(
-                  "flex items-center gap-2 px-3 py-2 rounded-lg border",
-                  threat > 0.8 ? "bg-red-500/10 border-red-500/20 text-red-500" : "bg-orange-500/10 border-orange-500/20 text-orange-500"
-                )}>
-                  <AlertTriangle className="w-3 h-3" />
-                  <div className="flex flex-col">
-                    <span className="text-[7px] font-mono uppercase tracking-widest opacity-70">Live Threat Level</span>
-                    <span className="text-[10px] font-bold uppercase">{threat > 0.8 ? 'Extremely High' : 'Elevated'} ({threat.toFixed(2)})</span>
-                  </div>
-                </div>
-              );
-            })()}
           </div>
-        )}
+          <div className="space-y-1">
+            <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest">Wind Vector</span>
+            <div className="flex items-center gap-2">
+              <Wind className={cn("w-3.5 h-3.5", intelligence.windSpeed >= 12 ? "text-red-400" : intelligence.windSpeed >= 8 ? "text-blue-400" : "text-slate-500")} />
+              <span className="text-[11px] font-bold text-white tracking-widest uppercase truncate max-w-[80px]">{intelligence.windStr || 'Calm'}</span>
+            </div>
+          </div>
+          <div className="space-y-1">
+            <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest">Condition</span>
+            <div className="flex items-center gap-2">
+              {intelligence.condition.includes('rain') ? <CloudRain className="w-3.5 h-3.5 text-blue-400" /> : <Sun className="w-3.5 h-3.5 text-amber-400" />}
+              <span className="text-[11px] font-bold text-white tracking-widest uppercase truncate max-w-[80px]">{game.weather?.condition || 'Clear'}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="mt-3 bg-slate-950/50 rounded-lg p-2 border border-slate-800/30">
+           <p className="text-[9px] font-mono text-slate-400 italic leading-relaxed">
+             "{intelligence.message}"
+           </p>
+        </div>
+      </div>
+    );
+  })();
 
+  const TableModule = (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <MapPin className="w-3 h-3 text-slate-500" />
+          <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
+            {game.venue?.name || 'Unknown Venue'}
+          </span>
+        </div>
       </div>
 
-      {/* Diamond & Count */}
-      <div className="flex flex-col items-center justify-center space-y-6 border-l border-slate-800 pl-8">
-        {game.status.abstractGameState === 'Live' ? (
-          <>
-            <div className="relative w-24 h-24 rotate-45 border-2 border-slate-800">
-              {/* Bases */}
-              <div className={cn("absolute -top-2 -left-2 w-4 h-4 border border-slate-700", linescore.offense?.second ? "bg-salami-red shadow-[0_0_10px_rgba(225,29,72,0.5)]" : "bg-slate-900")} title="2nd Base" />
-              <div className={cn("absolute -bottom-2 -left-2 w-4 h-4 border border-slate-700", linescore.offense?.third ? "bg-salami-red shadow-[0_0_10px_rgba(225,29,72,0.5)]" : "bg-slate-900")} title="3rd Base" />
-              <div className={cn("absolute -top-2 -right-2 w-4 h-4 border border-slate-700", linescore.offense?.first ? "bg-salami-red shadow-[0_0_10px_rgba(225,29,72,0.5)]" : "bg-slate-900")} title="1st Base" />
-              <div className="absolute -bottom-2 -right-2 w-4 h-4 border border-slate-700 bg-slate-800" title="Home Plate" />
-            </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-[10px] font-mono border-collapse">
+          <thead>
+            <tr className="text-slate-500 border-b border-slate-800">
+              <th className="text-left py-2 font-black uppercase tracking-widest">Team</th>
+              {linescore.innings?.map(inn => (
+                <th key={inn.num} className="text-center px-2 py-2">{inn.num}</th>
+              ))}
+              <th className="text-center px-3 py-2 border-l border-slate-800 font-black text-white">R</th>
+              <th className="text-center px-3 py-2 text-slate-500">H</th>
+              <th className="text-center px-3 py-2 text-slate-500">E</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-800">
+            <tr>
+              <td className="py-3 font-bold text-slate-300 uppercase tracking-tighter">
+                {game.teams.away.team.name.split(' ').pop()}
+              </td>
+              {linescore.innings?.map(inn => (
+                <td key={inn.num} className="text-center px-2 py-3 text-slate-500">{inn.away.runs ?? '-'}</td>
+              ))}
+              <td className="text-center px-3 py-3 border-l border-slate-800 font-black text-salami-red bg-slate-950/50">
+                {linescore.teams.away.runs ?? 0}
+              </td>
+              <td className="text-center px-3 py-3 text-slate-500">{linescore.teams.away.hits ?? 0}</td>
+              <td className="text-center px-3 py-3 text-slate-500">{linescore.teams.away.errors ?? 0}</td>
+            </tr>
+            <tr>
+              <td className="py-3 font-bold text-slate-300 uppercase tracking-tighter">
+                {game.teams.home.team.name.split(' ').pop()}
+              </td>
+              {linescore.innings?.map(inn => (
+                <td key={inn.num} className="text-center px-2 py-3 text-slate-500">{inn.home.runs ?? '-'}</td>
+              ))}
+              <td className="text-center px-3 py-3 border-l border-slate-800 font-black text-salami-red bg-slate-950/50">
+                {linescore.teams.home.runs ?? 0}
+              </td>
+              <td className="text-center px-3 py-3 text-slate-500">{linescore.teams.home.hits ?? 0}</td>
+              <td className="text-center px-3 py-3 text-slate-500">{linescore.teams.home.errors ?? 0}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
-            <div className="flex flex-col items-center gap-2">
-              <div className="flex gap-4">
-                <div className="flex flex-col items-center">
-                  <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest">Balls</span>
-                  <div className="flex gap-1 mt-1">
-                    {[1, 2, 3].map(i => (
-                      <div key={i} className={cn("w-2 h-2 rounded-full", (linescore.balls || 0) >= i ? "bg-green-500" : "bg-slate-800")} />
-                    ))}
-                  </div>
+      {isLive && (
+        <div className="flex flex-wrap gap-4 pt-2">
+          <div className="flex items-center gap-2 bg-slate-950 px-3 py-2 rounded-lg border border-slate-800">
+            <User className="w-3 h-3 text-salami-red" />
+            <div className="flex flex-col">
+              <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest">At Bat</span>
+              <span className="text-[10px] font-bold text-white">{linescore.offense?.batter?.fullName || '---'}</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 bg-slate-950 px-3 py-2 rounded-lg border border-slate-800">
+            <Activity className="w-3 h-3 text-slate-500" />
+            <div className="flex flex-col">
+              <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest">Pitching</span>
+              <span className="text-[10px] font-bold text-white">{linescore.defense?.pitcher?.fullName || '---'}</span>
+            </div>
+          </div>
+          {(() => {
+            const offense = linescore.offense;
+            const hasRISP = !!offense?.second || !!offense?.third;
+            if (!hasRISP) return null;
+
+            const threat = calculateLiveThreat({
+              first: !!offense?.first,
+              second: !!offense?.second,
+              third: !!offense?.third,
+              outs: linescore.outs || 0
+            });
+            
+            if (threat <= 0.1) return null;
+            
+            return (
+              <div className={cn(
+                "flex items-center gap-2 px-3 py-2 rounded-lg border",
+                threat > 0.8 ? "bg-red-500/10 border-red-500/20 text-red-500" : "bg-orange-500/10 border-orange-500/20 text-orange-500"
+              )}>
+                <AlertTriangle className="w-3 h-3" />
+                <div className="flex flex-col">
+                  <span className="text-[7px] font-mono uppercase tracking-widest opacity-70">Live Threat Level</span>
+                  <span className="text-[10px] font-bold uppercase">{threat > 0.8 ? 'Extremely High' : 'Elevated'} ({threat.toFixed(2)})</span>
                 </div>
-                <div className="flex flex-col items-center">
-                  <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest">Strikes</span>
-                  <div className="flex gap-1 mt-1">
-                    {[1, 2].map(i => (
-                      <div key={i} className={cn("w-2 h-2 rounded-full", (linescore.strikes || 0) >= i ? "bg-salami-red" : "bg-slate-800")} />
-                    ))}
-                  </div>
+              </div>
+            );
+          })()}
+        </div>
+      )}
+    </div>
+  );
+
+  const DiamondModule = (
+    <div className="flex flex-col items-center justify-center space-y-6 md:border-l md:border-slate-800 md:pl-8">
+      {isLive ? (
+        <>
+          <div className="relative w-24 h-24 rotate-45 border-2 border-slate-800">
+            <div className={cn("absolute -top-2 -left-2 w-4 h-4 border border-slate-700", linescore.offense?.second ? "bg-salami-red shadow-[0_0_10px_rgba(225,29,72,0.5)]" : "bg-slate-900")} title="2nd Base" />
+            <div className={cn("absolute -bottom-2 -left-2 w-4 h-4 border border-slate-700", linescore.offense?.third ? "bg-salami-red shadow-[0_0_10px_rgba(225,29,72,0.5)]" : "bg-slate-900")} title="3rd Base" />
+            <div className={cn("absolute -top-2 -right-2 w-4 h-4 border border-slate-700", linescore.offense?.first ? "bg-salami-red shadow-[0_0_10px_rgba(225,29,72,0.5)]" : "bg-slate-900")} title="1st Base" />
+            <div className="absolute -bottom-2 -right-2 w-4 h-4 border border-slate-700 bg-slate-800" title="Home Plate" />
+          </div>
+
+          <div className="flex flex-col items-center gap-2">
+            <div className="flex gap-4">
+              <div className="flex flex-col items-center">
+                <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest">Balls</span>
+                <div className="flex gap-1 mt-1">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className={cn("w-2 h-2 rounded-full", (linescore.balls || 0) >= i ? "bg-green-500" : "bg-slate-800")} />
+                  ))}
                 </div>
-                <div className="flex flex-col items-center">
-                  <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest">Outs</span>
-                  <div className="flex gap-1 mt-1">
-                    {[1, 2].map(i => (
-                      <div key={i} className={cn("w-2 h-2 rounded-full", (linescore.outs || 0) >= i ? "bg-white" : "bg-slate-800")} />
-                    ))}
-                  </div>
+              </div>
+              <div className="flex flex-col items-center">
+                <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest">Strikes</span>
+                <div className="flex gap-1 mt-1">
+                  {[1, 2].map(i => (
+                    <div key={i} className={cn("w-2 h-2 rounded-full", (linescore.strikes || 0) >= i ? "bg-salami-red" : "bg-slate-800")} />
+                  ))}
+                </div>
+              </div>
+              <div className="flex flex-col items-center">
+                <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest">Outs</span>
+                <div className="flex gap-1 mt-1">
+                  {[1, 2].map(i => (
+                    <div key={i} className={cn("w-2 h-2 rounded-full", (linescore.outs || 0) >= i ? "bg-white" : "bg-slate-800")} />
+                  ))}
                 </div>
               </div>
             </div>
-          </>
-        ) : (
-          <div className="flex flex-col items-center text-center space-y-2">
-            <Info className="w-8 h-8 text-slate-700" />
-            <p className="text-[9px] font-mono text-slate-600 uppercase tracking-widest leading-relaxed">
-              {game.status.abstractGameState === 'Final' ? 'Game Complete' : 'Game Scheduled'}
-            </p>
           </div>
-        )}
+        </>
+      ) : (
+        <div className="flex flex-col items-center text-center space-y-2">
+          <Info className="w-8 h-8 text-slate-700" />
+          <p className="text-[9px] font-mono text-slate-600 uppercase tracking-widest leading-relaxed">
+            {isFinal ? 'Game Complete' : 'Game Scheduled'}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+
+  if (isActive) {
+    return (
+      <div className="space-y-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="md:col-span-2">
+            {TableModule}
+          </div>
+          <div>
+            {DiamondModule}
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-slate-800/50">
+          <div className="space-y-3">
+             <div className="flex items-center gap-2 px-1">
+                <Scale className="w-3 h-3 text-slate-500" />
+                <span className="text-[7px] font-mono font-black text-slate-500 uppercase tracking-widest">Official Report</span>
+             </div>
+             {UmpireIntelligenceModule}
+          </div>
+          <div className="space-y-3">
+             <div className="flex items-center gap-2 px-1">
+                <Sun className="w-3 h-3 text-slate-500" />
+                <span className="text-[7px] font-mono font-black text-slate-500 uppercase tracking-widest">Climate Report</span>
+             </div>
+             {ClimateIntelligenceModule}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="md:col-span-2 space-y-6">
+        {UmpireIntelligenceModule}
+        {ClimateIntelligenceModule}
+        {TableModule}
+      </div>
+      <div>
+        {DiamondModule}
       </div>
     </div>
   );
 }
+
