@@ -380,11 +380,11 @@ export default function App() {
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              <div className="order-1 lg:order-1 lg:col-span-3">
+              <div className="order-2 lg:order-1 lg:col-span-3">
                 <GameLog games={games} gameLines={gameLines} manualLines={gameLines} />
               </div>
               
-              <div className="order-2 lg:order-2 lg:col-span-1 space-y-6">
+              <div className="order-1 lg:order-2 lg:col-span-1 space-y-6">
                 {isAdmin && (
                   <div className="space-y-6">
                     <UserAdminPanel />
