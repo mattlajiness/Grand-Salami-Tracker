@@ -71,11 +71,15 @@ const getSpecialIntelligence = (game: MLBGame) => {
   } else if (homeId === 121) { // Mets (Citi Field)
     badges.push({ label: 'WEATHER LOCK', color: 'bg-blue-600/20 text-blue-400 border-blue-600/30', icon: ShieldCheck, title: 'Heavy atmospheric run suppression today (-1.77 runs). Weather and park factors strictly limiting fly ball carry.' });
   } else if (homeId === 142) { // Twins (Target Field)
-    if (temp < 50) {
-      badges.push({ label: 'COLD SUPPRESSION', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20', icon: Thermometer, title: 'Projected -0.90 runs. 40° cold air is neutralizing the moderate outbound wind.' });
+    if (temp <= 50) {
+      badges.push({ label: 'HR SUPPRESSION', color: 'bg-blue-600/20 text-blue-400 border-blue-600/30', icon: Thermometer, title: `Target Field suppressing HRs by -11% today. ${temp}°F cold thickening air despite outbound wind components.` });
+    }
+  } else if (homeId === 141) { // Phillies (Citizens Bank)
+    if (wind.direction === 'IN' || wind.speed >= 7) {
+      badges.push({ label: 'HR SUPPRESSION', color: 'bg-blue-600/20 text-blue-400 border-blue-600/30', icon: Wind, title: 'Citizens Bank Park seeing -12% HR suppression. 8mph NW winds blowing in helping suppress fly balls today.' });
     }
   } else if (homeId === 110) { // Orioles (Camden Yards)
-    badges.push({ label: 'WALL FACTOR', color: 'bg-orange-500/10 text-orange-400 border-orange-500/20', icon: Activity, title: 'HR suppression (-0.34) due to wall, but high expectancy for singles (+0.72).' });
+    badges.push({ label: 'HR BOOST', color: 'bg-red-500/10 text-red-500 border-red-500/20', icon: Zap, title: 'Oriole Park seeing a +13% HR boost today. 10mph NW cross-winds favoring RHB (+33%).' });
   } else if (homeId === 117) { // Astros (Minute Maid)
     const p1 = game.teams.away.probablePitcher?.fullName;
     const p2 = game.teams.home.probablePitcher?.fullName;
@@ -84,8 +88,8 @@ const getSpecialIntelligence = (game: MLBGame) => {
       badges.push({ label: 'STARTER INTEL', color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20', icon: Target, title: 'Lambert (FB heavy) vs Bassitt (Crafty). Unique style clash in the controlled conditions of Minute Maid.' });
     }
   } else if (homeId === 144) { // Braves (Truist Park)
-    if (temp >= 64 && wind.direction === 'OUT' && wind.speed >= 8) {
-      badges.push({ label: 'HR BOOST', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: Zap, title: 'Truist Park seeing a +11% HR boost today. NW winds and 60s+ temps favoring fly ball carry.' });
+    if (temp >= 64 && wind.speed >= 8) {
+      badges.push({ label: 'HR BOOST', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: Zap, title: 'Truist Park seeing a +8% HR boost today. Winds blowing out favoring lefties (+12%) in mild 65° air.' });
     }
   } else if (homeId === 147) { // Yankees
     badges.push({ label: 'SHORT PORCH', color: 'bg-orange-500/10 text-orange-400 border-orange-500/10', icon: Zap, title: 'Yankee Stadium’s shallow right field frequently turns fly balls into home runs.' });
@@ -119,7 +123,7 @@ const getSpecialIntelligence = (game: MLBGame) => {
 
   if (!hasOffenseSignal && climate?.impulse === 'positive') {
     badges.push({ label: 'OFFENSE BOOST', color: 'bg-red-500/10 text-red-400 border-red-500/10', icon: Zap, title: climate.message });
-  } else if (!hasPitchingSignal && climate?.impulse === 'negative') {
+  } else if (!hasPitchingSignal && !hasOffenseSignal && climate?.impulse === 'negative') {
     badges.push({ label: 'PITCHING EDGE', color: 'bg-blue-500/10 text-blue-400 border-blue-500/10', icon: ShieldCheck, title: climate.message });
   }
 
