@@ -88,12 +88,12 @@ const getSpecialIntelligence = (game: MLBGame) => {
       badges.push({ label: 'STARTER INTEL', color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20', icon: Target, title: 'Lambert (FB heavy) vs Bassitt (Crafty). Unique style clash in the controlled conditions of Minute Maid.' });
     }
   } else if (homeId === 144) { // Braves (Truist Park)
-    if (temp >= 55) {
+    if (climate?.impulse === 'positive') {
       badges.push({ 
         label: 'HR BOOST (+11%)', 
         color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', 
         icon: Zap, 
-        title: 'Truist Park seeing a +11% HR boost and +2% Run boost today. Conditions: Overcast 66° with 10mph NW winds provide a strong offensive signal (+11% HR) based on historical park climate samples.' 
+        title: climate.message 
       });
     }
   } else if (homeId === 147) { // Yankees
@@ -175,6 +175,7 @@ const getClimateIntelligence = (game: MLBGame) => {
   const windDirRaw = windStr.toLowerCase();
   const condition = (game.weather?.condition || '').toLowerCase();
   const venue = (game.venue?.name || '').toLowerCase();
+  const homeId = game.teams.home.team.id;
   
   let impulse: 'positive' | 'negative' | 'neutral' = 'neutral';
   
@@ -199,6 +200,15 @@ const getClimateIntelligence = (game: MLBGame) => {
   }
 
   let techReport = "";
+
+  // 0. Park Specific Intelligence (Matches User Provided Image Data)
+  if (homeId === 144) { // Braves
+    if (temp >= 55 && (isOut || windSpeed >= 8)) {
+       impulse = 'positive';
+       techReport += `Truist Park seeing a +11% HR boost and +2% Run boost today. ${condition.charAt(0).toUpperCase() + condition.slice(1)} ${temp}°F with ${windSpeed}mph winds provide a strong offensive signal based on historical park climate samples. `;
+       return { impulse, message: techReport.trim(), temp, windStr, windSpeed, condition };
+    }
+  }
   
   // 1. Temperature Analysis (Physics of Air Density)
   if (temp >= 94) {
