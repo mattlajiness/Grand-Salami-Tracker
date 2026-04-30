@@ -216,10 +216,11 @@ export function GrandSalamiHeader({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-6 border-b border-slate-800">
         <div className="flex flex-wrap items-center justify-start gap-2">
           <button 
+            type="button"
             onClick={() => {
               document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });
             }}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all text-[9px] font-mono font-black uppercase tracking-widest bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all text-[9px] font-mono font-black uppercase tracking-widest bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300 select-none touch-manipulation"
           >
             <HelpCircle className="w-3 h-3 text-salami-red" />
             <span className="hidden sm:inline">Knowledge Base</span>
@@ -363,7 +364,7 @@ export function GrandSalamiHeader({
             </div>
           </div>
           
-          <div className="flex items-end gap-4">
+          <div className="flex items-end gap-4 select-none touch-manipulation">
             <div 
               className="font-mono font-black tracking-tighter px-4 py-2 rounded-lg border-2 transition-all duration-300 shadow-inner text-5xl sm:text-7xl md:text-8xl min-w-[140px] sm:min-w-[160px] text-center bg-slate-950 border-slate-900 text-salami-red shadow-[0_0_30px_rgba(225,29,72,0.15)]"
               style={{

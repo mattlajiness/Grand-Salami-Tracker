@@ -486,12 +486,14 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                         ) : <div />}
                         <div className="flex items-center gap-2">
                           {game.status.abstractGameState === 'Live' && getThreatLevel(game) > 0.25 && (
-                             <div 
+                             <button
+                               type="button" 
                                className={cn(
-                                 "flex items-center gap-1 px-1.5 py-0.5 rounded shadow-sm cursor-help select-none",
+                                 "flex items-center gap-1 px-1.5 py-0.5 rounded shadow-sm cursor-help select-none touch-manipulation appearance-none outline-none",
                                  getThreatLevel(game) > 0.7 ? "bg-red-600 text-white" : "bg-salami-red/20 text-salami-red"
                                )}
                                onClick={(e) => {
+                                 e.preventDefault();
                                  e.stopPropagation();
                                  toast.info(`Live scoring threat: ${getThreatLevel(game).toFixed(2)} expected runs`, { duration: 3000, position: 'bottom-center' });
                                }}
@@ -500,7 +502,7 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                                <span className="text-[7px] font-mono font-black uppercase tracking-widest">
                                  {getThreatLevel(game) > 0.7 ? 'High Threat' : 'Threat'}
                                </span>
-                             </div>
+                             </button>
                           )}
                           {(() => {
                              const badges = [];
@@ -510,17 +512,19 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                              if (risk) {
                                const isRain = risk.startsWith('Raining') || risk.includes('Risk');
                                badges.push(
-                                 <div 
-                                   key="risk" 
-                                   className="flex items-center gap-1 bg-blue-500/20 px-1.5 py-0.5 rounded cursor-help select-none"
+                                 <button 
+                                   key="risk"
+                                   type="button" 
+                                   className="flex items-center gap-1 bg-blue-500/20 px-1.5 py-0.5 rounded cursor-help select-none touch-manipulation appearance-none outline-none"
                                    onClick={(e) => {
+                                     e.preventDefault();
                                      e.stopPropagation();
                                      toast.info(`${risk}. Game at risk of delay or cancellation.`, { duration: 3000, position: 'bottom-center' });
                                    }}
                                  >
                                    {isRain ? <CloudRain className="w-2.5 h-2.5 text-blue-400" /> : <Droplets className="w-2.5 h-2.5 text-blue-400" />}
                                    <span className="text-[7px] font-mono font-black text-blue-400 uppercase tracking-widest">{risk}</span>
-                                 </div>
+                                 </button>
                                );
                               }
                               // 2. Climate Intelligence 
@@ -530,14 +534,16 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                               const intelBadges = getSpecialIntelligence(game);
                               intelBadges.forEach(intel => {
                                 badges.push(
-                                  <div 
+                                  <button 
                                     key={intel.label}
+                                    type="button"
                                     className={cn(
-                                      "flex items-center gap-1 px-1.5 py-0.5 rounded border shadow-sm cursor-help select-none",
+                                      "flex items-center gap-1 px-1.5 py-0.5 rounded border shadow-sm cursor-help select-none touch-manipulation appearance-none outline-none",
                                       intel.color
                                     )}
                                     title={intel.title}
                                     onClick={(e) => {
+                                      e.preventDefault();
                                       e.stopPropagation();
                                       if (intel.title) toast.info(intel.title, { duration: 3000, position: 'bottom-center' });
                                     }}
@@ -546,7 +552,7 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                                     <span className="text-[8px] font-mono font-black uppercase tracking-widest">
                                       {intel.label}
                                     </span>
-                                  </div>
+                                  </button>
                                 );
                               });
 
@@ -932,15 +938,17 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                             <div className="flex flex-col items-end gap-2">
                               <div className="flex items-center justify-end flex-wrap gap-2 mb-1">
                                 {game.status.abstractGameState === 'Live' && getThreatLevel(game) > 0.25 && (
-                                  <motion.div 
+                                  <motion.button 
+                                    type="button"
                                     animate={{ opacity: [1, 0.5, 1], scale: getThreatLevel(game) > 0.7 ? [1, 1.05, 1] : 1 }} 
                                     transition={{ duration: 1, repeat: Infinity }}
                                     className={cn(
-                                      "flex items-center gap-1.5 border px-2 py-0.5 rounded cursor-help shadow-sm select-none",
+                                      "flex items-center gap-1.5 border px-2 py-0.5 rounded cursor-help shadow-sm select-none touch-manipulation appearance-none outline-none",
                                       getThreatLevel(game) > 0.7 ? "bg-red-600 border-red-500 text-white" : "bg-salami-red/10 border-salami-red/20 text-salami-red"
                                     )}
                                     title={`Live scoring threat: ${getThreatLevel(game).toFixed(2)} expected runs`}
                                     onClick={(e) => {
+                                      e.preventDefault();
                                       e.stopPropagation();
                                       toast.info(`Live scoring threat: ${getThreatLevel(game).toFixed(2)} expected runs`, { duration: 3000, position: 'bottom-center' });
                                     }}
@@ -949,7 +957,7 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                                     <span className="text-[8px] font-mono font-black uppercase tracking-tighter">
                                       {getThreatLevel(game) > 0.7 ? 'HIGH THREAT' : 'LIVE THREAT'}
                                     </span>
-                                  </motion.div>
+                                  </motion.button>
                                 )}
                                 
                                 {(() => {
@@ -959,45 +967,49 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                                    if (riskMessage) {
                                      const isRain = riskMessage.startsWith('Raining') || riskMessage.includes('Risk');
                                      badges.push(
-                                       <div 
+                                       <button 
                                          key="risk"
-                                         className="flex items-center gap-1 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded cursor-help select-none"
+                                         type="button"
+                                         className="flex items-center gap-1 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded cursor-help select-none touch-manipulation appearance-none outline-none"
                                          title={`${riskMessage}. Game at risk of delay or cancellation.`}
                                          onClick={(e) => {
+                                           e.preventDefault();
                                            e.stopPropagation();
                                            toast.info(`${riskMessage}. Game at risk of delay or cancellation.`, { duration: 3000, position: 'bottom-center' });
                                          }}
                                        >
                                          {isRain ? <CloudRain className="w-2.5 h-2.5 text-blue-400" /> : <Droplets className="w-2.5 h-2.5 text-blue-400" />}
                                          <span className="text-[7px] font-mono font-black text-blue-400 uppercase tracking-widest">{riskMessage}</span>
-                                       </div>
+                                       </button>
                                      );
                                    }
-
+ 
                                    // 2. Climate Intelligence 
                                    const climate = getClimateIntelligence(game);
-
+ 
                                    // 2. Intelligence Badges
                                    const intelBadges = getSpecialIntelligence(game);
                                    intelBadges.forEach(intel => {
                                      badges.push(
-                                       <div 
+                                       <button 
                                          key={intel.label}
+                                         type="button"
                                          className={cn(
-                                           "flex items-center gap-1 px-2 py-0.5 rounded border shadow-sm cursor-help select-none",
+                                           "flex items-center gap-1 px-2 py-0.5 rounded border shadow-sm cursor-help select-none touch-manipulation appearance-none outline-none text-left",
                                            intel.color
                                          )}
                                          title={intel.title}
                                          onClick={(e) => {
+                                           e.preventDefault();
                                            e.stopPropagation();
                                            if (intel.title) toast.info(intel.title, { duration: 3000, position: 'bottom-center' });
                                          }}
                                        >
                                          <intel.icon className="w-2.5 h-2.5" />
-                                         <span className="text-[8px] font-mono font-black uppercase tracking-widest">
+                                         <span className="text-[8px] font-mono font-black uppercase tracking-widest whitespace-nowrap">
                                            {intel.label}
                                          </span>
-                                       </div>
+                                       </button>
                                      );
                                    });
 
