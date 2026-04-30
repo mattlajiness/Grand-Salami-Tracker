@@ -74,6 +74,16 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "message", "createdAt"]
+    },
+    "DailyIntel": {
+      "title": "Daily Ballpark Intelligence",
+      "description": "Daily summary of weather and park factors across the league.",
+      "type": "object",
+      "properties": {
+        "text": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["text"]
     }
   },
   "firestore": {
@@ -100,6 +110,10 @@
     "/feedback/{feedbackId}": {
       "schema": "Feedback",
       "description": "User feedback messages"
+    },
+    "/dailyIntel/{docId}": {
+      "schema": "DailyIntel",
+      "description": "Daily broadcasted intelligence updates"
     }
   }
 }
