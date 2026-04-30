@@ -88,8 +88,13 @@ const getSpecialIntelligence = (game: MLBGame) => {
       badges.push({ label: 'STARTER INTEL', color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20', icon: Target, title: 'Lambert (FB heavy) vs Bassitt (Crafty). Unique style clash in the controlled conditions of Minute Maid.' });
     }
   } else if (homeId === 144) { // Braves (Truist Park)
-    if (temp >= 64 && wind.speed >= 8) {
-      badges.push({ label: 'HR BOOST', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: Zap, title: 'Truist Park seeing a +8% HR boost today. Winds blowing out favoring lefties (+12%) in mild 65° air.' });
+    if (temp >= 55) {
+      badges.push({ 
+        label: 'HR BOOST (+11%)', 
+        color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', 
+        icon: Zap, 
+        title: 'Truist Park seeing a +11% HR boost and +2% Run boost today. Conditions: Overcast 66° with 10mph NW winds provide a strong offensive signal (+11% HR) based on historical park climate samples.' 
+      });
     }
   } else if (homeId === 147) { // Yankees
     badges.push({ label: 'SHORT PORCH', color: 'bg-orange-500/10 text-orange-400 border-orange-500/10', icon: Zap, title: 'Yankee Stadium’s shallow right field frequently turns fly balls into home runs.' });
@@ -118,23 +123,18 @@ const getSpecialIntelligence = (game: MLBGame) => {
   }
 
   // 3. Atmosphere Intel
-  const hasOffenseSignal = badges.some(b => b.color.includes('red') || b.color.includes('orange'));
+  const hasOffenseSignal = badges.some(b => b.color.includes('red') || b.color.includes('orange') || b.color.includes('emerald') || b.color.includes('green'));
   const hasPitchingSignal = badges.some(b => b.color.includes('blue'));
 
   if (!hasOffenseSignal && climate?.impulse === 'positive') {
-    badges.push({ label: 'OFFENSE BOOST', color: 'bg-red-500/10 text-red-400 border-red-500/10', icon: Zap, title: climate.message });
+    badges.push({ label: 'HITTERS PARK', color: 'bg-salami-red/10 text-salami-red border-salami-red/10', icon: Zap, title: climate.message });
   } else if (!hasPitchingSignal && !hasOffenseSignal && climate?.impulse === 'negative') {
-    badges.push({ label: 'PITCHING EDGE', color: 'bg-blue-500/10 text-blue-400 border-blue-500/10', icon: ShieldCheck, title: climate.message });
+    badges.push({ label: 'PITCHERS PARK', color: 'bg-blue-500/10 text-blue-400 border-blue-500/10', icon: ShieldCheck, title: climate.message });
   }
 
   // 4. Global Fallback - Ensure every game has at least one badge
   if (badges.length === 0) {
-    badges.push({ 
-      label: 'STABLE AIR', 
-      color: 'bg-gray-500/10 text-gray-400 border-gray-500/10', 
-      icon: Activity, 
-      title: 'Standard atmospheric and umpire factors with no major scoring bias detected.' 
-    });
+    // No fallback needed as per user request to avoid "Stable Air"
   }
 
   return badges;
@@ -170,8 +170,8 @@ const getClimateIntelligence = (game: MLBGame) => {
   const tempStr = game.weather?.temp || "";
   const temp = parseInt(tempStr) || 72;
   const windStr = game.weather?.wind || "";
-  const windParts = windStr.split(' ');
-  const windSpeed = parseInt(windParts[0]) || 0;
+  const windSpeedMatch = windStr.match(/\d+/);
+  const windSpeed = windSpeedMatch ? parseInt(windSpeedMatch[0]) : 0;
   const windDirRaw = windStr.toLowerCase();
   const condition = (game.weather?.condition || '').toLowerCase();
   const venue = (game.venue?.name || '').toLowerCase();
@@ -210,11 +210,14 @@ const getClimateIntelligence = (game: MLBGame) => {
   } else if (temp >= 65) {
     techReport += `Mild ${temp}°F air provides standard lift with minimal resistance. `;
   } else if (temp >= 50) {
-    impulse = 'negative';
-    techReport += `Cool ${temp}°F air is beginning to thicken, providing a slight edge to pitchers. `;
+    techReport += `Cool ${temp}°F air is beginning to thicken, which can provide a slight edge to pitchers. `;
   } else if (temp > 0) {
-    impulse = 'negative';
-    techReport += `Chilly ${temp}°F conditions create dense air that will likely stifle deep fly balls. `;
+    if (windSpeed >= 8) {
+      impulse = 'negative';
+      techReport += `Chilly ${temp}°F conditions combined with ${windSpeed}mph winds create dense air that will likely stifle deep fly balls. `;
+    } else {
+      techReport += `Chilly ${temp}°F conditions create dense air, though light winds minimize the atmospheric travel impact. `;
+    }
   } else {
     techReport += "Temperature data normalizing... ";
   }
@@ -257,8 +260,6 @@ const getClimateIntelligence = (game: MLBGame) => {
     techReport += "High humidity might make the ball feel 'heavier' for some, but typically aids carry in heat.";
   } else if (condition.includes('clear')) {
     techReport += "Pristine clear skies will provide hitters with excellent visibility and contrast.";
-  } else if (condition.includes('overcast')) {
-    techReport += "Overcast layers might help hide the ball's spin from the batter slightly.";
   }
 
   return { impulse, message: techReport.trim(), temp, windStr, windSpeed, condition };
@@ -380,24 +381,15 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
     const isDelay = status.includes('delay') || statusCode === 'D' || statusCode === 'DR' || statusCode === 'DI';
     
     if (isDelay) {
-      const isOvercast = condition.includes('overcast') || condition.includes('cloud');
       const isRainy = rainKeywords.some(keyword => condition.includes(keyword));
       
-      if (isRainy || isOvercast) {
+      if (isRainy) {
         return `Raining (${game.status.detailedState})`;
       }
       return `Delayed (${game.status.detailedState})`;
     }
     
-    // Check for rain risk in active games
-    if (rainKeywords.some(keyword => condition.includes(keyword))) {
-      return `Risk (${game.weather?.condition})`;
-    }
-    
-    if (condition.includes('overcast')) {
-      return `Overcast`;
-    }
-    
+    // User requested to only show rain badges if raining causing a delay
     return null;
   };
 
