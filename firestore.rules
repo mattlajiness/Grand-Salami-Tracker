@@ -94,11 +94,6 @@ service cloud.firestore {
              (data.get('createdAt', request.time) is timestamp);
     }
 
-    function isValidDailyIntel(data) {
-      return data.text is string && data.text.size() < 5000 &&
-             (data.get('updatedAt', request.time) is timestamp);
-    }
-
     // ===============================================================
     // Rules
     // ===============================================================
@@ -136,11 +131,6 @@ service cloud.firestore {
       allow create: if isAuthenticated() && isValidDeliVote(request.resource.data) && voteId == request.resource.data.userId + "_" + request.resource.data.date;
       allow update: if isAuthenticated() && isOwner(resource.data.userId) && isValidDeliVote(request.resource.data) && voteId == resource.data.userId + "_" + resource.data.date;
       allow delete: if isAuthenticated() && isOwner(resource.data.userId);
-    }
-
-    match /dailyIntel/{docId} {
-      allow read: if true;
-      allow write: if isAdmin() && isValidDailyIntel(request.resource.data);
     }
 
     // Default deny

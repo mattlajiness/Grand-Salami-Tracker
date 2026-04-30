@@ -322,32 +322,6 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
   const [filter, setFilter] = useState<'All' | 'Live' | 'Final' | 'Preview'>('All');
   const [editingLineId, setEditingLineId] = useState<number | null>(null);
   const [tempLine, setTempLine] = useState<string>('');
-  const [dailyIntel, setDailyIntel] = useState<string>('This pitcher-friendly week of park effects continues with below-average temperatures of 40s to 60s across the slate. One exception is Sacramento where it will be around 80° for Royals / Athletics.');
-  const [isEditingIntel, setIsEditingIntel] = useState(false);
-  const [tempIntel, setTempIntel] = useState('');
-
-  useEffect(() => {
-    const unsub = onSnapshot(doc(db, 'dailyIntel', 'current'), (doc) => {
-      if (doc.exists()) {
-        setDailyIntel(doc.data().text || '');
-      }
-    });
-    return () => unsub();
-  }, []);
-
-  const handleSaveIntel = async () => {
-    if (!isAdmin) return;
-    try {
-      await setDoc(doc(db, 'dailyIntel', 'current'), {
-        text: tempIntel,
-        updatedAt: Timestamp.now()
-      });
-      setIsEditingIntel(false);
-      toast.success("Daily intel updated");
-    } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, 'dailyIntel/current');
-    }
-  };
 
   const handleSaveLine = async (gamePk: number) => {
     if (!isAdmin) return;
@@ -443,19 +417,7 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {isAdmin && (
-            <button
-              onClick={() => {
-                setTempIntel(dailyIntel);
-                setIsEditingIntel(!isEditingIntel);
-              }}
-              className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 transition-colors"
-            >
-              <Edit2 className="w-4 h-4" />
-            </button>
-          )}
-          <div className="flex items-center gap-2 bg-slate-950 p-1 rounded-lg border border-slate-800">
+        <div className="flex items-center gap-2 bg-slate-950 p-1 rounded-lg border border-slate-800">
           {(['All', 'Live', 'Final', 'Preview'] as const).map((f) => (
             <button
               key={f}
@@ -472,55 +434,7 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
           ))}
         </div>
       </div>
-    </div>
 
-    <AnimatePresence>
-        {dailyIntel && (
-          <motion.div 
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="px-6 py-4 bg-slate-900/30 border-b border-slate-800/50 flex flex-col gap-3"
-          >
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-salami-red/10 rounded-md">
-                <Info className="w-3.5 h-3.5 text-salami-red" />
-              </div>
-              <h3 className="text-[10px] font-mono font-black text-white uppercase tracking-widest">Ballpark Intel Feed</h3>
-            </div>
-            
-            {isEditingIntel ? (
-              <div className="space-y-3">
-                <textarea
-                  value={tempIntel}
-                  onChange={(e) => setTempIntel(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-xs font-mono text-slate-300 focus:outline-none focus:border-salami-red/50 min-h-[100px]"
-                  placeholder="Enter daily intelligence summary..."
-                />
-                <div className="flex justify-end gap-2">
-                  <button
-                    onClick={() => setIsEditingIntel(false)}
-                    className="px-3 py-1.5 rounded bg-slate-800 text-[10px] font-black uppercase text-slate-400 hover:text-white"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSaveIntel}
-                    className="px-3 py-1.5 rounded bg-salami-red text-[10px] font-black uppercase text-white hover:bg-red-700 flex items-center gap-2"
-                  >
-                    <Save className="w-3 h-3" />
-                    Save Updates
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <p className="text-xs font-medium text-slate-400 leading-relaxed max-w-4xl italic">
-                "{dailyIntel}"
-              </p>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-      
       <div className="divide-y divide-slate-800">
         {filteredGames.length === 0 ? (
           <div className="p-16 text-center text-slate-500">
