@@ -47,7 +47,6 @@ const getSpecialIntelligence = (game: MLBGame) => {
   const wind = parseWind(game.weather?.wind);
   const homeId = game.teams.home.team.id;
   const venueProp = game.venue?.name || '';
-  const parkFactor = VenueParkFactors[venueProp.trim()] || 1.0;
   
   const climate = getClimateIntelligence(game);
   const temp = climate?.temp || 72;
@@ -56,61 +55,75 @@ const getSpecialIntelligence = (game: MLBGame) => {
 
   const badges: { label: string; color: string; icon: any; title?: string }[] = [];
 
-  // 1. Signature Park Events
+  // 1. Iconic Weather/Venue Interactions
   if (homeId === 115) { // Coors
-    if (climate?.impulse === 'positive' || (climate?.temp && climate.temp > 70)) {
-      badges.push({ label: 'COORS SHOOTOUT', color: 'bg-red-500/20 text-red-500 border-red-500/20', icon: Zap, title: 'Rare altitude and temperature favor mass offense' });
+    if (temp > 70) {
+      badges.push({ label: 'COORS BOOST', color: 'bg-red-500/20 text-red-500 border-red-500/20', icon: Zap, title: 'Extreme Altitude + Heat: The most offensive-friendly environment in baseball.' });
     } else {
-      badges.push({ label: 'ALTITUDE BOOST', color: 'bg-orange-500/10 text-orange-400 border-orange-500/20', icon: Activity, title: 'Thin air at Coors favoring fly balls' });
+      badges.push({ label: 'ALTITUDE FACTOR', color: 'bg-orange-500/10 text-orange-400 border-orange-500/20', icon: Activity, title: 'Thin air at Coors Field consistently boosts fly ball carrying distance.' });
     }
   } else if (homeId === 112) { // Wrigley
     if (wind.direction === 'OUT' && wind.speed >= 4) {
-      badges.push({ label: 'WRIGLEY SHOOTOUT', color: 'bg-red-600/20 text-red-500 border-red-500/30', icon: Zap, title: 'Wind blowing OUT at Wrigley' });
+      badges.push({ label: 'WIND OUT', color: 'bg-red-600/20 text-red-500 border-red-500/30', icon: Wind, title: 'Significant wind blowing out at Wrigley' });
     } else if (wind.direction === 'IN' && wind.speed >= 6) {
-      badges.push({ label: 'WRIGLEY DUEL', color: 'bg-blue-500/20 text-blue-400 border-blue-500/20', icon: ShieldCheck, title: 'Wind blowing IN at Wrigley' });
-    } else if (wind.speed >= 10) {
-      badges.push({ label: 'WRIGLEY CROSSWIND', color: 'bg-orange-500/10 text-orange-400 border-orange-500/10', icon: Wind, title: 'Brisk crosswinds at Wrigley' });
+      badges.push({ label: 'WIND IN', color: 'bg-blue-500/20 text-blue-400 border-blue-500/20', icon: ShieldCheck, title: 'Wind blowing into Wrigley favoring pitchers' });
     }
-  } else if (homeId === 133) { // Oakland
-    if (climate?.temp && climate.temp > 75) {
-      badges.push({ label: "COLY SHOOTOUT", color: 'bg-red-500/10 text-red-400 border-red-500/20', icon: Zap, title: 'Rare warm conditions in Oakland' });
-    } else {
-      badges.push({ label: "COLISEUM DUEL", color: 'bg-blue-500/10 text-blue-400 border-blue-500/20', icon: ShieldCheck, title: 'Marine layer and dense air in Oakland' });
+  } else if (homeId === 133) { // Athletics (Sacramento)
+    badges.push({ label: "SACRAMENTO HEAT", color: 'bg-red-500/20 text-red-500 border-red-500/20', icon: Zap, title: 'Top venue for offense today (+1.01 runs). Minor league dimensions + 80° heat.' });
+  } else if (homeId === 121) { // Mets (Citi Field)
+    badges.push({ label: 'WEATHER LOCK', color: 'bg-blue-600/20 text-blue-400 border-blue-600/30', icon: ShieldCheck, title: 'Heavy atmospheric run suppression today (-1.77 runs). Weather and park factors strictly limiting fly ball carry.' });
+  } else if (homeId === 142) { // Twins (Target Field)
+    if (temp < 50) {
+      badges.push({ label: 'COLD SUPPRESSION', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20', icon: Thermometer, title: 'Projected -0.90 runs. 40° cold air is neutralizing the moderate outbound wind.' });
     }
-  } else if (homeId === 113) { // Reds
-    if (climate?.impulse === 'positive' || temp > 72) {
-      badges.push({ label: 'GAP SHOOTOUT', color: 'bg-red-500/10 text-red-400 border-red-500/20', icon: Zap, title: 'Small dimensions at GABP favor offense' });
-    }
-  } else if (parkFactor > 1.01 && climate?.impulse !== 'negative') {
-    badges.push({ label: 'HITTERS PARK', color: 'bg-red-500/10 text-red-400 border-red-500/10', icon: Zap, title: `High scoring environment at ${venueProp}` });
-  } else if (parkFactor < 0.98 && climate?.impulse !== 'positive') {
-    badges.push({ label: 'PITCHERS PARK', color: 'bg-blue-500/10 text-blue-400 border-blue-500/10', icon: ShieldCheck, title: `Low scoring environment at ${venueProp}` });
+  } else if (homeId === 110) { // Orioles (Camden Yards)
+    badges.push({ label: 'WALL FACTOR', color: 'bg-orange-500/10 text-orange-400 border-orange-500/20', icon: Activity, title: 'HR suppression (-0.34) due to wall, but high expectancy for singles (+0.72).' });
+  } else if (homeId === 147) { // Yankees
+    badges.push({ label: 'SHORT PORCH', color: 'bg-orange-500/10 text-orange-400 border-orange-500/10', icon: Zap, title: 'Yankee Stadium’s shallow right field frequently turns fly balls into home runs.' });
+  } else if (homeId === 111) { // Red Sox
+    badges.push({ label: 'GREEN MONSTER', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: ShieldCheck, title: 'The wall at Fenway changes fly ball physics, often turning outs into doubles.' });
+  } else if (homeId === 113 && temp > 75) { // Reds
+    badges.push({ label: 'GABP HEAT', color: 'bg-red-500/10 text-red-400 border-red-500/20', icon: Zap, title: 'Heat at small GABP creating elite scoring environment' });
   }
 
-  // 2. Holistic Environment Ratings
-  const isHighOffense = (climate?.impulse === 'positive' || temp > 72) && (ump?.impulse === 'positive' || parkFactor > 1.0);
-  const isPitchersDuel = (climate?.impulse === 'negative' || (temp > 0 && temp < 55)) && (ump?.impulse === 'negative' || parkFactor < 1.0);
-
-  const currentShootout = badges.some(b => b.label.includes('SHOOTOUT') || b.label.includes('RISK') || b.label.includes('BOOST') || b.label.includes('PARK'));
-  const currentDuel = badges.some(b => b.label.includes('DUEL') || b.label.includes('EDGE') || b.label.includes('PARK'));
-
-  if (isHighOffense && !currentShootout) {
-    badges.push({ label: 'SHOOTOUT RISK', color: 'bg-red-500/10 text-red-500 border-red-500/20', icon: Zap, title: 'Multiple factors favor heavy offense' });
-  } else if (isPitchersDuel && !currentDuel) {
-    badges.push({ label: 'PITCHERS DUEL', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20', icon: ShieldCheck, title: 'Multiple factors favor sharp pitching' });
+  // 2. Weather Specifics
+  if (temp >= 85) {
+    badges.push({ label: 'HEAT BOOST', color: 'bg-red-500/10 text-red-500 border-red-500/20', icon: Thermometer, title: `High ${temp}°F heat maximizing ball carry` });
+  } else if (temp > 0 && temp < 50) {
+    badges.push({ label: 'DENSE COLD', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20', icon: Thermometer, title: `Chilly ${temp}°F air deadening ball flight` });
   }
 
-  // 3. Individual Intelligence (Fallback if not already covered)
-  const finalShootout = badges.some(b => b.label.includes('SHOOTOUT') || b.label.includes('RISK') || b.label.includes('BOOST') || b.label.includes('PARK'));
-  const finalDuel = badges.some(b => b.label.includes('DUEL') || b.label.includes('EDGE') || b.label.includes('PARK'));
+  const condition = (game.weather?.condition || '').toLowerCase();
+  if (condition.includes('humid') || condition.includes('damp') || condition.includes('mist') || condition.includes('drizzle')) {
+    badges.push({ label: 'HUMID AIR', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: Droplets, title: 'High moisture and humidity reduce air density, helping balls carry slightly further.' });
+  }
 
-  if (!finalShootout && (climate?.impulse === 'positive' || (ump && ump.impulse === 'positive'))) {
+  if (wind.direction === 'OUT' && wind.speed > 10) {
+    badges.push({ label: 'TAILWIND', color: 'bg-red-500/10 text-red-400 border-red-500/20', icon: Wind, title: `${wind.speed}mph tailwind boosting flight` });
+  } else if (wind.direction === 'IN' && wind.speed >= 8) {
+    badges.push({ label: 'HEADWIND', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20', icon: Wind, title: `${wind.speed}mph headwind stifling balls` });
+  }
+
+  // 3. Atmosphere & Umpire Intel
+  const hasOffenseSignal = badges.some(b => b.color.includes('red') || b.color.includes('orange'));
+  const hasPitchingSignal = badges.some(b => b.color.includes('blue'));
+
+  if (!hasOffenseSignal && (climate?.impulse === 'positive' || (ump && ump.impulse === 'positive'))) {
     const title = [climate?.message, ump?.message].filter(Boolean).join(' | ');
-    badges.push({ label: 'OFFENSE BOOST', color: 'bg-red-500/10 text-red-500 border-red-500/20', icon: Zap, title });
-  }
-  if (!finalDuel && (climate?.impulse === 'negative' || (ump && ump.impulse === 'negative'))) {
+    badges.push({ label: 'OFFENSE BOOST', color: 'bg-red-500/10 text-red-400 border-red-500/10', icon: Zap, title });
+  } else if (!hasPitchingSignal && (climate?.impulse === 'negative' || (ump && ump.impulse === 'negative'))) {
     const title = [climate?.message, ump?.message].filter(Boolean).join(' | ');
-    badges.push({ label: 'PITCHING EDGE', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20', icon: ShieldCheck, title });
+    badges.push({ label: 'PITCHING EDGE', color: 'bg-blue-500/10 text-blue-400 border-blue-500/10', icon: ShieldCheck, title });
+  }
+
+  // 4. Global Fallback - Ensure every game has at least one badge
+  if (badges.length === 0) {
+    badges.push({ 
+      label: 'STABLE AIR', 
+      color: 'bg-gray-500/10 text-gray-400 border-gray-500/10', 
+      icon: Activity, 
+      title: 'Standard atmospheric and umpire factors with no major scoring bias detected.' 
+    });
   }
 
   return badges;
@@ -185,7 +198,7 @@ const getClimateIntelligence = (game: MLBGame) => {
     techReport += `Warm ${temp}°F conditions are classic for higher offense, favoring the carry of fly balls. `;
   } else if (temp >= 65) {
     techReport += `Mild ${temp}°F air provides standard lift with minimal resistance. `;
-  } else if (temp >= 55) {
+  } else if (temp >= 50) {
     impulse = 'negative';
     techReport += `Cool ${temp}°F air is beginning to thicken, providing a slight edge to pitchers. `;
   } else if (temp > 0) {
@@ -464,7 +477,7 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                           {game.status.abstractGameState === 'Live' && getThreatLevel(game) > 0.25 && (
                              <div 
                                className={cn(
-                                 "flex items-center gap-1 px-1.5 py-0.5 rounded shadow-sm cursor-help",
+                                 "flex items-center gap-1 px-1.5 py-0.5 rounded shadow-sm cursor-help select-none",
                                  getThreatLevel(game) > 0.7 ? "bg-red-600 text-white" : "bg-salami-red/20 text-salami-red"
                                )}
                                onClick={(e) => {
@@ -488,7 +501,7 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                                badges.push(
                                  <div 
                                    key="risk" 
-                                   className="flex items-center gap-1 bg-blue-500/20 px-1.5 py-0.5 rounded cursor-help"
+                                   className="flex items-center gap-1 bg-blue-500/20 px-1.5 py-0.5 rounded cursor-help select-none"
                                    onClick={(e) => {
                                      e.stopPropagation();
                                      toast.info(`${risk}. Game at risk of delay or cancellation.`, { duration: 3000, position: 'bottom-center' });
@@ -509,7 +522,7 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                                   <div 
                                     key={intel.label}
                                     className={cn(
-                                      "flex items-center gap-1 px-1.5 py-0.5 rounded border shadow-sm cursor-help",
+                                      "flex items-center gap-1 px-1.5 py-0.5 rounded border shadow-sm cursor-help select-none",
                                       intel.color
                                     )}
                                     title={intel.title}
@@ -912,7 +925,7 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                                     animate={{ opacity: [1, 0.5, 1], scale: getThreatLevel(game) > 0.7 ? [1, 1.05, 1] : 1 }} 
                                     transition={{ duration: 1, repeat: Infinity }}
                                     className={cn(
-                                      "flex items-center gap-1.5 border px-2 py-0.5 rounded cursor-help shadow-sm",
+                                      "flex items-center gap-1.5 border px-2 py-0.5 rounded cursor-help shadow-sm select-none",
                                       getThreatLevel(game) > 0.7 ? "bg-red-600 border-red-500 text-white" : "bg-salami-red/10 border-salami-red/20 text-salami-red"
                                     )}
                                     title={`Live scoring threat: ${getThreatLevel(game).toFixed(2)} expected runs`}
@@ -937,7 +950,7 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                                      badges.push(
                                        <div 
                                          key="risk"
-                                         className="flex items-center gap-1 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded cursor-help"
+                                         className="flex items-center gap-1 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded cursor-help select-none"
                                          title={`${riskMessage}. Game at risk of delay or cancellation.`}
                                          onClick={(e) => {
                                            e.stopPropagation();
@@ -960,7 +973,7 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                                        <div 
                                          key={intel.label}
                                          className={cn(
-                                           "flex items-center gap-1 px-2 py-0.5 rounded border shadow-sm cursor-help",
+                                           "flex items-center gap-1 px-2 py-0.5 rounded border shadow-sm cursor-help select-none",
                                            intel.color
                                          )}
                                          title={intel.title}
