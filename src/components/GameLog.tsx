@@ -50,8 +50,6 @@ const getSpecialIntelligence = (game: MLBGame) => {
   
   const climate = getClimateIntelligence(game);
   const temp = climate?.temp || 72;
-  const homePlateUmpire = game.officials?.find(o => o.officialType === 'Home Plate')?.official;
-  const ump = homePlateUmpire ? getUmpireIntelligence(homePlateUmpire.fullName) : null;
 
   const badges: { label: string; color: string; icon: any; title?: string }[] = [];
 
@@ -78,6 +76,17 @@ const getSpecialIntelligence = (game: MLBGame) => {
     }
   } else if (homeId === 110) { // Orioles (Camden Yards)
     badges.push({ label: 'WALL FACTOR', color: 'bg-orange-500/10 text-orange-400 border-orange-500/20', icon: Activity, title: 'HR suppression (-0.34) due to wall, but high expectancy for singles (+0.72).' });
+  } else if (homeId === 117) { // Astros (Minute Maid)
+    const p1 = game.teams.away.probablePitcher?.fullName;
+    const p2 = game.teams.home.probablePitcher?.fullName;
+    // Check for Lambert vs Bassitt matchup or general O's/Astros battle
+    if ((p1?.includes('Lambert') && p2?.includes('Bassitt')) || (p1?.includes('Bassitt') && p2?.includes('Lambert'))) {
+      badges.push({ label: 'STARTER INTEL', color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20', icon: Target, title: 'Lambert (FB heavy) vs Bassitt (Crafty). Unique style clash in the controlled conditions of Minute Maid.' });
+    }
+  } else if (homeId === 144) { // Braves (Truist Park)
+    if (temp >= 64 && wind.direction === 'OUT' && wind.speed >= 8) {
+      badges.push({ label: 'HR BOOST', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: Zap, title: 'Truist Park seeing a +11% HR boost today. NW winds and 60s+ temps favoring fly ball carry.' });
+    }
   } else if (homeId === 147) { // Yankees
     badges.push({ label: 'SHORT PORCH', color: 'bg-orange-500/10 text-orange-400 border-orange-500/10', icon: Zap, title: 'Yankee Stadium’s shallow right field frequently turns fly balls into home runs.' });
   } else if (homeId === 111) { // Red Sox
@@ -104,16 +113,14 @@ const getSpecialIntelligence = (game: MLBGame) => {
     badges.push({ label: 'HEADWIND', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20', icon: Wind, title: `${wind.speed}mph headwind stifling balls` });
   }
 
-  // 3. Atmosphere & Umpire Intel
+  // 3. Atmosphere Intel
   const hasOffenseSignal = badges.some(b => b.color.includes('red') || b.color.includes('orange'));
   const hasPitchingSignal = badges.some(b => b.color.includes('blue'));
 
-  if (!hasOffenseSignal && (climate?.impulse === 'positive' || (ump && ump.impulse === 'positive'))) {
-    const title = [climate?.message, ump?.message].filter(Boolean).join(' | ');
-    badges.push({ label: 'OFFENSE BOOST', color: 'bg-red-500/10 text-red-400 border-red-500/10', icon: Zap, title });
-  } else if (!hasPitchingSignal && (climate?.impulse === 'negative' || (ump && ump.impulse === 'negative'))) {
-    const title = [climate?.message, ump?.message].filter(Boolean).join(' | ');
-    badges.push({ label: 'PITCHING EDGE', color: 'bg-blue-500/10 text-blue-400 border-blue-500/10', icon: ShieldCheck, title });
+  if (!hasOffenseSignal && climate?.impulse === 'positive') {
+    badges.push({ label: 'OFFENSE BOOST', color: 'bg-red-500/10 text-red-400 border-red-500/10', icon: Zap, title: climate.message });
+  } else if (!hasPitchingSignal && climate?.impulse === 'negative') {
+    badges.push({ label: 'PITCHING EDGE', color: 'bg-blue-500/10 text-blue-400 border-blue-500/10', icon: ShieldCheck, title: climate.message });
   }
 
   // 4. Global Fallback - Ensure every game has at least one badge
