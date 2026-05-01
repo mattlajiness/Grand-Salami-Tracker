@@ -796,11 +796,22 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                                     const weather = getWeatherIcon(game.weather?.condition);
                                     return <weather.icon className={cn("w-2.5 h-2.5", weather.color)} />;
                                   })()}
-                                  <span className="text-[10px] font-mono font-black text-slate-300 ml-0.5">{game.weather.temp}°</span>
+                                  <span className={cn(
+                                    "text-[10px] font-mono font-black ml-0.5",
+                                    game.weather.isForecast ? "text-blue-400" : "text-slate-300"
+                                  )}>
+                                    {game.weather.temp}°
+                                    {game.weather.isForecast && <span className="text-[5px] ml-0.5 opacity-60">f</span>}
+                                  </span>
                                 </div>
                                 <div className="flex items-center gap-1 border-l border-slate-800 pl-2">
-                                  <Wind className="w-2.5 h-2.5 text-blue-400" />
-                                  <span className="text-[10px] font-mono font-bold text-slate-500">{(game.weather.wind || '').split(' ')[0]}</span>
+                                  <Wind className={cn("w-2.5 h-2.5", game.weather.isForecast ? "text-blue-500/50" : "text-blue-400")} />
+                                  <span className={cn(
+                                    "text-[10px] font-mono font-bold",
+                                    game.weather.isForecast ? "text-slate-600" : "text-slate-500"
+                                  )}>
+                                    {(game.weather.wind || '').split(' ')[0]}
+                                  </span>
                                 </div>
                               </div>
                               {game.status.abstractGameState === 'Preview' && (
@@ -1390,14 +1401,18 @@ function GameDetailView({ game }: { game: MLBGame }) {
 
         <div className="grid grid-cols-3 gap-3 mt-4 pt-3 border-t border-slate-800/50">
           <div className="space-y-0.5">
-            <span className="text-[6px] font-mono text-slate-600 uppercase tracking-widest">Temp</span>
+            <span className="text-[6px] font-mono text-slate-600 uppercase tracking-widest flex items-center gap-1">
+              Temp {game.weather?.isForecast && <span className="text-[5px] bg-blue-500/20 text-blue-400 px-0.5 rounded leading-none">FORECAST</span>}
+            </span>
             <div className="flex items-center gap-1.5">
               <Thermometer className={cn("w-3 h-3", intelligence.temp >= 85 ? "text-red-500" : intelligence.temp <= 50 ? "text-blue-400" : "text-amber-500")} />
               <span className="text-[10px] font-bold text-white tracking-widest">{intelligence.temp}°F</span>
             </div>
           </div>
           <div className="space-y-0.5 text-center">
-            <span className="text-[6px] font-mono text-slate-600 uppercase tracking-widest">Wind</span>
+            <span className="text-[6px] font-mono text-slate-600 uppercase tracking-widest flex items-center justify-center gap-1">
+              Wind {game.weather?.isForecast && <span className="text-[5px] bg-blue-500/20 text-blue-400 px-0.5 rounded leading-none">FORECAST</span>}
+            </span>
             <div className="flex items-center justify-center gap-1.5 min-w-0">
               <Wind className={cn("w-3 h-3 shrink-0", intelligence.windSpeed >= 12 ? "text-red-400" : intelligence.windSpeed >= 8 ? "text-blue-400" : "text-slate-500")} />
               <span className="text-[10px] font-bold text-white tracking-widest uppercase truncate">{intelligence.windStr.split(' ')[0] || 'Calm'}</span>

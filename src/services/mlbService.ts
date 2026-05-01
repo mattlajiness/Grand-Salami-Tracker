@@ -77,6 +77,7 @@ export interface MLBGame {
     condition: string;
     temp: string;
     wind: string;
+    isForecast?: boolean;
   };
   venue?: {
     name: string;
@@ -123,6 +124,8 @@ let scheduleCache: {
 } | null = null;
 
 const SCHEDULE_CACHE_TTL = 60 * 1000; // 1 minute fallback cache
+
+import { fetchWeatherForecast } from './weatherService';
 
 export async function fetchMLBGames(date?: string, startDate?: string, endDate?: string): Promise<MLBGame[]> {
   const fetchWithRetry = async (retryUrl: string, retries = 2): Promise<Response> => {
@@ -204,28 +207,40 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
       return [];
     }
 
-    // Enrich with boxscores if missing for final games
+    // Enrich with boxscores if missing for final games AND pre-fetch forecast for future games
     const enrichedGames = await Promise.all(rawGames.map(async (game) => {
+      let enrichedGame = { ...game };
+
+      // 1. Boxscore enrichment
       if (game.status.abstractGameState === 'Final' && (!game.boxscore?.teams.home.pitchers || game.boxscore.teams.home.pitchers.length === 0)) {
         try {
           const boxResponse = await fetch(`https://statsapi.mlb.com/api/v1/game/${game.gamePk}/boxscore`);
           if (boxResponse.ok) {
             const boxData = await boxResponse.json();
-            return {
-              ...game,
-              boxscore: {
-                teams: {
-                  away: { pitchers: boxData.teams.away.pitchers || [] },
-                  home: { pitchers: boxData.teams.home.pitchers || [] }
-                }
+            enrichedGame.boxscore = {
+              teams: {
+                away: { pitchers: boxData.teams.away.pitchers || [] },
+                home: { pitchers: boxData.teams.home.pitchers || [] }
               }
             };
           }
-        } catch (e) {
-          // Ignore
+        } catch (e) {}
+      }
+
+      // 2. Weather Forecast enrichment for Preview/Live games missing weather
+      if (!enrichedGame.weather || !enrichedGame.weather.temp) {
+        const forecast = await fetchWeatherForecast(game.teams.home.team.id, game.gameDate, game.venue?.name);
+        if (forecast) {
+          enrichedGame.weather = {
+            condition: forecast.condition,
+            temp: forecast.temp.toString(),
+            wind: `${forecast.windSpeed} mph, Dir ${forecast.windDir}`,
+            isForecast: true
+          };
         }
       }
-      return game;
+
+      return enrichedGame;
     }));
 
     let resultGames = enrichedGames;
