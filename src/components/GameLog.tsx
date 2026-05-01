@@ -166,18 +166,6 @@ const getSpecialIntelligence = (game: MLBGame) => {
 
   // 3. Global Weather Factors (Only if no specific identity, to avoid "repeat badges")
   if (!isStrictDome && !hasSpecificParkIdentity) {
-    if (windSpeed >= 10) {
-      let receptivity = 'High';
-      if (windSpeed >= 15) receptivity = 'Extreme';
-      
-      badges.push({ 
-        label: `${receptivity.toUpperCase()} RECEPTIVE`, 
-        color: windSpeed >= 15 ? 'bg-red-500/10 text-red-500 border-red-500/10' : 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-        icon: Wind,
-        title: `Wind Receptivity is ${receptivity} today (${windSpeed}mph).`
-      });
-    }
-    
     if (wind.direction === 'OUT' && wind.speed >= 10) {
       badges.push({ label: 'TAILWIND', color: 'bg-red-500/10 text-red-400 border-red-500/20', icon: Wind, title: `${wind.speed}mph tailwind boosting flight` });
     } else if (wind.direction === 'IN' && wind.speed >= 10) {
