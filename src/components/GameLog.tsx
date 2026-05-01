@@ -178,9 +178,9 @@ const getSpecialIntelligence = (game: MLBGame) => {
       });
     }
     
-    if (wind.direction === 'OUT' && wind.speed >= 6) {
+    if (wind.direction === 'OUT' && wind.speed >= 10) {
       badges.push({ label: 'TAILWIND', color: 'bg-red-500/10 text-red-400 border-red-500/20', icon: Wind, title: `${wind.speed}mph tailwind boosting flight` });
-    } else if (wind.direction === 'IN' && wind.speed >= 6) {
+    } else if (wind.direction === 'IN' && wind.speed >= 10) {
       badges.push({ label: 'HEADWIND', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20', icon: Wind, title: `${wind.speed}mph headwind stifling fly balls` });
     }
 
