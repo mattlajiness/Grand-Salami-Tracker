@@ -55,21 +55,28 @@ function getWindDir(degree: number): string {
   return WIND_DIRS[index];
 }
 
+const FORECAST_CACHE: Record<string, WeatherForecast> = {};
+
 export async function fetchWeatherForecast(homeTeamId: number, gameDate: string, venueName: string = ''): Promise<WeatherForecast | null> {
   const stadium = STADIUM_DATA[homeTeamId] || Object.values(STADIUM_DATA).find(s => venueName && s.name.toLowerCase().includes(venueName.toLowerCase()));
   if (!stadium) return null;
+
+  const date = parseISO(gameDate);
+  const dateStr = format(date, 'yyyy-MM-dd');
+  const cacheKey = `${stadium.lat}-${stadium.lng}-${dateStr}`;
+  
+  if (FORECAST_CACHE[cacheKey]) return FORECAST_CACHE[cacheKey];
 
   if (stadium.isDome) {
     return { temp: 72, windSpeed: 0, windDir: 'None', condition: 'Dome' };
   }
 
   try {
-    const date = parseISO(gameDate);
-    const dateStr = format(date, 'yyyy-MM-dd');
     const hour = date.getHours();
 
     const response = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${stadium.lat}&longitude=${stadium.lng}&hourly=temperature_2m,weathercode,windspeed_10m,winddirection_10m&temperature_unit=fahrenheit&windspeed_unit=mph&start_date=${dateStr}&end_date=${dateStr}`
+      `https://api.open-meteo.com/v1/forecast?latitude=${stadium.lat}&longitude=${stadium.lng}&hourly=temperature_2m,weathercode,windspeed_10m,winddirection_10m&temperature_unit=fahrenheit&windspeed_unit=mph&start_date=${dateStr}&end_date=${dateStr}`,
+      { priority: 'low' }
     );
 
     if (!response.ok) return null;
@@ -79,9 +86,9 @@ export async function fetchWeatherForecast(homeTeamId: number, gameDate: string,
 
     // Find the closest hour
     const idx = hour;
-    const temp = Math.round(data.hourly.temperature_2m[idx]);
-    const windSpeed = Math.round(data.hourly.windspeed_10m[idx]);
-    const windDir = getWindDir(data.hourly.winddirection_10m[idx]);
+    const temp = Math.round(data.hourly.temperature_2m[idx] || 72);
+    const windSpeed = Math.round(data.hourly.windspeed_10m[idx] || 0);
+    const windDir = getWindDir(data.hourly.winddirection_10m[idx] || 0);
     
     // Weather code mapping (simplified)
     const code = data.hourly.weathercode[idx];
@@ -93,9 +100,11 @@ export async function fetchWeatherForecast(homeTeamId: number, gameDate: string,
     if (code >= 80 && code <= 82) condition = 'Showers';
     if (code >= 95) condition = 'Thunderstorm';
 
-    return { temp, windSpeed, windDir, condition };
+    const result = { temp, windSpeed, windDir, condition };
+    FORECAST_CACHE[cacheKey] = result;
+    return result;
   } catch (e) {
-    console.error('Forecast fetch failed:', e);
+    // Silently fail to avoid console noise for optional enrichment
     return null;
   }
 }

@@ -166,14 +166,13 @@ const getSpecialIntelligence = (game: MLBGame) => {
 
   // 3. Global Weather Factors (Only if no specific identity, to avoid "repeat badges")
   if (!isStrictDome && !hasSpecificParkIdentity) {
-    if (windSpeed >= 1) {
-      let receptivity = 'Active';
-      if (windSpeed > 8) receptivity = 'Extreme';
-      else if (windSpeed > 4) receptivity = 'High';
+    if (windSpeed >= 10) {
+      let receptivity = 'High';
+      if (windSpeed >= 15) receptivity = 'Extreme';
       
       badges.push({ 
         label: `${receptivity.toUpperCase()} RECEPTIVE`, 
-        color: windSpeed > 6 ? 'bg-red-500/10 text-red-500 border-red-500/10' : 'bg-slate-500/10 text-slate-400 border-white/5',
+        color: windSpeed >= 15 ? 'bg-red-500/10 text-red-500 border-red-500/10' : 'bg-blue-500/10 text-blue-400 border-blue-500/20',
         icon: Wind,
         title: `Wind Receptivity is ${receptivity} today (${windSpeed}mph).`
       });
@@ -358,7 +357,7 @@ const getClimateIntelligence = (game: MLBGame) => {
     } else if (temp >= 50) {
       techReport += `Cool ${temp}°F air is beginning to thicken; the increased density will likely increase drag and peel a few feet off fly ball distance. `;
     } else if (temp > 0) {
-      if (windSpeed >= 8) {
+      if (windSpeed >= 10) {
         impulse = 'negative';
         techReport += `Chilly ${temp}°F conditions combined with ${windSpeed}mph winds create dense air that will likely stifle deep fly balls. `;
       } else {
@@ -370,7 +369,7 @@ const getClimateIntelligence = (game: MLBGame) => {
   }
 
   // 2. Wind Vector Analysis
-  if (windSpeed >= 18) {
+  if (windSpeed >= 15) {
     impulse = isOut ? 'positive' : (isIn ? 'negative' : impulse);
     techReport += `A punishing ${windSpeed}mph ${isOut ? 'tailwind' : isIn ? 'headwind' : 'cross-current'} is dominating the field. `;
     if (isOut) techReport += "Routine fly balls have a massive probability of being carried over the fence by the sheer force of the gust. ";
@@ -1414,7 +1413,7 @@ function GameDetailView({ game }: { game: MLBGame }) {
               Wind {game.weather?.isForecast && <span className="text-[5px] bg-blue-500/20 text-blue-400 px-0.5 rounded leading-none">FORECAST</span>}
             </span>
             <div className="flex items-center justify-center gap-1.5 min-w-0">
-              <Wind className={cn("w-3 h-3 shrink-0", intelligence.windSpeed >= 12 ? "text-red-400" : intelligence.windSpeed >= 8 ? "text-blue-400" : "text-slate-500")} />
+              <Wind className={cn("w-3 h-3 shrink-0", intelligence.windSpeed >= 15 ? "text-red-400" : intelligence.windSpeed >= 10 ? "text-blue-400" : "text-slate-500")} />
               <span className="text-[10px] font-bold text-white tracking-widest uppercase truncate">{intelligence.windStr.split(' ')[0] || 'Calm'}</span>
             </div>
           </div>
