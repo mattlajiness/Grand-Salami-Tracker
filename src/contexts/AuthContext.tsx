@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, onAuthStateChanged } from 'firebase/auth';
 import { doc, onSnapshot, setDoc, Timestamp } from 'firebase/firestore';
-import { auth, db, signInWithGoogle, logout } from '../firebase';
+import { auth, db, signInWithGoogle, logout, handleFirestoreError, OperationType } from '../firebase';
 
 interface UserProfile {
   uid: string;
@@ -71,7 +71,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setLoading(false);
           clearTimeout(timeoutId);
         }, (error) => {
-          console.error('Profile Snapshot Error:', error);
+          try {
+            handleFirestoreError(error, OperationType.GET, `users/${currentUser.uid}`);
+          } catch (e) {
+             console.warn("Profile fetch failed - check rules or connection.");
+          }
           setLoading(false);
           clearTimeout(timeoutId);
         });

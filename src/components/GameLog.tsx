@@ -13,17 +13,27 @@ import { format } from 'date-fns';
 
 import { VenueParkFactors } from '../lib/leagueConstants';
 
-const parseWind = (windStr: string = '') => {
+const parseWind = (windStr: string = '', homeId?: number, venue: string = '') => {
   const normalized = windStr.toLowerCase();
   const speedMatch = normalized.match(/\d+/);
   const speed = speedMatch ? parseInt(speedMatch[0]) : 0;
   
-  if (normalized.includes('out') || normalized.includes('to lf') || normalized.includes('to rf') || normalized.includes('to cf')) {
-    return { direction: 'OUT', speed };
+  const isOut = normalized.includes('out') || normalized.includes('to lf') || normalized.includes('to rf') || normalized.includes('to cf');
+  const isIn = normalized.includes('in') || normalized.includes('from lf') || normalized.includes('from rf') || normalized.includes('from cf');
+
+  // Cardinal Direction Mapping for known high-impact parks
+  if (homeId === 112 || venue.includes('wrigley')) { // Wrigley
+     const cardinal = normalized.match(/\b(n|s|e|w|nw|ne|sw|se|north|south|east|west|dir n|dir s)\b/);
+     if (cardinal) {
+        const dir = cardinal[0].replace('dir ', '');
+        if (dir === 'n' || dir === 'north' || dir === 'ne' || dir === 'nw') return { direction: 'IN', speed };
+        if (dir === 's' || dir === 'south' || dir === 'se' || dir === 'sw') return { direction: 'OUT', speed };
+     }
   }
-  if (normalized.includes('in') || normalized.includes('from lf') || normalized.includes('from rf') || normalized.includes('from cf')) {
-    return { direction: 'IN', speed };
-  }
+
+  if (isOut) return { direction: 'OUT', speed };
+  if (isIn) return { direction: 'IN', speed };
+
   return { direction: 'CROSS', speed };
 };
 
@@ -44,105 +54,167 @@ const getWeatherIcon = (condition: string = '') => {
 
 
 const getSpecialIntelligence = (game: MLBGame) => {
-  const wind = parseWind(game.weather?.wind);
   const homeId = game.teams.home.team.id;
-  const venueProp = game.venue?.name || '';
+  const venue = (game.venue?.name || '').toLowerCase();
+  const wind = parseWind(game.weather?.wind, homeId, venue);
+  const condition = (game.weather?.condition || '').toLowerCase();
   
   const climate = getClimateIntelligence(game);
   const temp = climate?.temp || 72;
+  const windSpeed = climate?.windSpeed || 0;
+  
+  const isStrictDome = venue.includes('tropicana') || venue.includes('loandepot') || venue.includes('globe life') || venue.includes('minute maid') || venue.includes('american family') || venue.includes('rogers centre') || (venue.includes('chase field') && (condition.includes('dome') || condition.includes('roof closed')));
+  const isRetractableSeattle = venue.includes('t-mobile') || venue.includes('safeco');
 
   const badges: { label: string; color: string; icon: any; title?: string }[] = [];
 
-  // 1. Iconic Weather/Venue Interactions
-  if (homeId === 115) { // Coors
-    if (temp > 70) {
-      badges.push({ label: 'COORS BOOST', color: 'bg-red-500/20 text-red-500 border-red-500/20', icon: Zap, title: 'Extreme Altitude + Heat: The most offensive-friendly environment in baseball.' });
+  // 1. Primary Park Identity & Logic (Only one main park badge)
+  let hasSpecificParkIdentity = false;
+
+  const isWrigley = homeId === 112 || venue.includes('wrigley');
+  const isCoors = homeId === 115 || venue.includes('coors');
+  const isTmobile = isRetractableSeattle || homeId === 136 || venue.includes('t-mobile');
+  const isPetco = homeId === 135 || venue.includes('petco');
+  const isSac = homeId === 133 || venue.includes('sutter health');
+  const isBusch = homeId === 138 || venue.includes('busch');
+
+  if (isWrigley) {
+    hasSpecificParkIdentity = true;
+    if (wind.direction === 'OUT' && wind.speed >= 3) {
+      badges.push({ label: 'WRIGLEY BOOST (+2.27)', color: 'bg-red-600/20 text-red-500 border-red-500/30', icon: Wind, title: 'Wrigley Field Potential: Significant wind blowing out favors offensive clusters (+2.27 Runs).' });
+    } else if (wind.direction === 'IN' || temp < 55 || (wind.direction === 'CROSS' && temp < 60)) {
+       badges.push({ label: 'WRIGLEY GRAVEYARD (-35% HR)', color: 'bg-blue-700/30 text-blue-300 border-blue-500/40', icon: ShieldCheck, title: `Extreme Suppression (-10% Runs): ${wind.direction === 'IN' ? 'Headwind' : 'Cold air'} deadening fly balls tonight (-35% HR).` });
     } else {
-      badges.push({ label: 'ALTITUDE FACTOR', color: 'bg-orange-500/10 text-orange-400 border-orange-500/20', icon: Activity, title: 'Thin air at Coors Field consistently boosts fly ball carrying distance.' });
+       badges.push({ label: 'WRIGLEY NEUTRAL', color: 'bg-slate-500/10 text-slate-400 border-white/5', icon: ShieldCheck, title: 'Wrigley playing near neutral baseline tonight.' });
     }
-  } else if (homeId === 112) { // Wrigley
-    if (wind.direction === 'OUT' && wind.speed >= 4) {
-      badges.push({ label: 'WIND OUT', color: 'bg-red-600/20 text-red-500 border-red-500/30', icon: Wind, title: 'Significant wind blowing out at Wrigley' });
-    } else if (wind.direction === 'IN' && wind.speed >= 6) {
-      badges.push({ label: 'WIND IN', color: 'bg-blue-500/20 text-blue-400 border-blue-500/20', icon: ShieldCheck, title: 'Wind blowing into Wrigley favoring pitchers' });
+  } else if (isCoors) {
+    hasSpecificParkIdentity = true;
+    if (temp > 70) {
+      badges.push({ label: 'COORS BOOST (+2.94)', color: 'bg-red-500/20 text-red-500 border-red-500/20', icon: Zap, title: 'Coors Field (+2.94 Runs): Extreme Altitude + Heat creates the most offensive environment in baseball.' });
+    } else {
+      badges.push({ label: 'ALTITUDE FACTOR (+2.94)', color: 'bg-orange-500/10 text-orange-400 border-orange-500/20', icon: Activity, title: 'Coors Field (+2.94 Runs): 5,280ft elevation consistently boosts fly ball carry by 5-10%.' });
     }
-  } else if (homeId === 133) { // Athletics (Sacramento)
-    badges.push({ label: "SACRAMENTO HEAT", color: 'bg-red-500/20 text-red-500 border-red-500/20', icon: Zap, title: 'Top venue for offense today (+1.01 runs). Minor league dimensions + 80° heat.' });
-  } else if (homeId === 121) { // Mets (Citi Field)
-    badges.push({ label: 'WEATHER LOCK', color: 'bg-blue-600/20 text-blue-400 border-blue-600/30', icon: ShieldCheck, title: 'Heavy atmospheric run suppression today (-1.77 runs). Weather and park factors strictly limiting fly ball carry.' });
-  } else if (homeId === 142) { // Twins (Target Field)
-    if (temp <= 50) {
-      badges.push({ label: 'HR SUPPRESSION', color: 'bg-blue-600/20 text-blue-400 border-blue-600/30', icon: Thermometer, title: `Target Field suppressing HRs by -11% today. ${temp}°F cold thickening air despite outbound wind components.` });
+  } else if (isTmobile) {
+    hasSpecificParkIdentity = true;
+    badges.push({ 
+      label: 'T-MOBILE FACTOR (-1.45)', 
+      color: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20', 
+      icon: Cloud, 
+      title: 'T-Mobile Park (-1.45 Runs): The retractable roof acts as an umbrella. Heavy sea-level air and marine dynamics suppress deep power.' 
+    });
+  } else if (isPetco) {
+    hasSpecificParkIdentity = true;
+    badges.push({ 
+      label: 'PETCO TRAP (-0.85)', 
+      color: 'bg-blue-600/20 text-blue-400 border-blue-600/30', 
+      icon: ShieldCheck, 
+      title: 'Petco Park (-0.85 Runs): Marine layer and sea-level air density make it a premier pitcher-haven.' 
+    });
+  } else if (isSac) {
+    hasSpecificParkIdentity = true;
+    badges.push({ 
+      label: "SACRAMENTO (+1.39)", 
+      color: 'bg-red-500/20 text-red-500 border-red-500/20', 
+      icon: Zap, 
+      title: 'Sutter Health Park (+1.39 Runs): Minor league dimensions and 75°F+ heat boosting carry.' 
+    });
+  } else if (isBusch) {
+    hasSpecificParkIdentity = true;
+    badges.push({ label: 'STL SUPPRESSION (-1.26)', color: 'bg-blue-600/20 text-blue-400 border-blue-600/30', icon: ShieldCheck, title: 'Busch Stadium (-1.26 Runs): Significant HR suppression (-31%) in current climate.' });
+  } else if (homeId === 145) { // Tigers
+    hasSpecificParkIdentity = true;
+    badges.push({ label: 'COMERICA WALL (-0.91)', color: 'bg-blue-600/20 text-blue-400 border-blue-600/30', icon: ShieldCheck, title: 'Comerica Park (-0.91 Runs): Large dimensions and lake air suppressing deep power (-24% HR).' });
+  } else if (homeId === 111) { // Red Sox
+    hasSpecificParkIdentity = true;
+    badges.push({ label: 'FENWAY FACTOR (+0.59)', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: Activity, title: 'Fenway Park (+0.59 Runs): High double potential due to Green Monster dimensions.' });
+  } else if (isStrictDome) {
+    hasSpecificParkIdentity = true;
+    badges.push({ 
+      label: 'DOME CONTROL', 
+      color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20', 
+      icon: ShieldCheck, 
+      title: 'Climate Controlled: Atmospheric variables are neutralized. Park dimensions are the primary factor.' 
+    });
+  } else if (homeId === 131) { // PNC
+    if (temp < 65 && (condition.includes('humid') || condition.includes('damp'))) {
+       badges.push({ label: 'RIVERFRONT HEAVY', color: 'bg-indigo-600/20 text-indigo-300 border-indigo-500/30', icon: Thermometer, title: 'Moist river air creates high air density, suppressing carry.' });
+       hasSpecificParkIdentity = true;
     }
-  } else if (homeId === 141) { // Phillies (Citizens Bank)
-    if (wind.direction === 'IN' || wind.speed >= 7) {
-      badges.push({ label: 'HR SUPPRESSION', color: 'bg-blue-600/20 text-blue-400 border-blue-600/30', icon: Wind, title: 'Citizens Bank Park seeing -12% HR suppression. 8mph NW winds blowing in helping suppress fly balls today.' });
-    }
-  } else if (homeId === 110) { // Orioles (Camden Yards)
-    badges.push({ label: 'HR BOOST', color: 'bg-red-500/10 text-red-500 border-red-500/20', icon: Zap, title: 'Oriole Park seeing a +13% HR boost today. 10mph NW cross-winds favoring RHB (+33%).' });
-  } else if (homeId === 117) { // Astros (Minute Maid)
-    const p1 = game.teams.away.probablePitcher?.fullName;
-    const p2 = game.teams.home.probablePitcher?.fullName;
-    // Check for Lambert vs Bassitt matchup or general O's/Astros battle
-    if ((p1?.includes('Lambert') && p2?.includes('Bassitt')) || (p1?.includes('Bassitt') && p2?.includes('Lambert'))) {
-      badges.push({ label: 'STARTER INTEL', color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20', icon: Target, title: 'Lambert (FB heavy) vs Bassitt (Crafty). Unique style clash in the controlled conditions of Minute Maid.' });
-    }
-  } else if (homeId === 144) { // Braves (Truist Park)
-    if (climate?.impulse === 'positive') {
+  }
+
+  // 2. Fallback Atmospheric Pulse (Repetition Suppressed)
+  if (!hasSpecificParkIdentity) {
+    const pressureLabel = temp > 72 ? 'Low Pressure' : (temp < 68 ? 'High Pressure' : 'Normal');
+    const airDescription = temp > 72 ? 'Expanded' : (temp < 68 ? 'Compressed' : 'Stable');
+    
+    if (temp > 75) {
       badges.push({ 
-        label: 'HR BOOST (+11%)', 
-        color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', 
-        icon: Zap, 
-        title: climate.message 
+        label: 'THIN AIR PULSE', 
+        color: 'bg-orange-500/10 text-orange-400 border-orange-500/20', 
+        icon: Activity, 
+        title: `${pressureLabel}: ${temp}°F temperature is reducing air density, boosting ball travel.` 
+      });
+    } else if (temp < 65) {
+      badges.push({ 
+        label: 'DENSE AIR LID', 
+        color: 'bg-blue-500/10 text-blue-400 border-blue-500/20', 
+        icon: ShieldCheck, 
+        title: `${pressureLabel}: ${temp}°F air is ${airDescription}, creating higher atmospheric resistance.` 
       });
     }
-  } else if (homeId === 147) { // Yankees
-    badges.push({ label: 'SHORT PORCH', color: 'bg-orange-500/10 text-orange-400 border-orange-500/10', icon: Zap, title: 'Yankee Stadium’s shallow right field frequently turns fly balls into home runs.' });
-  } else if (homeId === 111) { // Red Sox
-    badges.push({ label: 'GREEN MONSTER', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: ShieldCheck, title: 'The wall at Fenway changes fly ball physics, often turning outs into doubles.' });
-  } else if (homeId === 113 && temp > 75) { // Reds
-    badges.push({ label: 'GABP HEAT', color: 'bg-red-500/10 text-red-400 border-red-500/20', icon: Zap, title: 'Heat at small GABP creating elite scoring environment' });
   }
 
-  // 2. Weather Specifics
-  if (temp >= 85) {
-    badges.push({ label: 'HEAT BOOST', color: 'bg-red-500/10 text-red-500 border-red-500/20', icon: Thermometer, title: `High ${temp}°F heat maximizing ball carry` });
-  } else if (temp > 0 && temp < 50) {
-    badges.push({ label: 'DENSE COLD', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20', icon: Thermometer, title: `Chilly ${temp}°F air deadening ball flight` });
+  // 3. Global Weather Factors (Only if no specific identity, to avoid "repeat badges")
+  if (!isStrictDome && !hasSpecificParkIdentity) {
+    if (windSpeed >= 1) {
+      let receptivity = 'Active';
+      if (windSpeed > 8) receptivity = 'Extreme';
+      else if (windSpeed > 4) receptivity = 'High';
+      
+      badges.push({ 
+        label: `${receptivity.toUpperCase()} RECEPTIVE`, 
+        color: windSpeed > 6 ? 'bg-red-500/10 text-red-500 border-red-500/10' : 'bg-slate-500/10 text-slate-400 border-white/5',
+        icon: Wind,
+        title: `Wind Receptivity is ${receptivity} today (${windSpeed}mph).`
+      });
+    }
+    
+    if (wind.direction === 'OUT' && wind.speed >= 6) {
+      badges.push({ label: 'TAILWIND', color: 'bg-red-500/10 text-red-400 border-red-500/20', icon: Wind, title: `${wind.speed}mph tailwind boosting flight` });
+    } else if (wind.direction === 'IN' && wind.speed >= 6) {
+      badges.push({ label: 'HEADWIND', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20', icon: Wind, title: `${wind.speed}mph headwind stifling fly balls` });
+    }
+
+    if (condition.includes('humid') || condition.includes('damp')) {
+      badges.push({ label: 'HUMID AIR', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: Droplets, title: 'Moisture in the air reduces density, aiding carry slightly.' });
+    }
   }
 
-  const condition = (game.weather?.condition || '').toLowerCase();
-  if (condition.includes('humid') || condition.includes('damp') || condition.includes('mist') || condition.includes('drizzle')) {
-    badges.push({ label: 'HUMID AIR', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: Droplets, title: 'High moisture and humidity reduce air density, helping balls carry slightly further.' });
+  // 4. Team/Park Static Intelligence fallback
+  const historicalParks: Record<number, any> = {
+    141: { label: 'HITTERS PARK', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: Activity, title: 'Citizens Bank Park is historically favorable for home runs.' },
+    119: { label: 'DODGER AIR', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20', icon: Sun, title: 'Dodger Stadium is a fair-to-pitching venue with consistent dry air.' },
+    137: { label: 'BAY CLASSIC', color: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20', icon: ShieldCheck, title: 'Oracle Park is a premier defensive venue.' },
+    109: { label: 'HUMIDOR GAME', color: 'bg-teal-500/10 text-teal-300 border-teal-500/20', icon: Droplets, title: 'Chase Field humidor reduce extreme offensive variability in the desert.' }
+  };
+  
+  if (badges.length < 2 && historicalParks[homeId as keyof typeof historicalParks]) {
+    const hist = historicalParks[homeId as keyof typeof historicalParks];
+    if (!badges.some(b => b.label === hist.label)) badges.push(hist);
   }
 
-  if (wind.direction === 'OUT' && wind.speed > 10) {
-    badges.push({ label: 'TAILWIND', color: 'bg-red-500/10 text-red-400 border-red-500/20', icon: Wind, title: `${wind.speed}mph tailwind boosting flight` });
-  } else if (wind.direction === 'IN' && wind.speed >= 8) {
-    badges.push({ label: 'HEADWIND', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20', icon: Wind, title: `${wind.speed}mph headwind stifling balls` });
-  }
-
-  // 3. Atmosphere Intel
-  const hasOffenseSignal = badges.some(b => b.color.includes('red') || b.color.includes('orange') || b.color.includes('emerald') || b.color.includes('green'));
-  const hasPitchingSignal = badges.some(b => b.color.includes('blue'));
-
-  if (!hasOffenseSignal && climate?.impulse === 'positive') {
-    badges.push({ label: 'HITTERS PARK', color: 'bg-salami-red/10 text-salami-red border-salami-red/10', icon: Zap, title: climate.message });
-  } else if (!hasPitchingSignal && !hasOffenseSignal && climate?.impulse === 'negative') {
-    badges.push({ label: 'PITCHERS PARK', color: 'bg-blue-500/10 text-blue-400 border-blue-500/10', icon: ShieldCheck, title: climate.message });
-  }
-
-  // 4. Global Fallback - Ensure every game has at least one badge
-  if (badges.length === 0) {
-    // No fallback needed as per user request to avoid "Stable Air"
-  }
-
-  return badges;
+  return badges.length > 0 ? badges : [{ 
+    label: 'STABLE ATMOSPHERE', 
+    color: 'bg-slate-500/10 text-slate-400 border-white/5', 
+    icon: Activity, 
+    title: 'Current readings show a stable atmospheric baseline.' 
+  }];
 };
 
 const getEnvironmentalWarning = (game: MLBGame) => {
-  const wind = parseWind(game.weather?.wind);
   const homeId = game.teams.home.team.id;
+  const venue = (game.venue?.name || '').toLowerCase();
+  const wind = parseWind(game.weather?.wind, homeId, venue);
   
   // Specific Wrigley/Coors Warnings
   if (homeId === 115) return { label: 'THIN AIR BLOWOUT', color: 'text-orange-400', icon: Zap };
@@ -167,30 +239,32 @@ interface GameLogProps {
 }
 
 const getClimateIntelligence = (game: MLBGame) => {
-  const tempStr = game.weather?.temp || "";
-  const temp = parseInt(tempStr) || 72;
+  const tempStr = game.weather?.temp?.toString() || "";
+  const temp = parseInt(tempStr.match(/\d+/)?.[0] || "72");
   const windStr = game.weather?.wind || "";
-  const windSpeedMatch = windStr.match(/\d+/);
-  const windSpeed = windSpeedMatch ? parseInt(windSpeedMatch[0]) : 0;
   const windDirRaw = windStr.toLowerCase();
-  const condition = (game.weather?.condition || '').toLowerCase();
-  const venue = (game.venue?.name || '').toLowerCase();
   const homeId = game.teams.home.team.id;
+  const venue = (game.venue?.name || '').toLowerCase();
+  
+  const wind = parseWind(windStr, homeId, venue);
+  const windSpeed = wind.speed;
+  const condition = (game.weather?.condition || '').toLowerCase();
   
   let impulse: 'positive' | 'negative' | 'neutral' = 'neutral';
   
   // Directional Detection
-  const isOut = windDirRaw.includes('out') || windDirRaw.includes('to cf') || windDirRaw.includes('to rf') || windDirRaw.includes('to lf');
-  const isIn = windDirRaw.includes('in') || windDirRaw.includes('from cf') || windDirRaw.includes('from rf') || windDirRaw.includes('from lf');
+  const isOut = wind.direction === 'OUT';
+  const isIn = wind.direction === 'IN';
   const isToRight = windDirRaw.includes('to rf') || windDirRaw.includes('from lf') || (windDirRaw.includes('r to l') && isIn) || (windDirRaw.includes('l to r') && isOut);
   const isToLeft = windDirRaw.includes('to lf') || windDirRaw.includes('from rf') || (windDirRaw.includes('l to r') && isIn) || (windDirRaw.includes('r to l') && isOut);
 
   const rainKeywords = ['rain', 'shower', 'storm', 'drizzle', 'precip', 'thunder', 'lightning', 'mist'];
   const isRainy = rainKeywords.some(k => condition.includes(k));
   const isHighAltitude = venue.includes('coors') || venue.includes('chase');
-  const isDome = venue.includes('tropicana') || venue.includes('loanDepot') || venue.includes('globe life') || venue.includes('minute maid') || venue.includes('american family') || venue.includes('rogers centre') || venue.includes('t-mobile') || (venue.includes('chase field') && (condition.includes('dome') || condition.includes('roof closed')));
+  const isStrictDome = venue.includes('tropicana') || venue.includes('loandepot') || venue.includes('globe life') || venue.includes('minute maid') || venue.includes('american family') || venue.includes('rogers centre') || (venue.includes('chase field') && (condition.includes('dome') || condition.includes('roof closed')));
+  const isRetractableSeattle = venue.includes('t-mobile');
 
-  if (isDome) {
+  if (isStrictDome) {
     const domeName = venue.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
     return { 
       impulse: 'neutral', 
@@ -201,75 +275,135 @@ const getClimateIntelligence = (game: MLBGame) => {
 
   let techReport = "";
 
-  // 0. Park Specific Intelligence (Matches User Provided Image Data)
-  if (homeId === 144) { // Braves
-    if (temp >= 55 && (isOut || windSpeed >= 8)) {
+  // 0. Park Specific Intelligence
+  let hasSpecificClimateIntel = false;
+
+  const isWrigley = homeId === 112 || venue.includes('wrigley');
+  const isCoors = homeId === 115 || venue.includes('coors');
+  const isTmobile = isRetractableSeattle || homeId === 136 || venue.includes('t-mobile');
+  const isPetco = homeId === 135 || venue.includes('petco');
+
+  if (isWrigley) {
+    hasSpecificClimateIntel = true;
+    const wrigleyReport = `Wrigley Graveyard (-35% HR, -10% Runs): ${windSpeed}mph ${isIn ? 'headwind' : 'air'} and ${temp}°F temp are suppressing elite carry. `;
+    if ((isIn || wind.direction === 'CROSS') && (windSpeed >= 5 || temp < 55)) {
+       impulse = 'negative';
+       techReport += wrigleyReport;
+    } else if (isOut && windSpeed >= 5) {
        impulse = 'positive';
-       techReport += `Truist Park seeing a +11% HR boost and +2% Run boost today. ${condition.charAt(0).toUpperCase() + condition.slice(1)} ${temp}°F with ${windSpeed}mph winds provide a strong offensive signal based on historical park climate samples. `;
-       return { impulse, message: techReport.trim(), temp, windStr, windSpeed, condition };
+       techReport += `Wrigley Wind Boost (+2.27 Potential): Significant tailwind favors offensive carry today. `;
+    } else {
+       techReport += `Wrigley Field Neutral: Atmospheric conditions are within the 5% baseline. `;
     }
+  } else if (isCoors) {
+    hasSpecificClimateIntel = true;
+    impulse = 'positive';
+    if (temp < 65 && !isRainy) {
+       techReport += `Coors Thin Air Factor (+2.94 Runs): Low humidity and 5,280ft elevation are compensating for the ${temp}°F temperature, keeping air resistance at a minimum. `;
+    } else {
+       techReport += `Coors Altitude Factor (+2.94 Runs): 5,280ft elevation lowers air density, boosting fly ball carry and reducing breaking movement. `;
+    }
+  } else if (homeId === 133 || venue.includes('sutter health')) { // Sacramento
+    hasSpecificClimateIntel = true;
+    if (temp >= 70 && windSpeed >= 7) {
+      impulse = 'positive';
+      techReport += `Sacramento Offense (+1.39 Runs): The ${temp}°F heat and "Very High" wind receptivity provide an elite scoring pulse. `;
+    } else {
+      techReport += `Sacramento Scoring Pulse (+1.39 Potential): Minor league dimensions favor offensive clusters today. `;
+    }
+  } else if (isTmobile) {
+    hasSpecificClimateIntel = true;
+    impulse = 'negative';
+    techReport += `T-Mobile Park dynamics (-1.45 Runs): Cold sea-level air and marine layer presence significantly suppress power output. `;
+  } else if (homeId === 138 || venue.includes('busch')) { // Cardinals
+    hasSpecificClimateIntel = true;
+    impulse = 'negative';
+    techReport += `Busch Stadium Suppression (-1.26 Runs): Historically a premier "Under" venue in these atmospheric conditions. `;
+  } else if (homeId === 137 || venue.includes('oracle')) { // Oracle Park
+    if (temp < 62 || condition.includes('damp') || condition.includes('gloomy')) {
+      hasSpecificClimateIntel = true;
+      impulse = 'negative';
+      techReport += "Oracle Marine Layer (-0.45 Typical): Cold, damp air from the bay is creating a heavy atmospheric lid. ";
+    }
+  } else if (isPetco) {
+    if (temp < 68 && condition.includes('humid')) {
+       hasSpecificClimateIntel = true;
+       impulse = 'negative';
+       techReport += `Petco Marine Layer (-0.85 Runs): Evening humidity is thickening the air over the field; traditional power suppression is active. `;
+    }
+  } else if (homeId === 147) { // Yankees
+    if (condition.includes('humid')) {
+      hasSpecificClimateIntel = true;
+      impulse = 'positive';
+      techReport += "Bronx Humidity (-0.65 Base but +Offset): Moist air at sea level often aids the 'Short Porch' carry in the evening. ";
+    }
+  } else if (homeId === 141 && isOut) { // Citizens Bank
+    hasSpecificClimateIntel = true;
+    impulse = 'positive';
+    techReport += "Philly Wind Tunnel (+0.44 Potential): The outbound wind vector is notoriously active at this venue. ";
   }
   
   // 1. Temperature Analysis (Physics of Air Density)
-  if (temp >= 94) {
-    impulse = 'positive';
-    techReport += `Sizzling ${temp}°F heat will keep the air extremely thin, maximizing ball flight. `;
-  } else if (temp >= 75) {
-    impulse = 'positive';
-    techReport += `Warm ${temp}°F conditions are classic for higher offense, favoring the carry of fly balls. `;
-  } else if (temp >= 65) {
-    techReport += `Mild ${temp}°F air provides standard lift with minimal resistance. `;
-  } else if (temp >= 50) {
-    techReport += `Cool ${temp}°F air is beginning to thicken, which can provide a slight edge to pitchers. `;
-  } else if (temp > 0) {
-    if (windSpeed >= 8) {
-      impulse = 'negative';
-      techReport += `Chilly ${temp}°F conditions combined with ${windSpeed}mph winds create dense air that will likely stifle deep fly balls. `;
+  if (!hasSpecificClimateIntel) {
+    if (temp >= 94) {
+      impulse = 'positive';
+      techReport += `${condition.includes('clear') ? 'Desert-like' : 'Extreme'} ${temp}°F heat will keep the air extremely thin (expanded molecules), maximizing ball flight with minimal drag. `;
+    } else if (temp >= 82) {
+      impulse = 'positive';
+      techReport += `Warm ${temp}°F conditions are classic for higher offense, favoring the carry of fly balls as air molecules provide less resistance due to thermal expansion. `;
+    } else if (temp >= 72) {
+      techReport += `Standard ${temp}°F air provides consistent travel with a predictable atmospheric baseline for air density and pressure. `;
+    } else if (temp >= 62) {
+      techReport += `Mild ${temp}°F air is beginning to stabilize, offering traditional defensive travel conditions with standard atmospheric friction. `;
+    } else if (temp >= 50) {
+      techReport += `Cool ${temp}°F air is beginning to thicken; the increased density will likely increase drag and peel a few feet off fly ball distance. `;
+    } else if (temp > 0) {
+      if (windSpeed >= 8) {
+        impulse = 'negative';
+        techReport += `Chilly ${temp}°F conditions combined with ${windSpeed}mph winds create dense air that will likely stifle deep fly balls. `;
+      } else {
+        techReport += `Chilly ${temp}°F conditions increase air density and atmospheric resistance. `;
+      }
     } else {
-      techReport += `Chilly ${temp}°F conditions create dense air, though light winds minimize the atmospheric travel impact. `;
+      techReport += "Atmospheric data normalizing... ";
     }
-  } else {
-    techReport += "Temperature data normalizing... ";
   }
 
   // 2. Wind Vector Analysis
   if (windSpeed >= 18) {
     impulse = isOut ? 'positive' : (isIn ? 'negative' : impulse);
-    techReport += `A punishing ${windSpeed}mph wind is dominating the field. `;
-    if (isOut) techReport += "Routine fly balls have a massive probability of clearing the fence. ";
-    else if (isIn) techReport += "The ball will be fighting a severe headwind; focus on the Under. ";
-    else techReport += "Violent cross-currents will make defensive tracking a major challenge. ";
+    techReport += `A punishing ${windSpeed}mph ${isOut ? 'tailwind' : isIn ? 'headwind' : 'cross-current'} is dominating the field. `;
+    if (isOut) techReport += "Routine fly balls have a massive probability of being carried over the fence by the sheer force of the gust. ";
+    else if (isIn) techReport += "Hitters will be fighting a severe atmospheric wall; deep fly balls are likely to die at the warning track. ";
+    else techReport += "Erratic cross-currents will make defensive tracking and outfield communication a major challenge today. ";
   } else if (windSpeed >= 10) {
     if (isOut) {
       impulse = impulse === 'negative' ? 'neutral' : 'positive';
-      techReport += `The ${windSpeed}mph tailwind is a significant asset for sluggers today. `;
+      techReport += `The steady ${windSpeed}mph tailwind provides a meaningful boost to exit velocity carry. `;
     } else if (isIn) {
       impulse = impulse === 'positive' ? 'neutral' : 'negative';
-      techReport += `Steady ${windSpeed}mph headwind will favor control pitchers who keep the ball in the park. `;
+      techReport += `Persistent ${windSpeed}mph resistance is present, favoring ground-ball pitchers who can avoid the air. `;
     } else if (isToRight) {
-      techReport += `Consistent ${windSpeed}mph push toward Right Field may favor left-handed power alleys. `;
+      techReport += `Significant ${windSpeed}mph push toward Right Field favors left-handed pull hitters today. `;
     } else if (isToLeft) {
-      techReport += `Consistent ${windSpeed}mph push toward Left Field may favor right-handed power alleys. `;
+      techReport += `Significant ${windSpeed}mph push toward Left Field favors right-handed pull hitters today. `;
     } else {
-      techReport += `Brisk ${windSpeed}mph cross-breeze detected. `;
+      techReport += `Brisk ${windSpeed}mph cross-breeze may impart late movement on fly balls. `;
     }
   } else if (windSpeed > 4) {
-    techReport += `A light ${windSpeed}mph breeze is present but unlikely to shift the balance of play significantly. `;
+    techReport += `A marginal ${windSpeed}mph breeze is present, though its impact will likely be secondary to humidity and temperature. `;
   } else {
-    techReport += "Extremely calm wind conditions suggest a pure performance matchup. ";
+    techReport += "Calm wind conditions suggest the game will play true to its baseline park dimensions. ";
   }
 
   // 3. Moisture & Environmental Factors
   if (isRainy) {
     impulse = 'negative';
-    techReport += "Risk of precipitation will lead to " + (temp < 60 ? "raw, difficult" : "slick, humid") + " conditions for both hands.";
-  } else if (isHighAltitude) {
-    impulse = 'positive';
-    techReport += "Altitude boost: The thinner air at this venue will turn gap-hits into home runs.";
-  } else if (condition.includes('humid')) {
-    techReport += "High humidity might make the ball feel 'heavier' for some, but typically aids carry in heat.";
+    techReport += `Precipitation Risk (${condition}): High-friction environment and damp ball surfaces favor pitchers and "Under" outcomes. `;
+  } else if (condition.includes('humid') && temp > 72) {
+    techReport += `Thermal Humidity: At ${temp}°F, the moist air reduced molecular weight (water vapor is lighter than dry air), aiding ball carry. `;
   } else if (condition.includes('clear')) {
-    techReport += "Pristine clear skies will provide hitters with excellent visibility and contrast.";
+    techReport += "Visibility Factor: Optimal contrast and lighting should benefit hitters' reaction times. ";
   }
 
   return { impulse, message: techReport.trim(), temp, windStr, windSpeed, condition };

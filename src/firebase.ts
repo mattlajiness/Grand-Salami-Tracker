@@ -1,12 +1,16 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/auth';
-import { getFirestore, doc, setDoc, getDoc, collection, query, where, onSnapshot, Timestamp, addDoc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc, collection, query, where, onSnapshot, Timestamp, addDoc, deleteDoc, updateDoc, getDocFromServer, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+
+// Initialize Firestore with specific settings to improve connectivity
+export const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+}, firebaseConfig.firestoreDatabaseId);
 export const googleProvider = new GoogleAuthProvider();
 
 // Auth Helpers
@@ -43,8 +47,15 @@ export interface FirestoreErrorInfo {
 }
 
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  
+  // Specific check for networking/auth failure in this environment
+  if (errorMessage.includes('auth/network-request-failed')) {
+    console.error('Firebase Auth Network Failure: The application is unable to reach Google Authentication services. This may be due to a strict network environment or blocked requests. Please try refreshing or opening in a new tab.');
+  }
+
   const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
+    error: errorMessage,
     authInfo: {
       userId: auth.currentUser?.uid,
       email: auth.currentUser?.email,
@@ -65,14 +76,20 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   throw new Error(JSON.stringify(errInfo));
 }
 
-// Test connection
+// Test connection strictly against the server to verify config
 async function testConnection() {
   try {
     const testDoc = doc(db, 'test', 'connection');
-    await getDoc(testDoc);
+    // Using getDocFromServer forces a network round-trip instead of using cached data
+    await getDocFromServer(testDoc);
+    console.log("Firestore Connected successfully to database:", firebaseConfig.firestoreDatabaseId);
   } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes('the client is offline')) {
       console.error("Please check your Firebase configuration. The client is offline.");
+      console.warn("Detected likely connectivity issue or misconfigured database ID:", firebaseConfig.firestoreDatabaseId);
+    } else {
+      console.error("Firestore connectivity test failed:", message);
     }
   }
 }

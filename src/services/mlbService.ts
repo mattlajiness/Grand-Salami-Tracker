@@ -128,11 +128,14 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
   const fetchWithRetry = async (retryUrl: string, retries = 2): Promise<Response> => {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const timeoutId = setTimeout(() => controller.abort('MLBPrefetchTimeout'), 20000); // 20s for schedule
       const res = await fetch(retryUrl, { signal: controller.signal });
       clearTimeout(timeoutId);
       return res;
     } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        console.warn(`Fetch timed out for ${retryUrl}, retries remaining: ${retries}`);
+      }
       if (retries > 0) {
         await new Promise(r => setTimeout(r, 1000));
         return fetchWithRetry(retryUrl, retries - 1);
@@ -294,7 +297,7 @@ async function fetchPitcherStats(pitcherIds: number[]): Promise<Record<number, s
     try {
       const url = `https://statsapi.mlb.com/api/v1/people?personIds=${batch.join(',')}&hydrate=stats(group=[pitching],type=[season])`;
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // Increased to 10s
+      const timeoutId = setTimeout(() => controller.abort('PitcherStatsTimeout'), 20000); // 20s per batch
       
       const response = await fetch(url, { signal: controller.signal });
       clearTimeout(timeoutId);
@@ -311,7 +314,11 @@ async function fetchPitcherStats(pitcherIds: number[]): Promise<Record<number, s
         });
       }
     } catch (error) {
-      console.error('Error fetching pitcher stats batch:', error);
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.error('Pitcher stats fetch timed out after 20s');
+      } else {
+        console.error('Error fetching pitcher stats batch:', error);
+      }
     }
   }));
 

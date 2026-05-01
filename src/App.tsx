@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { fetchMLBGames, MLBGame } from './services/mlbService';
 import { calculateLiveThreat, calculateSmartProjection } from './lib/projectionEngine';
 import { GrandSalamiHeader } from './components/GrandSalamiHeader';
-import { calculateFatigueStats } from './lib/fatigueEngine';
+import { calculateFatigueStats, calculateBullpenScore } from './lib/fatigueEngine';
 import { getParkFactor, getTeamOffensePower } from './lib/leagueConstants';
 import { GameLog } from './components/GameLog';
 import { WagerTracker } from './components/WagerTracker';
@@ -16,7 +16,7 @@ import { FeedbackSection } from './components/FeedbackSection';
 import { Calendar, Share2, Droplets, Activity } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { useAuth } from './contexts/AuthContext';
-import { db } from './firebase';
+import { db, handleFirestoreError, OperationType } from './firebase';
 import { collection, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { format, subDays } from 'date-fns';
 import { AnimatePresence, motion } from 'motion/react';
@@ -47,7 +47,12 @@ export default function App() {
       });
       setGameLines(lines);
     }, (error) => {
-      console.error("Error fetching game lines:", error);
+      try {
+        handleFirestoreError(error, OperationType.LIST, 'gameLines');
+      } catch (e) {
+        // Keep the app working despite the logged error
+        console.warn("Failed to stream game lines - verifying connectivity...");
+      }
     });
 
     return () => unsubscribe();
@@ -180,15 +185,24 @@ export default function App() {
         const isTop = game.linescore?.isTopInning ?? true;
 
         const offense = game.linescore?.offense;
-        const hasRISP = !!offense?.second || !!offense?.third;
+        const hasRunners = !!offense?.first || !!offense?.second || !!offense?.third;
+        const outs = game.linescore?.outs || 0;
         
-        if (offense && hasRISP) {
-          liveThreats += calculateLiveThreat({
+        if (offense && hasRunners) {
+          let threatVal = calculateLiveThreat({
             first: !!offense.first,
             second: !!offense.second,
             third: !!offense.third,
-            outs: game.linescore?.outs || 0
+            outs
           });
+
+          // High Leverage Calibration: Boost threat value if < 2 outs with runners
+          // This factors in the increased probability of situational scoring (sac flies, productive outs)
+          if (outs < 2) {
+            threatVal *= 1.2; 
+          }
+
+          liveThreats += threatVal;
         }
 
         return acc + (inning - 1) + (isTop ? 0.25 : 0.75);
@@ -269,7 +283,7 @@ export default function App() {
             setBetType(data.side.toLowerCase() as 'over' | 'under');
           }
         } catch (error) {
-          console.error("Error loading wager:", error);
+          handleFirestoreError(error, OperationType.GET, `users/${user.uid}/wagers/${today}`);
         } finally {
           setIsWagerLoading(false);
         }
@@ -286,10 +300,17 @@ export default function App() {
   const projectedTotal = useMemo(() => {
     // Requirement for stabilization: at least 1 full inning cumulative across the slate
     if (stats.playedInnings >= 1.0) {
-      return calculateSmartProjection(currentTotal, stats.playedInnings, stats.totalExpectedInnings, stats.liveThreats);
+      const fatigueScore = calculateBullpenScore(stats.fatigue);
+      return calculateSmartProjection(
+        currentTotal, 
+        stats.playedInnings, 
+        stats.totalExpectedInnings, 
+        stats.liveThreats,
+        fatigueScore
+      );
     }
     return null;
-  }, [currentTotal, stats.playedInnings, stats.totalExpectedInnings, stats.liveThreats]);
+  }, [currentTotal, stats.playedInnings, stats.totalExpectedInnings, stats.liveThreats, stats.fatigue]);
 
   const isAdmin = user?.email?.toLowerCase() === 'mattlajiness@gmail.com';
 

@@ -53,23 +53,34 @@ export function calculateSmartProjection(
   currentTotal: number,
   playedInnings: number,
   totalExpectedInnings: number,
-  liveThreats: number = 0
+  liveThreats: number = 0,
+  fatigueScore: number = 0
 ): number {
   if (playedInnings <= 0) return 0;
   
   // 1. Linear Base
   const linearProjection = (currentTotal / playedInnings) * totalExpectedInnings;
   
-  // 2. Add Live Threats (runners on base right now)
-  const totalWithThreats = currentTotal + liveThreats;
-  
-  // 3. Weighting the remaining innings
+  // 2. Weighting the remaining innings
   const remainingInnings = totalExpectedInnings - playedInnings;
   if (remainingInnings <= 0) return Math.round(currentTotal);
 
-  // Simple version: Linear is actually quite robust for a large slate, 
-  // but we'll add the live threat for "immediacy"
-  return Math.round(linearProjection + (liveThreats * 0.5)); // Dampen live threat slightly as it's already "in" the pace
+  // 3. Atmosphere & Fatigue Bias
+  // fatigueScore is 0-100. Let's say at 100, we expect 5% more runs on remaining innings
+  const fatigueBias = (fatigueScore / 100) * 0.05;
+  const biasedRemainingInnings = remainingInnings * (1 + fatigueBias);
+  
+  // Re-calculate linear based on current pace for remaining biased innings
+  const pace = currentTotal / playedInnings;
+  const projectRemaining = pace * biasedRemainingInnings;
+
+  // 4. Factor in Live Threats
+  // Increased significance: weight increased from 0.5 to 0.75
+  // We use 0.75 because while pace already includes historical scoring, 
+  // live threats are immediate and high-leverage events that often convert.
+  const threatBoost = liveThreats * 0.75;
+
+  return Math.round(currentTotal + projectRemaining + threatBoost);
 }
 
 export function getConfidenceScore(completionPercentage: number): {
