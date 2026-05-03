@@ -54,33 +54,50 @@ export function calculateSmartProjection(
   playedInnings: number,
   totalExpectedInnings: number,
   liveThreats: number = 0,
-  fatigueScore: number = 0
+  fatigueScore: number = 0,
+  baselineLine?: number | ''
 ): number {
   if (playedInnings <= 0) return 0;
   
-  // 1. Linear Base
-  const linearProjection = (currentTotal / playedInnings) * totalExpectedInnings;
+  // 1. Linear Base Pace
+  const pace = currentTotal / playedInnings;
+  const projectRemainingLinear = pace * (totalExpectedInnings - playedInnings);
+  const linearTotal = currentTotal + projectRemainingLinear;
   
   // 2. Weighting the remaining innings
   const remainingInnings = totalExpectedInnings - playedInnings;
   if (remainingInnings <= 0) return Math.round(currentTotal);
 
-  // 3. Atmosphere & Fatigue Bias
-  // fatigueScore is 0-100. Let's say at 100, we expect 5% more runs on remaining innings
-  const fatigueBias = (fatigueScore / 100) * 0.05;
+  // 3. Atmosphere & Fatigue Bias (Scalabled back from 0.05 to 0.02)
+  // We reduce the impact of fatigue bias as requested to avoid over-projecting late runs
+  const fatigueBias = (fatigueScore / 100) * 0.02;
   const biasedRemainingInnings = remainingInnings * (1 + fatigueBias);
   
   // Re-calculate linear based on current pace for remaining biased innings
-  const pace = currentTotal / playedInnings;
-  const projectRemaining = pace * biasedRemainingInnings;
+  const projectRemainingBiased = pace * biasedRemainingInnings;
 
-  // 4. Factor in Live Threats
-  // Increased significance: weight increased from 0.5 to 0.75
-  // We use 0.75 because while pace already includes historical scoring, 
-  // live threats are immediate and high-leverage events that often convert.
-  const threatBoost = liveThreats * 0.75;
+  // 4. Factor in Live Threats (Scalable back from 0.75 to 0.40)
+  // Higher weight often leads to volatile jumps; 0.40 is more conservative
+  const threatBoost = liveThreats * 0.40;
 
-  return Math.round(currentTotal + projectRemaining + threatBoost);
+  const rawSmartTotal = currentTotal + projectRemainingBiased + threatBoost;
+
+  // 5. Baseline Smoothing (Confidence-Weighted Regression)
+  // Early in the slate, projections are highly volatile. 
+  // We "regress to the mean" (the betting line) based on how much of the day is finished.
+  if (baselineLine !== undefined && baselineLine !== '' && typeof baselineLine === 'number') {
+    const progressFactor = playedInnings / totalExpectedInnings; 
+    // progressFactor is 0.0 to 1.0
+    // If we've only played 20% of the day, we put 80% weight on the line and 20% on the pace.
+    // However, pace is often more "real", so let's use a non-linear smoothing:
+    const weightOnProjection = Math.sqrt(progressFactor); // sqrt gives more weight to projection earlier than simple linear
+    
+    // Weighted Average: (Projection * weight) + (Baseline * (1 - weight))
+    const smoothedTotal = (rawSmartTotal * weightOnProjection) + (baselineLine * (1 - weightOnProjection));
+    return Math.round(smoothedTotal);
+  }
+
+  return Math.round(rawSmartTotal);
 }
 
 export function getConfidenceScore(completionPercentage: number): {

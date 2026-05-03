@@ -306,7 +306,8 @@ export default function App() {
         stats.playedInnings, 
         stats.totalExpectedInnings, 
         stats.liveThreats,
-        fatigueScore
+        fatigueScore,
+        betLine
       );
     }
     return null;
