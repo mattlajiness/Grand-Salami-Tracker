@@ -240,6 +240,16 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
         }
       }
 
+      // 3. Over/Under TotalLine enrichment
+      try {
+        const oddsUrl = `https://statsapi.mlb.com/api/v1/game/${game.gamePk}/contextMetrics?hydrate=odds`;
+        const oddsRes = await fetch(oddsUrl);
+        if (oddsRes.ok) {
+          const oddsData = await oddsRes.json();
+          enrichedGame.totalLine = oddsData.odds?.[0]?.total;
+        }
+      } catch (e) {}
+
       return enrichedGame;
     }));
 

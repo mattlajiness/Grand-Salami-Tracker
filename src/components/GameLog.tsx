@@ -11,7 +11,7 @@ import { Timestamp, collection, doc, setDoc, onSnapshot, query, orderBy, limit }
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
-import { VenueParkFactors } from '../lib/leagueConstants';
+import { VenueParkFactors, getDetailedParkFactor, DetailedParkFactor } from '../lib/leagueConstants';
 
 const parseWind = (windStr: string = '', homeId?: number, venue: string = '') => {
   const normalized = windStr.toLowerCase();
@@ -67,78 +67,78 @@ const getSpecialIntelligence = (game: MLBGame) => {
   const isRetractableSeattle = venue.includes('t-mobile') || venue.includes('safeco');
 
   const badges: { label: string; color: string; icon: any; title?: string }[] = [];
+  const detailedFactor = getDetailedParkFactor(game.venue?.name || '');
 
   // 1. Primary Park Identity & Logic (Only one main park badge)
   let hasSpecificParkIdentity = false;
 
-  const isWrigley = homeId === 112 || venue.includes('wrigley');
-  const isCoors = homeId === 115 || venue.includes('coors');
-  const isTmobile = isRetractableSeattle || homeId === 136 || venue.includes('t-mobile');
-  const isPetco = homeId === 135 || venue.includes('petco');
-  const isSac = homeId === 133 || venue.includes('sutter health');
-  const isBusch = homeId === 138 || venue.includes('busch');
+  if (detailedFactor) {
+    hasSpecificParkIdentity = true;
+    const { hr, runs } = detailedFactor;
+    const runChange = Math.round((runs - 1) * 100);
+    const hrChange = Math.round((hr - 1) * 100);
+    
+    // Determine sentiment and labels based on Run Factor
+    if (runs >= 1.10) {
+      badges.push({ 
+        label: `${game.venue?.name?.split(' ')[0].toUpperCase()} BOOST (${runChange > 0 ? '+' : ''}${runChange}%)`, 
+        color: 'bg-red-500/20 text-red-500 border-red-500/20', 
+        icon: Zap, 
+        title: `${game.venue?.name}: Extreme offensive environment today (${runChange > 0 ? '+' : ''}${runChange}% Runs, ${hrChange > 0 ? '+' : ''}${hrChange}% HR).` 
+      });
+    } else if (runs <= 0.90) {
+      badges.push({ 
+        label: `${game.venue?.name?.split(' ')[0].toUpperCase()} TRAP (${runChange}%)`, 
+        color: 'bg-blue-600/20 text-blue-400 border-blue-600/30', 
+        icon: ShieldCheck, 
+        title: `${game.venue?.name}: Premier pitcher-haven environment today (${runChange}% Runs, ${hrChange}% HR).` 
+      });
+    } else if (Math.abs(runs - 1) >= 0.05) {
+      badges.push({ 
+        label: `${game.venue?.name?.split(' ')[0].toUpperCase()} FACTOR (${runChange > 0 ? '+' : ''}${runChange}%)`, 
+        color: runs > 1 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10' : 'bg-slate-500/10 text-slate-400 border-white/5', 
+        icon: Activity, 
+        title: `${game.venue?.name}: Significant today (${runChange > 0 ? '+' : ''}${runChange}% Runs, ${hrChange > 0 ? '+' : ''}${hrChange}% HR).` 
+      });
+    } else {
+      // Near neutral
+       badges.push({ label: `${game.venue?.name?.split(' ')[0].toUpperCase()} NEUTRAL`, color: 'bg-slate-500/10 text-slate-400 border-white/5', icon: ShieldCheck, title: `${game.venue?.name} playing near neutral baseline tonight.` });
+    }
+  }
 
-  if (isWrigley) {
-    hasSpecificParkIdentity = true;
-    if (wind.direction === 'OUT' && wind.speed >= 3) {
-      badges.push({ label: 'WRIGLEY BOOST (+2.27)', color: 'bg-red-600/20 text-red-500 border-red-500/30', icon: Wind, title: 'Wrigley Field Potential: Significant wind blowing out favors offensive clusters (+2.27 Runs).' });
-    } else if (wind.direction === 'IN' || temp < 55 || (wind.direction === 'CROSS' && temp < 60)) {
-       badges.push({ label: 'WRIGLEY GRAVEYARD (-35% HR)', color: 'bg-blue-700/30 text-blue-300 border-blue-500/40', icon: ShieldCheck, title: `Extreme Suppression (-10% Runs): ${wind.direction === 'IN' ? 'Headwind' : 'Cold air'} deadening fly balls tonight (-35% HR).` });
-    } else {
-       badges.push({ label: 'WRIGLEY NEUTRAL', color: 'bg-slate-500/10 text-slate-400 border-white/5', icon: ShieldCheck, title: 'Wrigley playing near neutral baseline tonight.' });
-    }
-  } else if (isCoors) {
-    hasSpecificParkIdentity = true;
-    if (temp > 70) {
-      badges.push({ label: 'COORS BOOST (+2.94)', color: 'bg-red-500/20 text-red-500 border-red-500/20', icon: Zap, title: 'Coors Field (+2.94 Runs): Extreme Altitude + Heat creates the most offensive environment in baseball.' });
-    } else {
-      badges.push({ label: 'ALTITUDE FACTOR (+2.94)', color: 'bg-orange-500/10 text-orange-400 border-orange-500/20', icon: Activity, title: 'Coors Field (+2.94 Runs): 5,280ft elevation consistently boosts fly ball carry by 5-10%.' });
-    }
-  } else if (isTmobile) {
-    hasSpecificParkIdentity = true;
-    badges.push({ 
-      label: 'T-MOBILE FACTOR (-1.45)', 
-      color: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20', 
-      icon: Cloud, 
-      title: 'T-Mobile Park (-1.45 Runs): The retractable roof acts as an umbrella. Heavy sea-level air and marine dynamics suppress deep power.' 
-    });
-  } else if (isPetco) {
-    hasSpecificParkIdentity = true;
-    badges.push({ 
-      label: 'PETCO TRAP (-0.85)', 
-      color: 'bg-blue-600/20 text-blue-400 border-blue-600/30', 
-      icon: ShieldCheck, 
-      title: 'Petco Park (-0.85 Runs): Marine layer and sea-level air density make it a premier pitcher-haven.' 
-    });
-  } else if (isSac) {
-    hasSpecificParkIdentity = true;
-    badges.push({ 
-      label: "SACRAMENTO (+1.39)", 
-      color: 'bg-red-500/20 text-red-500 border-red-500/20', 
-      icon: Zap, 
-      title: 'Sutter Health Park (+1.39 Runs): Minor league dimensions and 75°F+ heat boosting carry.' 
-    });
-  } else if (isBusch) {
-    hasSpecificParkIdentity = true;
-    badges.push({ label: 'STL SUPPRESSION (-1.26)', color: 'bg-blue-600/20 text-blue-400 border-blue-600/30', icon: ShieldCheck, title: 'Busch Stadium (-1.26 Runs): Significant HR suppression (-31%) in current climate.' });
-  } else if (homeId === 145) { // Tigers
-    hasSpecificParkIdentity = true;
-    badges.push({ label: 'COMERICA WALL (-0.91)', color: 'bg-blue-600/20 text-blue-400 border-blue-600/30', icon: ShieldCheck, title: 'Comerica Park (-0.91 Runs): Large dimensions and lake air suppressing deep power (-24% HR).' });
-  } else if (homeId === 111) { // Red Sox
-    hasSpecificParkIdentity = true;
-    badges.push({ label: 'FENWAY FACTOR (+0.59)', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: Activity, title: 'Fenway Park (+0.59 Runs): High double potential due to Green Monster dimensions.' });
-  } else if (isStrictDome) {
-    hasSpecificParkIdentity = true;
-    badges.push({ 
-      label: 'DOME CONTROL', 
-      color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20', 
-      icon: ShieldCheck, 
-      title: 'Climate Controlled: Atmospheric variables are neutralized. Park dimensions are the primary factor.' 
-    });
-  } else if (homeId === 131) { // PNC
-    if (temp < 65 && (condition.includes('humid') || condition.includes('damp'))) {
-       badges.push({ label: 'RIVERFRONT HEAVY', color: 'bg-indigo-600/20 text-indigo-300 border-indigo-500/30', icon: Thermometer, title: 'Moist river air creates high air density, suppressing carry.' });
-       hasSpecificParkIdentity = true;
+  // Backup for specific parks that might have unique complex logic not fully captured by factor alone
+  if (!hasSpecificParkIdentity) {
+    const isWrigley = homeId === 112 || venue.includes('wrigley');
+    const isCoors = homeId === 115 || venue.includes('coors');
+    const isTmobile = isRetractableSeattle || homeId === 136 || venue.includes('t-mobile');
+    const isPetco = homeId === 135 || venue.includes('petco');
+    const isSac = homeId === 133 || venue.includes('sutter health');
+    const isBusch = homeId === 138 || venue.includes('busch');
+
+    if (isWrigley) {
+      hasSpecificParkIdentity = true;
+      if (wind.direction === 'OUT' && wind.speed >= 3) {
+        badges.push({ label: 'WRIGLEY BOOST (+2.27)', color: 'bg-red-600/20 text-red-500 border-red-500/30', icon: Wind, title: 'Wrigley Field Potential: Significant wind blowing out favors offensive clusters (+2.27 Runs).' });
+      } else if (wind.direction === 'IN' || temp < 55 || (wind.direction === 'CROSS' && temp < 60)) {
+         badges.push({ label: 'WRIGLEY GRAVEYARD (-35% HR)', color: 'bg-blue-700/30 text-blue-300 border-blue-500/40', icon: ShieldCheck, title: `Extreme Suppression (-10% Runs): ${wind.direction === 'IN' ? 'Headwind' : 'Cold air'} deadening fly balls tonight (-35% HR).` });
+      } else {
+         badges.push({ label: 'WRIGLEY NEUTRAL', color: 'bg-slate-500/10 text-slate-400 border-white/5', icon: ShieldCheck, title: 'Wrigley playing near neutral baseline tonight.' });
+      }
+    } else if (isCoors) {
+      hasSpecificParkIdentity = true;
+      if (temp > 70) {
+        badges.push({ label: 'COORS BOOST (+2.94)', color: 'bg-red-500/20 text-red-500 border-red-500/20', icon: Zap, title: 'Coors Field (+2.94 Runs): Extreme Altitude + Heat creates the most offensive environment in baseball.' });
+      } else {
+        badges.push({ label: 'ALTITUDE FACTOR (+2.94)', color: 'bg-orange-500/10 text-orange-400 border-orange-500/20', icon: Activity, title: 'Coors Field (+2.94 Runs): 5,280ft elevation consistently boosts fly ball carry by 5-10%.' });
+      }
+    } else if (isStrictDome) {
+      hasSpecificParkIdentity = true;
+      badges.push({ 
+        label: 'DOME CONTROL', 
+        color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20', 
+        icon: ShieldCheck, 
+        title: 'Climate Controlled: Atmospheric variables are neutralized. Park dimensions are the primary factor.' 
+      });
     }
   }
 
@@ -748,20 +748,20 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                           <div className="pt-2 border-t border-slate-800 w-full flex flex-col items-center">
                             <div className="flex items-center gap-1 mb-1">
                               <span className="text-[10px] font-mono font-black text-slate-300">
-                                {gameLines[game.gamePk] !== undefined ? `L: ${gameLines[game.gamePk]}` : 'NO LINE'}
+                                {(manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine) !== undefined ? `L: ${manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine}` : 'NO LINE'}
                               </span>
                             </div>
                             
-                            {gameLines[game.gamePk] !== undefined && (
+                            {(manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine) !== undefined && (
                               <div className={cn(
                                 "text-[7px] font-mono font-black uppercase tracking-widest px-1.5 py-0.5 rounded flex items-center gap-1",
-                                total > gameLines[game.gamePk] ? "bg-red-500/10 text-red-500" : 
-                                total < gameLines[game.gamePk] ? "bg-green-500/10 text-green-500" : 
+                                total > (manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine) ? "bg-red-500/10 text-red-500" : 
+                                total < (manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine) ? "bg-green-500/10 text-green-500" : 
                                 "bg-blue-500/10 text-blue-500"
                               )}>
                                 {(() => {
-                                  const line = gameLines[game.gamePk];
-                                  const diff = total - line;
+                                  const line = manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine;
+                                  const diff = total - (line || 0);
                                   const label = diff > 0 ? 'OVER' : diff < 0 ? 'UNDER' : 'PUSH';
                                   const sign = diff > 0 ? '+' : '';
                                   return (
@@ -1005,7 +1005,7 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                                     />
                                     <button
                                       onClick={() => handleSaveLine(game.gamePk)}
-                                      className="p-1 hover:bg-slate-800 rounded text-green-500"
+                                      className="p-2 md:p-1 hover:bg-slate-800 rounded text-green-500"
                                     >
                                       <Save className="w-3 h-3" />
                                     </button>
@@ -1014,16 +1014,16 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                                   <div className="flex flex-col items-center">
                                     <div className="flex items-center gap-2">
                                       <span className="text-sm font-mono font-black text-white">
-                                        {(manualLines[game.gamePk] ?? gameLines[game.gamePk]) !== undefined ? (manualLines[game.gamePk] ?? gameLines[game.gamePk]).toFixed(1) : '---'}
+                                        {(manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine) !== undefined ? (manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine).toFixed(1) : '---'}
                                       </span>
                                       {isAdmin && (
                                         <button
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             setEditingLineId(game.gamePk);
-                                            setTempLine((manualLines[game.gamePk] ?? gameLines[game.gamePk])?.toString() || '');
+                                            setTempLine((manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine)?.toString() || '');
                                           }}
-                                          className="p-1 hover:bg-slate-800 rounded text-slate-500 opacity-0 group-hover/line:opacity-100 transition-opacity"
+                                          className="p-2 md:p-1 hover:bg-slate-800 rounded text-slate-400 opacity-100 md:opacity-0 md:group-hover/line:opacity-100 transition-opacity"
                                         >
                                           <Edit2 className="w-3 h-3" />
                                         </button>
@@ -1034,15 +1034,15 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                                 )}
                               </div>
                               
-                              {((manualLines && manualLines[game.gamePk] !== undefined) || gameLines[game.gamePk] !== undefined) && (
+                              {((manualLines && manualLines[game.gamePk] !== undefined) || gameLines[game.gamePk] !== undefined || game.totalLine !== undefined) && (
                                 <div className={cn(
                                   "mt-1 px-2 py-0.5 rounded text-[8px] font-mono font-black uppercase tracking-widest",
-                                  (game.status.abstractGameState === 'Live' ? projectedTotal : totalScore) > (manualLines[game.gamePk] ?? gameLines[game.gamePk]) ? "bg-red-500/10 text-red-500" : 
-                                  (game.status.abstractGameState === 'Live' ? projectedTotal : totalScore) < (manualLines[game.gamePk] ?? gameLines[game.gamePk]) ? "bg-green-500/10 text-green-500" : 
+                                  (game.status.abstractGameState === 'Live' ? projectedTotal : totalScore) > (manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine) ? "bg-red-500/10 text-red-500" : 
+                                  (game.status.abstractGameState === 'Live' ? projectedTotal : totalScore) < (manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine) ? "bg-green-500/10 text-green-500" : 
                                   "bg-blue-500/10 text-blue-500"
                                 )}>
                                 {(() => {
-                                  const line = manualLines[game.gamePk] ?? gameLines[game.gamePk];
+                                  const line = manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine;
                                   const isLive = game.status.abstractGameState === 'Live';
                                   const displayScore = isLive ? projectedTotal : totalScore;
                                   const diff = displayScore - line;

@@ -5,35 +5,36 @@
 
 // 1.00 is league average (neutral)
 export const VenueParkFactors: Record<string, number> = {
-  "Coors Field": 1.34,
+  "Coors Field": 1.28,
+  "Sutter Health Park": 1.16,
   "Fenway Park": 1.09,
   "Great American Ball Park": 1.08,
   "Kauffman Stadium": 1.04,
-  "Wrigley Field": 1.00, // Highly wind dependent
+  "Wrigley Field": 1.07, // Playing warm/receptive today per image (+7%)
   "Globe Life Field": 1.03,
-  "Target Field": 0.98,
+  "Target Field": 0.97,
   "American Family Field": 1.01,
   "Progressive Field": 0.97,
   "Truist Park": 1.02,
   "Citizens Bank Park": 1.04,
-  "Yankee Stadium": 1.01,
-  "Oriole Park at Camden Yards": 0.95, // New wall dimensions
+  "Yankee Stadium": 0.93,
+  "Oriole Park at Camden Yards": 0.95,
   "Rogers Centre": 1.00,
   "Guaranteed Rate Field": 1.03,
-  "Comerica Park": 0.96,
-  "PNC Park": 0.94,
-  "Busch Stadium": 0.92,
+  "Comerica Park": 0.94,
+  "PNC Park": 0.93,
+  "Busch Stadium": 0.96,
   "Minute Maid Park": 0.99,
   "Dodger Stadium": 0.97,
-  "Angel Stadium": 0.98,
-  "Petco Park": 0.89,
+  "Angel Stadium": 1.02,
+  "Petco Park": 0.93,
   "Oracle Park": 0.86,
-  "T-Mobile Park": 0.91,
+  "T-Mobile Park": 0.92,
   "Chase Field": 0.99,
   "Oakland Coliseum": 0.88,
-  "LoanDepot Park": 0.93,
+  "LoanDepot Park": 0.95,
   "Citi Field": 0.95,
-  "Nationals Park": 1.01,
+  "Nationals Park": 0.87,
   "Tropicana Field": 0.94,
 };
 
@@ -71,6 +72,35 @@ export const TeamOffensePower: Record<string, number> = {
   "Kansas City Royals": 93,
   "Oakland Athletics": 81,
 };
+
+export interface DetailedParkFactor {
+  hr: number;
+  extraBase: number; // 2B/3B
+  single: number;
+  runs: number;
+}
+
+export const DetailedVenueFactors: Record<string, DetailedParkFactor> = {
+  "Coors Field": { hr: 1.19, extraBase: 1.35, single: 1.10, runs: 1.28 },
+  "Sutter Health Park": { hr: 1.22, extraBase: 1.11, single: 1.03, runs: 1.16 },
+  "Fenway Park": { hr: 0.79, extraBase: 1.23, single: 1.14, runs: 1.09 },
+  "Angel Stadium": { hr: 1.01, extraBase: 0.93, single: 1.06, runs: 1.02 },
+  "LoanDepot Park": { hr: 0.87, extraBase: 1.02, single: 0.98, runs: 0.95 },
+  "PNC Park": { hr: 0.69, extraBase: 1.10, single: 1.02, runs: 0.93 },
+  "Tropicana Field": { hr: 0.97, extraBase: 0.93, single: 0.92, runs: 0.94 },
+  "Target Field": { hr: 0.93, extraBase: 0.95, single: 1.01, runs: 0.97 },
+  "Petco Park": { hr: 0.95, extraBase: 0.81, single: 1.00, runs: 0.93 },
+  "Comerica Park": { hr: 0.71, extraBase: 0.98, single: 1.12, runs: 0.94 },
+  "Yankee Stadium": { hr: 0.86, extraBase: 0.85, single: 1.04, runs: 0.93 },
+  "Nationals Park": { hr: 0.75, extraBase: 0.96, single: 1.02, runs: 0.87 },
+  "T-Mobile Park": { hr: 1.01, extraBase: 0.85, single: 0.93, runs: 0.92 },
+  "Busch Stadium": { hr: 0.91, extraBase: 1.02, single: 1.03, runs: 0.96 },
+  "Wrigley Field": { hr: 1.19, extraBase: 0.98, single: 0.97, runs: 1.07 },
+};
+
+export function getDetailedParkFactor(venueName: string): DetailedParkFactor | null {
+  return DetailedVenueFactors[venueName] || null;
+}
 
 export function getParkFactor(venueName: string): number {
   return VenueParkFactors[venueName] || 1.00;
