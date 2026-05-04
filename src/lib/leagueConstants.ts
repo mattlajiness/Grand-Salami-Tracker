@@ -78,28 +78,27 @@ export interface DetailedParkFactor {
   extraBase: number; // 2B/3B
   single: number;
   runs: number;
-  windReceptivity?: 'Low' | 'Medium' | 'Med-High' | 'High' | 'Very High' | 'Extreme' | 'Consistent' | 'Closed';
 }
 
 export const DetailedVenueFactors: Record<string, DetailedParkFactor> = {
-  "Coors Field": { hr: 1.10, extraBase: 1.28, single: 1.21, runs: 1.31, windReceptivity: 'Low' },
-  "Sutter Health Park": { hr: 1.22, extraBase: 1.11, single: 1.03, runs: 1.16, windReceptivity: 'Very High' },
-  "Kauffman Stadium": { hr: 1.24, extraBase: 1.04, single: 1.09, runs: 1.18, windReceptivity: 'Medium' },
-  "Fenway Park": { hr: 0.79, extraBase: 1.23, single: 1.14, runs: 1.09, windReceptivity: 'High' },
-  "Angel Stadium": { hr: 0.97, extraBase: 0.95, single: 1.05, runs: 1.00, windReceptivity: 'Consistent' },
-  "LoanDepot Park": { hr: 0.87, extraBase: 1.02, single: 0.98, runs: 0.95, windReceptivity: 'Closed' },
-  "PNC Park": { hr: 0.69, extraBase: 1.10, single: 1.02, runs: 0.93, windReceptivity: 'Med-High' },
-  "Tropicana Field": { hr: 0.97, extraBase: 0.94, single: 0.92, runs: 0.94, windReceptivity: 'Closed' },
-  "Target Field": { hr: 0.93, extraBase: 0.95, single: 1.01, runs: 0.97, windReceptivity: 'Medium' },
-  "Petco Park": { hr: 0.95, extraBase: 0.81, single: 1.00, runs: 0.93, windReceptivity: 'Low' },
-  "Comerica Park": { hr: 0.85, extraBase: 0.95, single: 1.15, runs: 1.01, windReceptivity: 'High' },
-  "Yankee Stadium": { hr: 1.02, extraBase: 0.86, single: 0.97, runs: 0.96, windReceptivity: 'High' },
-  "Nationals Park": { hr: 0.75, extraBase: 0.96, single: 1.02, runs: 0.87, windReceptivity: 'Med-High' },
-  "T-Mobile Park": { hr: 1.03, extraBase: 0.87, single: 0.94, runs: 0.93, windReceptivity: 'Medium' },
-  "Busch Stadium": { hr: 1.01, extraBase: 0.96, single: 1.07, runs: 1.00, windReceptivity: 'Med-High' },
-  "Wrigley Field": { hr: 1.37, extraBase: 0.98, single: 0.99, runs: 1.16, windReceptivity: 'Extreme' },
-  "Minute Maid Park": { hr: 1.05, extraBase: 0.88, single: 0.96, runs: 0.95, windReceptivity: 'Closed' },
-  "Oracle Park": { hr: 0.77, extraBase: 1.11, single: 1.03, runs: 0.95, windReceptivity: 'Medium' },
+  "Coors Field": { hr: 1.10, extraBase: 1.28, single: 1.21, runs: 1.31 },
+  "Sutter Health Park": { hr: 1.22, extraBase: 1.11, single: 1.03, runs: 1.16 },
+  "Kauffman Stadium": { hr: 1.24, extraBase: 1.04, single: 1.09, runs: 1.18 },
+  "Fenway Park": { hr: 0.79, extraBase: 1.23, single: 1.14, runs: 1.09 },
+  "Angel Stadium": { hr: 0.97, extraBase: 0.95, single: 1.05, runs: 1.00 },
+  "LoanDepot Park": { hr: 0.87, extraBase: 1.02, single: 0.98, runs: 0.95 },
+  "PNC Park": { hr: 0.69, extraBase: 1.10, single: 1.02, runs: 0.93 },
+  "Tropicana Field": { hr: 0.97, extraBase: 0.94, single: 0.92, runs: 0.94 },
+  "Target Field": { hr: 0.93, extraBase: 0.95, single: 1.01, runs: 0.97 },
+  "Petco Park": { hr: 0.95, extraBase: 0.81, single: 1.00, runs: 0.93 },
+  "Comerica Park": { hr: 0.85, extraBase: 0.95, single: 1.15, runs: 1.01 },
+  "Yankee Stadium": { hr: 1.02, extraBase: 0.86, single: 0.97, runs: 0.96 },
+  "Nationals Park": { hr: 0.75, extraBase: 0.96, single: 1.02, runs: 0.87 },
+  "T-Mobile Park": { hr: 1.03, extraBase: 0.87, single: 0.94, runs: 0.93 },
+  "Busch Stadium": { hr: 1.01, extraBase: 0.96, single: 1.07, runs: 1.00 },
+  "Wrigley Field": { hr: 1.37, extraBase: 0.98, single: 0.99, runs: 1.16 },
+  "Minute Maid Park": { hr: 1.05, extraBase: 0.88, single: 0.96, runs: 0.95 },
+  "Oracle Park": { hr: 0.77, extraBase: 1.11, single: 1.03, runs: 0.95 },
 };
 
 export function getDetailedParkFactor(venueName: string): DetailedParkFactor | null {

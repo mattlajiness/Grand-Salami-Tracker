@@ -207,7 +207,7 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
       return [];
     }
 
-    // Enrich with boxscores if missing for final games AND pre-fetch forecast for future games
+    // Enrich with boxscores if missing for final games
     const enrichedGames = await Promise.all(rawGames.map(async (game) => {
       let enrichedGame = { ...game };
 
@@ -229,14 +229,18 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
 
       // 2. Weather Forecast enrichment for Preview/Live games missing weather
       if (!enrichedGame.weather || !enrichedGame.weather.temp) {
-        const forecast = await fetchWeatherForecast(game.teams.home.team.id, game.gameDate, game.venue?.name);
-        if (forecast) {
-          enrichedGame.weather = {
-            condition: forecast.condition,
-            temp: forecast.temp.toString(),
-            wind: `${forecast.windSpeed} mph, Dir ${forecast.windDir}`,
-            isForecast: true
-          };
+        try {
+          const forecast = await fetchWeatherForecast(game.teams.home.team.id, game.gameDate, game.venue?.name);
+          if (forecast) {
+            enrichedGame.weather = {
+              condition: forecast.condition,
+              temp: forecast.temp.toString(),
+              wind: `${forecast.windSpeed} mph, ${forecast.windDir}`,
+              isForecast: true
+            };
+          }
+        } catch (e) {
+          console.error("Weather enrichment failed", e);
         }
       }
 

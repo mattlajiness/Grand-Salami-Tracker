@@ -301,6 +301,7 @@ export default function App() {
     // Requirement for stabilization: at least 1 full inning cumulative across the slate
     if (stats.playedInnings >= 1.0) {
       const fatigueScore = calculateBullpenScore(stats.fatigue);
+      
       return calculateSmartProjection(
         currentTotal, 
         stats.playedInnings, 
@@ -311,7 +312,7 @@ export default function App() {
       );
     }
     return null;
-  }, [currentTotal, stats.playedInnings, stats.totalExpectedInnings, stats.liveThreats, stats.fatigue]);
+  }, [currentTotal, stats.playedInnings, stats.totalExpectedInnings, stats.liveThreats, stats.fatigue, betLine]);
 
   const isAdmin = user?.email?.toLowerCase() === 'mattlajiness@gmail.com';
 
@@ -403,7 +404,11 @@ export default function App() {
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
               <div className="order-2 lg:order-1 lg:col-span-3">
-                <GameLog games={games} gameLines={gameLines} manualLines={gameLines} />
+                <GameLog 
+                  games={games} 
+                  gameLines={gameLines} 
+                  manualLines={gameLines} 
+                />
               </div>
               
               <div className="order-1 lg:order-2 lg:col-span-1 space-y-6">

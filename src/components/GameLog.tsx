@@ -104,26 +104,6 @@ const getSpecialIntelligence = (game: MLBGame) => {
       // Near neutral
        badges.push({ label: `${game.venue?.name?.split(' ')[0].toUpperCase()} NEUTRAL`, color: 'bg-slate-500/10 text-slate-400 border-white/5', icon: ShieldCheck, title: `${game.venue?.name} playing near neutral baseline tonight.` });
     }
-
-    // New: Receptivity Badge
-    if (detailedFactor.windReceptivity) {
-      const receptivity = detailedFactor.windReceptivity;
-      let receptivityColor = 'bg-slate-500/10 text-slate-400';
-      if (receptivity === 'Extreme') receptivityColor = 'bg-green-600/30 text-green-400 border-green-500/40';
-      else if (receptivity === 'Very High') receptivityColor = 'bg-green-500/20 text-green-400 border-green-500/30';
-      else if (receptivity === 'High') receptivityColor = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
-      else if (receptivity === 'Med-High') receptivityColor = 'bg-yellow-500/20 text-yellow-500 border-yellow-500/30';
-      else if (receptivity === 'Medium') receptivityColor = 'bg-yellow-400/10 text-yellow-500 border-yellow-500/20';
-      else if (receptivity === 'Low') receptivityColor = 'bg-blue-500/10 text-blue-400 border-blue-500/20';
-      else if (receptivity === 'Closed') receptivityColor = 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20';
-
-      badges.push({
-        label: `${receptivity.toUpperCase()} RECEPTIVE`,
-        color: receptivityColor,
-        icon: Wind,
-        title: `Dynamic logic identifies this venue as having ${receptivity} wind receptivity today.`
-      });
-    }
   }
 
   // Backup for specific parks that might have unique complex logic not fully captured by factor alone
@@ -1391,7 +1371,7 @@ function GameDetailView({ game }: { game: MLBGame }) {
             </div>
           </div>
 
-          <div className="flex items-center self-end sm:self-auto">
+          <div className="flex items-center gap-4">
             <div className="flex flex-col items-end">
               <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest mb-1">Scoring Bias</span>
               <div className={cn(
