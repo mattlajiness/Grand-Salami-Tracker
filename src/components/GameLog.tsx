@@ -72,7 +72,15 @@ const getSpecialIntelligence = (game: MLBGame) => {
   // 1. Primary Park Identity & Logic (Only one main park badge)
   let hasSpecificParkIdentity = false;
 
-  if (detailedFactor) {
+  if (isStrictDome) {
+    hasSpecificParkIdentity = true;
+    badges.push({ 
+      label: 'DOME CONTROL', 
+      color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20', 
+      icon: ShieldCheck, 
+      title: `${game.venue?.name}: Atmospheric conditions are precisely regulated; outside weather is negated.` 
+    });
+  } else if (detailedFactor) {
     hasSpecificParkIdentity = true;
     const { hr, runs } = detailedFactor;
     const runChange = Math.round((runs - 1) * 100);
@@ -131,14 +139,6 @@ const getSpecialIntelligence = (game: MLBGame) => {
       } else {
         badges.push({ label: 'ALTITUDE FACTOR (+2.94)', color: 'bg-orange-500/10 text-orange-400 border-orange-500/20', icon: Activity, title: 'Coors Field (+2.94 Runs): 5,280ft elevation consistently boosts fly ball carry by 5-10%.' });
       }
-    } else if (isStrictDome) {
-      hasSpecificParkIdentity = true;
-      badges.push({ 
-        label: 'DOME CONTROL', 
-        color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20', 
-        icon: ShieldCheck, 
-        title: 'Climate Controlled: Atmospheric variables are neutralized. Park dimensions are the primary factor.' 
-      });
     }
   }
 
@@ -253,9 +253,15 @@ const getClimateIntelligence = (game: MLBGame) => {
 
   if (isStrictDome) {
     const domeName = venue.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    // Tropicana is the primary focus but this covers others too
+    const isTropicana = venue.includes('tropicana');
+    
     return { 
       impulse: 'neutral', 
-      message: `Controlled Environment at ${domeName}. Outside weather is negated; play will strictly follow baseline park factors and player mechanics.`,
+      isDome: true,
+      message: isTropicana 
+        ? `Tropicana Field: DOME CONTROL. Atmospheric conditions are precisely regulated; outside weather is irrelevant to play dynamics.`
+        : `Controlled Environment at ${domeName}. Outside weather is negated; play will strictly follow baseline park factors and player mechanics.`,
       temp, windStr, windSpeed, condition 
     };
   }
@@ -393,7 +399,7 @@ const getClimateIntelligence = (game: MLBGame) => {
     techReport += "Visibility Factor: Optimal contrast and lighting should benefit hitters' reaction times. ";
   }
 
-  return { impulse, message: techReport.trim(), temp, windStr, windSpeed, condition };
+  return { impulse, message: techReport.trim(), temp, windStr, windSpeed, condition, isDome: false };
 };
 
 const getUmpireIntelligence = (umpireName: string) => {
@@ -1373,14 +1379,15 @@ function GameDetailView({ game }: { game: MLBGame }) {
 
           <div className="flex items-center gap-4">
             <div className="flex flex-col items-end">
-              <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest mb-1">Scoring Bias</span>
+              <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest mb-1">{intelligence.isDome ? "Environment" : "Scoring Bias"}</span>
               <div className={cn(
                 "px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shadow-sm border whitespace-nowrap",
+                intelligence.isDome ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" :
                 intelligence.impulse === 'positive' ? "bg-red-500/10 text-red-500 border-red-500/20" :
                 intelligence.impulse === 'negative' ? "bg-blue-500/10 text-blue-400 border-blue-500/20" :
                 "bg-slate-800 text-slate-400 border-slate-700/50"
               )}>
-                {intelligence.impulse === 'positive' ? 'Offense Boost' : intelligence.impulse === 'negative' ? 'Pitching Edge' : 'Neutral'}
+                {intelligence.isDome ? 'DOME CONTROL' : (intelligence.impulse === 'positive' ? 'Offense Boost' : intelligence.impulse === 'negative' ? 'Pitching Edge' : 'Neutral')}
               </div>
             </div>
           </div>
