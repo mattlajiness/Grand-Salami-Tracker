@@ -9,6 +9,7 @@ import { WagerTracker } from './components/WagerTracker';
 import { RunTrends } from './components/RunTrends';
 import { BullpenFatigueReport } from './components/BullpenFatigueReport';
 import { InfoSection } from './components/InfoSection';
+import { DailyApex } from './components/DailyApex';
 import { LogoExport } from './components/LogoExport';
 import { UserAdminPanel } from './components/UserAdminPanel';
 import { WagerHistory } from './components/WagerHistory';
@@ -418,8 +419,6 @@ export default function App() {
                   </div>
                 )}
 
-
-
                 <WagerTracker 
                   currentTotal={currentTotal}
                   playedInnings={stats.playedInnings}
@@ -436,6 +435,8 @@ export default function App() {
                   todayStr={todayStr}
                   onOpenHistory={() => setIsHistoryModalOpen(true)}
                 />
+
+                <DailyApex games={games} />
 
                 <div className="hidden lg:block space-y-6">
                   <BullpenFatigueReport 

@@ -1,8 +1,8 @@
-import { useState, Fragment, useEffect } from 'react';
+import { useState, Fragment, useEffect, useMemo } from 'react';
 import { MLBGame } from '../services/mlbService';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
-import { Activity, RefreshCw, ChevronDown, ChevronUp, User, Info, Wind, Thermometer, Cloud, Sun, CloudRain, CloudLightning, MapPin, AlertTriangle, Droplets, Zap, ShieldCheck, Target, Edit2, Save, Scale } from 'lucide-react';
+import { Activity, RefreshCw, ChevronDown, ChevronUp, User, Info, Wind, Thermometer, Cloud, Sun, CloudRain, CloudLightning, MapPin, AlertTriangle, Droplets, Zap, ShieldCheck, Target, Edit2, Save, Scale, Flame } from 'lucide-react';
 import { calculateLiveThreat } from '../lib/projectionEngine';
 import { getUmpireTendency, getGenericTendency } from '../lib/umpireEngine';
 import { useAuth } from '../contexts/AuthContext';
@@ -458,6 +458,19 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
   
   const [expandedGameId, setExpandedGameId] = useState<number | null>(null);
   const [filter, setFilter] = useState<'All' | 'Live' | 'Final' | 'Preview'>('All');
+
+  const apexGamePk = useMemo(() => {
+    if (!games.length) return null;
+    const sorted = [...games].sort((a, b) => {
+      const scoreA = (a.teams.away.score || 0) + (a.teams.home.score || 0);
+      const scoreB = (b.teams.away.score || 0) + (b.teams.home.score || 0);
+      return scoreB - scoreA;
+    });
+    const topScore = (sorted[0].teams.away.score || 0) + (sorted[0].teams.home.score || 0);
+    if (topScore === 0) return null;
+    return sorted[0].gamePk;
+  }, [games]);
+
   const [editingLineId, setEditingLineId] = useState<number | null>(null);
   const [tempLine, setTempLine] = useState<string>('');
 
@@ -601,18 +614,27 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                       onClick={() => toggleGame(game.gamePk)}
                     >
                       <div className="flex items-center justify-between">
-                        {game.status?.detailedState !== 'Delayed Start' ? (
-                          <div className={cn(
-                            "text-[8px] font-mono font-black px-2 py-0.5 rounded shadow-sm",
-                            game.status.abstractGameState === 'Live' ? "bg-red-600 text-white" :
-                            game.status.abstractGameState === 'Final' ? "bg-green-600 text-white" :
-                            "bg-slate-800 text-slate-400"
-                          )}>
-                            {game.status.abstractGameState === 'Live' && game.linescore?.currentInningOrdinal 
-                              ? `${game.linescore.isTopInning ? 'TOP' : 'BOT'} ${game.linescore.currentInningOrdinal}`.toUpperCase()
-                              : (game.status?.detailedState || '').toUpperCase()}
-                          </div>
-                        ) : <div />}
+                        <div className="flex items-center gap-2">
+                          {game.status?.detailedState !== 'Delayed Start' ? (
+                            <div className={cn(
+                              "text-[8px] font-mono font-black px-2 py-0.5 rounded shadow-sm",
+                              game.status.abstractGameState === 'Live' ? "bg-red-600 text-white" :
+                              game.status.abstractGameState === 'Final' ? "bg-green-600 text-white" :
+                              "bg-slate-800 text-slate-400"
+                            )}>
+                              {game.status.abstractGameState === 'Live' && game.linescore?.currentInningOrdinal 
+                                ? `${game.linescore.isTopInning ? 'TOP' : 'BOT'} ${game.linescore.currentInningOrdinal}`.toUpperCase()
+                                : (game.status?.detailedState || '').toUpperCase()}
+                            </div>
+                          ) : <div />}
+                          
+                          {game.gamePk === apexGamePk && (
+                            <div className="bg-orange-500/20 border border-orange-500/30 px-2 py-0.5 rounded flex items-center gap-1 shadow-sm">
+                              <Flame className="w-2.5 h-2.5 text-orange-400" />
+                              <span className="text-[7px] font-mono font-black text-orange-400 uppercase tracking-tighter">Daily Apex</span>
+                            </div>
+                          )}
+                        </div>
                         <div className="flex items-center gap-2">
                           {game.status.abstractGameState === 'Live' && getThreatLevel(game) > 0.25 && (
                              <button
@@ -1077,6 +1099,12 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                           <td className="px-6 py-5 text-right">
                             <div className="flex flex-col items-end gap-2">
                               <div className="flex items-center justify-end flex-wrap gap-2 mb-1">
+                                {game.gamePk === apexGamePk && (
+                                  <div className="bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 rounded flex items-center gap-1.5 shadow-sm">
+                                    <Flame className="w-3 h-3 text-orange-400" />
+                                    <span className="text-[8px] font-mono font-black text-orange-400 uppercase tracking-tighter">Daily Apex</span>
+                                  </div>
+                                )}
                                 {game.status.abstractGameState === 'Live' && getThreatLevel(game) > 0.25 && (
                                   <motion.button 
                                     type="button"
