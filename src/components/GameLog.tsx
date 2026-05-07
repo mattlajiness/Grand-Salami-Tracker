@@ -74,12 +74,21 @@ const getSpecialIntelligence = (game: MLBGame) => {
 
   if (isStrictDome) {
     hasSpecificParkIdentity = true;
-    badges.push({ 
-      label: 'DOME CONTROL', 
-      color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20', 
-      icon: ShieldCheck, 
-      title: `${game.venue?.name}: Atmospheric conditions are precisely regulated; outside weather is negated.` 
-    });
+    if (venue.includes('chase field')) {
+      badges.push({ 
+        label: 'HUMIDOR GAME', 
+        color: 'bg-teal-500/10 text-teal-300 border-teal-500/20', 
+        icon: Droplets, 
+        title: 'Chase Field: Humidor regulated environment reduces offensive variability in the desert.' 
+      });
+    } else {
+      badges.push({ 
+        label: 'DOME CONTROL', 
+        color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20', 
+        icon: ShieldCheck, 
+        title: `${game.venue?.name}: Atmospheric conditions are precisely regulated; outside weather is negated.` 
+      });
+    }
   } else if (detailedFactor) {
     hasSpecificParkIdentity = true;
     const { hr, runs } = detailedFactor;
@@ -255,12 +264,16 @@ const getClimateIntelligence = (game: MLBGame) => {
     const domeName = venue.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
     // Tropicana is the primary focus but this covers others too
     const isTropicana = venue.includes('tropicana');
+    const isChase = venue.includes('chase field');
     
     return { 
       impulse: 'neutral', 
       isDome: true,
+      isHumidor: isChase,
       message: isTropicana 
         ? `Tropicana Field: DOME CONTROL. Atmospheric conditions are precisely regulated; outside weather is irrelevant to play dynamics.`
+        : isChase
+        ? `Chase Field: HUMIDOR REGULATED. Climate control and humidor storage negate desert atmospheric thinning.`
         : `Controlled Environment at ${domeName}. Outside weather is negated; play will strictly follow baseline park factors and player mechanics.`,
       temp, windStr, windSpeed, condition 
     };
@@ -399,7 +412,7 @@ const getClimateIntelligence = (game: MLBGame) => {
     techReport += "Visibility Factor: Optimal contrast and lighting should benefit hitters' reaction times. ";
   }
 
-  return { impulse, message: techReport.trim(), temp, windStr, windSpeed, condition, isDome: false };
+  return { impulse, message: techReport.trim(), temp, windStr, windSpeed, condition, isDome: false, isHumidor: false };
 };
 
 const getUmpireIntelligence = (umpireName: string) => {
@@ -1407,15 +1420,16 @@ function GameDetailView({ game }: { game: MLBGame }) {
 
           <div className="flex items-center gap-4">
             <div className="flex flex-col items-end">
-              <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest mb-1">{intelligence.isDome ? "Environment" : "Scoring Bias"}</span>
+              <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest mb-1">{intelligence.isHumidor ? "Atmospherics" : (intelligence.isDome ? "Environment" : "Scoring Bias")}</span>
               <div className={cn(
                 "px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shadow-sm border whitespace-nowrap",
+                intelligence.isHumidor ? "bg-teal-500/10 text-teal-300 border-teal-500/20" :
                 intelligence.isDome ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" :
                 intelligence.impulse === 'positive' ? "bg-red-500/10 text-red-500 border-red-500/20" :
                 intelligence.impulse === 'negative' ? "bg-blue-500/10 text-blue-400 border-blue-500/20" :
                 "bg-slate-800 text-slate-400 border-slate-700/50"
               )}>
-                {intelligence.isDome ? 'DOME CONTROL' : (intelligence.impulse === 'positive' ? 'Offense Boost' : intelligence.impulse === 'negative' ? 'Pitching Edge' : 'Neutral')}
+                {intelligence.isHumidor ? 'HUMIDOR REGULATED' : (intelligence.isDome ? 'DOME CONTROL' : (intelligence.impulse === 'positive' ? 'Offense Boost' : intelligence.impulse === 'negative' ? 'Pitching Edge' : 'Neutral'))}
               </div>
             </div>
           </div>
