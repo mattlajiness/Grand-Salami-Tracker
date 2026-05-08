@@ -3,7 +3,6 @@ import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
-import fetch from "node-fetch";
 import { DetailedVenueFactors } from "./src/lib/leagueConstants.ts";
 import { fetchParkFactors, getCachedFactors, getFetchStatus } from "./src/services/ballparkPalService.ts";
 
@@ -58,29 +57,39 @@ async function startServer() {
       
       const url = `https://statsapi.mlb.com/api/v1/${mlbPath}${queryParams ? `?${queryParams}` : ""}`;
       
-      console.log(`Proxying MLB Request: ${url}`);
+      console.log(`[MLB Proxy] Fetching: ${url}`);
       
       const response = await fetch(url, {
         headers: {
-          "User-Agent": "MLB-Salami-Tracker/1.0",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
           "Accept": "application/json"
         }
       });
       
       if (!response.ok) {
         if (response.status === 404 && url.includes('contextMetrics')) {
-          // Silently handle 404 for contextMetrics as it's common for games without published odds
-          return res.status(404).json({ error: "No metrics or odds available for this game" });
+          return res.status(404).json({ error: "No metrics or odds available" });
         }
-        console.error(`MLB API Error: ${response.status} ${response.statusText} at ${url}`);
-        return res.status(response.status).json({ error: `MLB API Error: ${response.statusText}` });
+        const errorText = await response.text().catch(() => "Unknown error");
+        console.error(`[MLB Proxy] API Error: ${response.status} ${response.statusText} for ${url}. Body: ${errorText.slice(0, 200)}`);
+        return res.status(response.status).json({ error: `MLB API Error: ${response.statusText}`, details: errorText.slice(0, 200) });
       }
       
-      const data = await response.json();
-      res.json(data);
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        const data = await response.json();
+        return res.json(data);
+      } else {
+        const text = await response.text();
+        console.warn(`[MLB Proxy] Expected JSON but got ${contentType} from ${url}`);
+        return res.send(text);
+      }
     } catch (error) {
-      console.error("MLB Proxy Error:", error);
-      res.status(500).json({ error: "Failed to fetch from MLB API" });
+      console.error("[MLB Proxy] Fatal Error:", error);
+      res.status(500).json({ 
+        error: "Internal Proxy Error", 
+        message: error instanceof Error ? error.message : String(error) 
+      });
     }
   });
 
@@ -90,6 +99,7 @@ async function startServer() {
       const start = Date.now();
       const response = await fetch(url);
       const duration = Date.now() - start;
+      const data = await response.json().catch(() => ({ error: "Not JSON" }));
       
       res.json({
         success: response.ok,
@@ -97,6 +107,7 @@ async function startServer() {
         statusText: response.statusText,
         durationMs: duration,
         url: url,
+        hasData: !!data && !data.error,
         timestamp: new Date().toISOString()
       });
     } catch (error) {

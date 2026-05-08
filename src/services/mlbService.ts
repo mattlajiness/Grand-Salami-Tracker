@@ -156,15 +156,8 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
     searchParams.append('startDate', startDate);
     searchParams.append('endDate', endDate);
   } else if (date) {
-    try {
-      const targetDate = parseISO(date);
-      const start = format(subDays(targetDate, 1), 'yyyy-MM-dd');
-      const end = format(addDays(targetDate, 1), 'yyyy-MM-dd');
-      searchParams.append('startDate', start);
-      searchParams.append('endDate', end);
-    } catch (e) {
-      searchParams.append('date', date);
-    }
+    // Exact day only to reduce payload and enrichment overhead
+    searchParams.append('date', date);
   }
   
   const relativeUrl = `/api/v1/mlb/schedule?${searchParams.toString()}`;
@@ -173,9 +166,7 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
     const response = await fetchWithRetry(relativeUrl);
 
     if (!response.ok) {
-      // If we have a cached version, use it during API errors
       if (scheduleCache && (Date.now() - scheduleCache.timestamp < SCHEDULE_CACHE_TTL * 15)) {
-        console.warn('Using stale schedule cache due to API error');
         return scheduleCache.data;
       }
       throw new Error(`MLB API Error: ${response.status}`);
@@ -184,84 +175,74 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
     const data: MLBScheduleResponse = await response.json();
     
     if (!data || !data.dates || !Array.isArray(data.dates) || data.dates.length === 0) {
-      console.warn('No games found for this period');
       return [];
     }
 
     let rawGames: MLBGame[] = [];
-    try {
-      if (startDate && endDate) {
-        rawGames = data.dates.flatMap(d => (d.games || []).map(g => ({ ...g, officialDate: d.date })));
-      } else if (date) {
-        const dayData = data.dates.find(d => d.date === date);
-        if (dayData) {
-          rawGames = (dayData.games || []).map(g => ({ ...g, officialDate: dayData.date }));
-        } else {
-          // If the specific day requested isn't found, return empty array instead of falling back to yesterday
-          console.warn(`No games found in API response for specific date: ${date}`);
-          rawGames = [];
-        }
-      } else if (data.dates[0]) {
-        rawGames = (data.dates[0].games || []).map(g => ({ ...g, officialDate: data.dates[0].date }));
+    if (startDate && endDate) {
+      rawGames = data.dates.flatMap(d => (d.games || []).map(g => ({ ...g, officialDate: d.date })));
+    } else {
+      // Find the specific date in the response, or fallback to the first one
+      const dayData = date ? data.dates.find(d => d.date === date) : data.dates[0];
+      if (dayData) {
+        rawGames = (dayData.games || []).map(g => ({ ...g, officialDate: dayData.date }));
       }
-    } catch (e) {
-      console.error('Error parsing MLB games data:', e);
-      return [];
     }
 
-    // Enrich with boxscores if missing for final games
-    const enrichedGames = await Promise.all(rawGames.map(async (game) => {
-      let enrichedGame = { ...game };
+    // Limit concurrency for enrichment to avoid DOSing the proxy
+    const enrichedGames: MLBGame[] = [];
+    const batchSize = 3;
+    for (let i = 0; i < rawGames.length; i += batchSize) {
+      const batch = rawGames.slice(i, i + batchSize);
+      const enrichedBatch = await Promise.all(batch.map(async (game) => {
+        let enrichedGame = { ...game };
 
-      // 1. Boxscore enrichment
-      if (game.status.abstractGameState === 'Final' && (!game.boxscore?.teams.home.pitchers || game.boxscore.teams.home.pitchers.length === 0)) {
+        // 1. Boxscore enrichment
+        if (game.status.abstractGameState === 'Final' && (!game.boxscore?.teams.home.pitchers || game.boxscore.teams.home.pitchers.length === 0)) {
+          try {
+            const boxResponse = await fetch(`/api/v1/mlb/game/${game.gamePk}/boxscore`);
+            if (boxResponse.ok) {
+              const boxData = await boxResponse.json();
+              enrichedGame.boxscore = {
+                teams: {
+                  away: { pitchers: boxData.teams.away.pitchers || [] },
+                  home: { pitchers: boxData.teams.home.pitchers || [] }
+                }
+              };
+            }
+          } catch (e) {}
+        }
+
+        // 2. Weather Forecast enrichment
+        if (!enrichedGame.weather || !enrichedGame.weather.temp) {
+          try {
+            const forecast = await fetchWeatherForecast(game.teams.home.team.id, game.gameDate, game.venue?.name);
+            if (forecast) {
+              enrichedGame.weather = {
+                condition: forecast.condition,
+                temp: forecast.temp.toString(),
+                wind: `${forecast.windSpeed} mph, ${forecast.windDir}`,
+                isForecast: true
+              };
+            }
+          } catch (e) {}
+        }
+
+        // 3. Over/Under enrichment
         try {
-          const boxResponse = await fetch(`/api/v1/mlb/game/${game.gamePk}/boxscore`);
-          if (boxResponse.ok) {
-            const boxData = await boxResponse.json();
-            enrichedGame.boxscore = {
-              teams: {
-                away: { pitchers: boxData.teams.away.pitchers || [] },
-                home: { pitchers: boxData.teams.home.pitchers || [] }
-              }
-            };
+          const oddsRes = await fetch(`/api/v1/mlb/game/${game.gamePk}/contextMetrics?hydrate=odds`);
+          if (oddsRes.ok) {
+            const oddsData = await oddsRes.json();
+            if (oddsData && oddsData.odds && oddsData.odds.length > 0) {
+              enrichedGame.totalLine = oddsData.odds[0].total;
+            }
           }
         } catch (e) {}
-      }
 
-      // 2. Weather Forecast enrichment for Preview/Live games missing weather
-      if (!enrichedGame.weather || !enrichedGame.weather.temp) {
-        try {
-          const forecast = await fetchWeatherForecast(game.teams.home.team.id, game.gameDate, game.venue?.name);
-          if (forecast) {
-            enrichedGame.weather = {
-              condition: forecast.condition,
-              temp: forecast.temp.toString(),
-              wind: `${forecast.windSpeed} mph, ${forecast.windDir}`,
-              isForecast: true
-            };
-          }
-        } catch (e) {
-          console.error("Weather enrichment failed", e);
-        }
-      }
-
-      // 3. Over/Under TotalLine enrichment
-      try {
-        const oddsUrl = `/api/v1/mlb/game/${game.gamePk}/contextMetrics?hydrate=odds`;
-        const oddsRes = await fetch(oddsUrl);
-        if (oddsRes.ok) {
-          const oddsData = await oddsRes.json();
-          if (oddsData && oddsData.odds && oddsData.odds.length > 0) {
-            enrichedGame.totalLine = oddsData.odds[0].total;
-          }
-        }
-      } catch (e) {
-        // Silently fail for odds - we'll use fallback estimates downstream
-      }
-
-      return enrichedGame;
-    }));
+        return enrichedGame;
+      }));
+      enrichedGames.push(...enrichedBatch);
+    }
 
     let resultGames = enrichedGames;
 
