@@ -190,6 +190,7 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
     const gamesToEnrich = rawGames.map(async (game) => {
       let enrichedGame = { ...game };
 
+      // Try to get weather from forecast service if not present
       if (!enrichedGame.weather || !enrichedGame.weather.temp) {
         try {
           const forecast = await fetchWeatherForecast(game.teams.home.team.id, game.gameDate, game.venue?.name);
@@ -201,12 +202,17 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
               isForecast: true
             };
           }
-        } catch (e) {}
+        } catch (e) {
+          // Weather is optional
+        }
       }
 
-      // Check for odds if not included in hydrate (sometimes it isn't)
-      if (!enrichedGame.totalLine) {
+      // Check for odds if not included in hydrate. 
+      // Only check for games today or recent history.
+      const gameState = game.status?.abstractGameState;
+      if (!enrichedGame.totalLine && game.gamePk && (gameState === 'Live' || gameState === 'Preview')) {
         try {
+          // Silence the console noise by only attempting if it looks promising
           const oddsRes = await fetch(`/api/v1/mlb/game/${game.gamePk}/contextMetrics?hydrate=odds`);
           if (oddsRes.ok) {
             const oddsData = await oddsRes.json();
@@ -214,7 +220,9 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
               enrichedGame.totalLine = oddsData.odds[0].total;
             }
           }
-        } catch (e) {}
+        } catch (e) {
+          // Odds are optional
+        }
       }
 
       return enrichedGame;

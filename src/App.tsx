@@ -420,17 +420,9 @@ export default function App() {
               </p>
               <div className="mt-8 flex flex-col items-center gap-4">
                 <button 
-                  onClick={async () => {
-                    const today = format(new Date(), 'yyyy-MM-dd');
-                    toast.info(`Running diagnostics for ${today}...`);
-                    try {
-                      const res = await fetch(`/api/v1/mlb/schedule?sportId=1&date=${today}`);
-                      const data = await res.json();
-                      alert(`DIAGNOSTIC RESULT:\nStatus: ${res.status}\nDates: ${data.dates?.length}\nGames Check: ${data.dates?.[0]?.games?.length}\nFull JSON: ${JSON.stringify(data).slice(0, 500)}...`);
-                      loadLiveData(true);
-                    } catch (e) {
-                      alert(`DIAGNOSTIC FAILED: ${e instanceof Error ? e.message : String(e)}`);
-                    }
+                  onClick={() => {
+                    toast.info('Initiating force sync with MLB Stats API...');
+                    loadLiveData(true);
                   }}
                   disabled={isRefreshing}
                   className="px-8 py-3 bg-salami-red hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-black text-[11px] uppercase tracking-[0.3em] transition-all active:scale-95 shadow-lg shadow-red-900/20"

@@ -18,6 +18,19 @@ async function startServer() {
 
   app.use(express.json());
 
+  app.use((req, res, next) => {
+    const start = Date.now();
+    res.on('finish', () => {
+      const duration = Date.now() - start;
+      // Suppress logging for common source files and assets to reduce noise
+      const isAsset = req.url.match(/\.(ts|tsx|js|jsx|css|svg|png|jpg|jpeg|ico|woff2?)$/) || req.url.includes('/node_modules/');
+      if (!isAsset || res.statusCode >= 400) {
+        console.log(`[Server] ${req.method} ${req.url} - ${res.statusCode} (${duration}ms)`);
+      }
+    });
+    next();
+  });
+
   // API routes go here
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
@@ -36,32 +49,7 @@ async function startServer() {
     });
   });
 
-  app.get("/api/v1/mlb/*", async (req, res) => {
-    try {
-      const fullPath = req.path;
-      const mlbPath = fullPath.replace(/^\/api\/v1\/mlb\//, "");
-      const queryIndex = req.originalUrl.indexOf("?");
-      const queryParams = queryIndex !== -1 ? req.originalUrl.substring(queryIndex + 1) : "";
-      
-      const url = `https://statsapi.mlb.com/api/v1/${mlbPath}${queryParams ? `?${queryParams}` : ""}`;
-      
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        if (response.status === 404 && url.includes('contextMetrics')) {
-          return res.status(404).json({ error: "No metrics available" });
-        }
-        return res.status(response.status).json({ error: `MLB API Error` });
-      }
-      
-      const data = await response.json();
-      res.json(data);
-    } catch (error) {
-      res.status(500).json({ error: "Proxy Failed" });
-    }
-  });
-
-  app.get("/api/v1/debug/mlb", async (req, res) => {
+  app.get("/api/v1/mlb/debug", async (req, res) => {
     try {
       const url = "https://statsapi.mlb.com/api/v1/schedule?sportId=1";
       const start = Date.now();
@@ -87,6 +75,55 @@ async function startServer() {
     }
   });
 
+  app.get("/api/v1/mlb/*", async (req, res) => {
+    // Correctly get the subpath after /api/v1/mlb
+    const subpath = req.params[0];
+    const query = req.originalUrl.split("?")[1] || "";
+    const url = `https://statsapi.mlb.com/api/v1/${subpath}${query ? `?${query}` : ""}`;
+    
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'application/json'
+        }
+      });
+      
+      const contentType = response.headers.get("content-type");
+      
+      if (!response.ok) {
+        const errorBody = await response.text().catch(() => "");
+        // Only log non-404 errors as errors to reduce noise
+        if (response.status !== 404) {
+          console.error(`[MLB Proxy] API Error ${response.status}: ${url}`);
+          console.error(`[MLB Proxy] Error Body: ${errorBody.slice(0, 100)}`);
+        }
+        
+        return res.status(response.status).json({ 
+          error: "MLB API Error", 
+          status: response.status,
+          apiError: errorBody.slice(0, 100)
+        });
+      }
+      
+      if (contentType && contentType.includes("application/json")) {
+        const data = await response.json();
+        return res.json(data);
+      } else {
+        const text = await response.text().catch(() => "");
+        console.warn(`[MLB Proxy] Non-JSON response for ${url}: ${contentType}`);
+        return res.status(502).json({ 
+          error: "Invalid response from MLB API", 
+          contentType,
+          preview: text.slice(0, 100)
+        });
+      }
+    } catch (error) {
+      console.error("[MLB Proxy] Fatal:", error);
+      res.status(500).json({ error: "Proxy Failed", message: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
   app.get("/api/v1/debug/ballparkpal", (req, res) => {
     res.json({
       message: "Ballpark Pal integration disabled",
@@ -97,6 +134,7 @@ async function startServer() {
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
+      root: process.cwd(),
       server: { middlewareMode: true },
       appType: "spa",
     });
