@@ -3,7 +3,9 @@ import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
+import fetch from "node-fetch";
 import { DetailedVenueFactors } from "./src/lib/leagueConstants.ts";
+import { fetchParkFactors, getCachedFactors, getFetchStatus } from "./src/services/ballparkPalService.ts";
 
 // Load environment variables from .env file
 dotenv.config();
@@ -17,31 +19,38 @@ async function startServer() {
 
   app.use(express.json());
 
+  // Initial fetch on startup
+  fetchParkFactors().catch(err => console.error("Initial fetch failed:", err));
+
+  // Set up periodic refresh every 6 hours
+  setInterval(() => {
+    fetchParkFactors().catch(err => console.error("Periodic fetch failed:", err));
+  }, 1000 * 60 * 60 * 6);
+
   // API routes go here
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
   });
 
   app.get("/api/v1/parkfactors", (req, res) => {
+    const dynamicFactors = getCachedFactors();
     res.json({
       success: true,
-      data: DetailedVenueFactors,
+      data: dynamicFactors || DetailedVenueFactors,
       metadata: {
-        lastUpdated: new Date().toISOString(),
-        source: "Bundled Baseline",
+        lastUpdated: new Date(dynamicFactors ? getFetchStatus()?.time || Date.now() : Date.now()).toISOString(),
+        source: dynamicFactors ? "Ball Park Pal Live" : "Bundled Baseline",
         version: "1.0.0",
-        live: false
+        live: !!dynamicFactors
       }
     });
   });
 
   app.get("/api/v1/mlb/*", async (req, res) => {
     try {
-      // Get the path correctly, removing leading /api/v1/mlb/
       const fullPath = req.path;
       const mlbPath = fullPath.replace(/^\/api\/v1\/mlb\//, "");
       
-      // Get the query string exactly as it came in to preserve formatting/encoding
       const queryIndex = req.originalUrl.indexOf("?");
       const queryParams = queryIndex !== -1 ? req.originalUrl.substring(queryIndex + 1) : "";
       
@@ -61,25 +70,15 @@ async function startServer() {
           return res.status(404).json({ error: "No metrics or odds available" });
         }
         const errorText = await response.text().catch(() => "Unknown error");
-        console.error(`[MLB Proxy] API Error: ${response.status} ${response.statusText} for ${url}. Body: ${errorText.slice(0, 200)}`);
-        return res.status(response.status).json({ error: `MLB API Error: ${response.statusText}`, details: errorText.slice(0, 200) });
+        console.error(`[MLB Proxy] API Error: ${response.status} ${response.statusText} for ${url}`);
+        return res.status(response.status).json({ error: `MLB API Error: ${response.statusText}` });
       }
       
-      const contentType = response.headers.get("content-type");
-      if (contentType && contentType.includes("application/json")) {
-        const data = await response.json();
-        return res.json(data);
-      } else {
-        const text = await response.text();
-        console.warn(`[MLB Proxy] Expected JSON but got ${contentType} from ${url}`);
-        return res.send(text);
-      }
+      const data = await response.json();
+      res.json(data);
     } catch (error) {
       console.error("[MLB Proxy] Fatal Error:", error);
-      res.status(500).json({ 
-        error: "Internal Proxy Error", 
-        message: error instanceof Error ? error.message : String(error) 
-      });
+      res.status(500).json({ error: "Failed to fetch from MLB API" });
     }
   });
 
@@ -89,7 +88,7 @@ async function startServer() {
       const start = Date.now();
       const response = await fetch(url);
       const duration = Date.now() - start;
-      const data = await response.json().catch(() => ({ error: "Not JSON" }));
+      const data = await response.json().catch(() => ({ error: "Not JSON" })) as any;
       
       res.json({
         success: response.ok,

@@ -131,14 +131,11 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
   const fetchWithRetry = async (retryUrl: string, retries = 2): Promise<Response> => {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort('MLBPrefetchTimeout'), 20000); // 20s for schedule
+      const timeoutId = setTimeout(() => controller.abort('MLBPrefetchTimeout'), 15000); 
       const res = await fetch(retryUrl, { signal: controller.signal });
       clearTimeout(timeoutId);
       return res;
     } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') {
-        console.warn(`Fetch timed out for ${retryUrl}, retries remaining: ${retries}`);
-      }
       if (retries > 0) {
         await new Promise(r => setTimeout(r, 1000));
         return fetchWithRetry(retryUrl, retries - 1);
@@ -149,16 +146,15 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
 
   const searchParams = new URLSearchParams();
   searchParams.append('sportId', '1');
-  searchParams.append('hydrate', 'linescore,team,venue,probablePitcher');
-  searchParams.append('_t', Math.floor(Date.now() / 60000).toString()); // Minute-level cache busting
+  // Include full hydration for the initial call to avoid extra enrichment calls
+  searchParams.append('hydrate', 'linescore,team,weather,venue,probablePitcher,boxscore');
+  searchParams.append('_t', Math.floor(Date.now() / 60000).toString()); 
   
   if (startDate && endDate) {
     searchParams.append('startDate', startDate);
     searchParams.append('endDate', endDate);
   } else if (date) {
-    // Range of 1 day is often more reliable than 'date' param in some API versions
-    searchParams.append('startDate', date);
-    searchParams.append('endDate', date);
+    searchParams.append('date', date);
   }
   
   const relativeUrl = `/api/v1/mlb/schedule?${searchParams.toString()}`;
@@ -180,54 +176,45 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
     }
 
     let rawGames: MLBGame[] = [];
-    // Just get all games from the range
     rawGames = data.dates.flatMap(d => (d.games || []).map(g => ({ ...g, officialDate: d.date })));
     
     if (rawGames.length === 0) return [];
 
-    // Limit enrichment to only what's absolutely necessary for the first load
-    // We'll do weather and odds for live/preview games only
-    const enrichedGames: MLBGame[] = [];
-    const batchSize = 5; // Increase batch size
-    for (let i = 0; i < rawGames.length; i += batchSize) {
-      const batch = rawGames.slice(i, i + batchSize);
-      const enrichedBatch = await Promise.all(batch.map(async (game) => {
-        let enrichedGame = { ...game };
+    // Optional Weather Forecast enrichment for preview games missing weather
+    const gamesToEnrich = rawGames.map(async (game) => {
+      let enrichedGame = { ...game };
 
-        // 1. Weather Forecast enrichment - only if missing
-        if (!enrichedGame.weather || !enrichedGame.weather.temp) {
-          try {
-            const forecast = await fetchWeatherForecast(game.teams.home.team.id, game.gameDate, game.venue?.name);
-            if (forecast) {
-              enrichedGame.weather = {
-                condition: forecast.condition,
-                temp: forecast.temp.toString(),
-                wind: `${forecast.windSpeed} mph, ${forecast.windDir}`,
-                isForecast: true
-              };
+      if (!enrichedGame.weather || !enrichedGame.weather.temp) {
+        try {
+          const forecast = await fetchWeatherForecast(game.teams.home.team.id, game.gameDate, game.venue?.name);
+          if (forecast) {
+            enrichedGame.weather = {
+              condition: forecast.condition,
+              temp: forecast.temp.toString(),
+              wind: `${forecast.windSpeed} mph, ${forecast.windDir}`,
+              isForecast: true
+            };
+          }
+        } catch (e) {}
+      }
+
+      // Check for odds if not included in hydrate (sometimes it isn't)
+      if (!enrichedGame.totalLine) {
+        try {
+          const oddsRes = await fetch(`/api/v1/mlb/game/${game.gamePk}/contextMetrics?hydrate=odds`);
+          if (oddsRes.ok) {
+            const oddsData = await oddsRes.json();
+            if (oddsData?.odds?.[0]?.total) {
+              enrichedGame.totalLine = oddsData.odds[0].total;
             }
-          } catch (e) {}
-        }
+          }
+        } catch (e) {}
+      }
 
-        // 2. Over/Under enrichment - only if missing
-        if (!enrichedGame.totalLine) {
-          try {
-            const oddsRes = await fetch(`/api/v1/mlb/game/${game.gamePk}/contextMetrics?hydrate=odds`);
-            if (oddsRes.ok) {
-              const oddsData = await oddsRes.json();
-              if (oddsData && oddsData.odds && oddsData.odds.length > 0) {
-                enrichedGame.totalLine = oddsData.odds[0].total;
-              }
-            }
-          } catch (e) {}
-        }
+      return enrichedGame;
+    });
 
-        return enrichedGame;
-      }));
-      enrichedGames.push(...enrichedBatch);
-    }
-
-    let resultGames = enrichedGames;
+    let resultGames = await Promise.all(gamesToEnrich);
 
     // Enrich with pitcher stats
     const pitcherIds = new Set<number>();
@@ -237,26 +224,21 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
     });
 
     if (pitcherIds.size > 0) {
-      let statsMap: Record<number, string> = {};
-      const now = Date.now();
-      
-      if (pitcherStatsCache && (now - pitcherStatsCache.lastFetched < CACHE_TTL)) {
-        statsMap = pitcherStatsCache.data;
-      } else {
-        statsMap = await fetchPitcherStats(Array.from(pitcherIds));
-        pitcherStatsCache = { data: statsMap, lastFetched: now };
+      try {
+        const statsMap = await fetchPitcherStats(Array.from(pitcherIds));
+        resultGames = resultGames.map(game => {
+          const newGame = { ...game };
+          if (newGame.teams.away.probablePitcher?.id) {
+            newGame.teams.away.probablePitcher.era = statsMap[newGame.teams.away.probablePitcher.id];
+          }
+          if (newGame.teams.home.probablePitcher?.id) {
+            newGame.teams.home.probablePitcher.era = statsMap[newGame.teams.home.probablePitcher.id];
+          }
+          return newGame;
+        });
+      } catch (e) {
+        console.error("Failed to fetch pitcher stats", e);
       }
-
-      resultGames = resultGames.map(game => {
-        const newGame = { ...game };
-        if (newGame.teams.away.probablePitcher?.id) {
-          newGame.teams.away.probablePitcher.era = statsMap[newGame.teams.away.probablePitcher.id];
-        }
-        if (newGame.teams.home.probablePitcher?.id) {
-          newGame.teams.home.probablePitcher.era = statsMap[newGame.teams.home.probablePitcher.id];
-        }
-        return newGame;
-      });
     }
 
     // Update cache
@@ -273,12 +255,7 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
       console.warn('Fetch failed, returning cached data:', error);
       return scheduleCache.data;
     }
-    
-    if (error instanceof Error && error.name === 'AbortError') {
-      console.error('MLB API Request timed out');
-    } else {
-      console.error('Error fetching MLB games:', error);
-    }
+    console.error('Error fetching MLB games:', error);
     return [];
   }
 }
