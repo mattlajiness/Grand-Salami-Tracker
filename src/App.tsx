@@ -40,25 +40,6 @@ export default function App() {
   const isFetchingRef = useRef(false);
 
   useEffect(() => {
-    // Fetch dynamic park factors from internal API
-    const fetchDynamicFactors = async () => {
-      try {
-        const response = await fetch('/api/v1/parkfactors');
-        const json = await response.json();
-        if (json.success && json.data) {
-          updateDetailedParkFactors(json.data);
-          if (json.metadata?.live) {
-            console.log("Live park factors loaded from Ballpark Pal.");
-          }
-        }
-      } catch (err) {
-        console.warn("Failed to fetch dynamic park factors, using defaults.", err);
-      }
-    };
-    fetchDynamicFactors();
-  }, []);
-
-  useEffect(() => {
     const q = collection(db, 'gameLines');
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const lines: Record<number, number> = {};
@@ -70,7 +51,6 @@ export default function App() {
       try {
         handleFirestoreError(error, OperationType.LIST, 'gameLines');
       } catch (e) {
-        // Keep the app working despite the logged error
         console.warn("Failed to stream game lines - verifying connectivity...");
       }
     });
@@ -82,8 +62,6 @@ export default function App() {
     setHistoryLoading(true);
     try {
       const datesToFetch = [1, 2, 3, 4, 5, 6, 7].map(d => format(subDays(new Date(), d), 'yyyy-MM-dd'));
-      
-      // Fetch history one by one to avoid overwhelming the proxy
       const combinedHistory: MLBGame[] = [];
       for (const date of datesToFetch) {
         try {
@@ -95,7 +73,6 @@ export default function App() {
           console.warn(`Failed to fetch history for ${date}`, e);
         }
       }
-      
       setHistoricalGames(combinedHistory);
     } catch (error) {
       console.error('Error loading historical data:', error);
@@ -112,10 +89,7 @@ export default function App() {
     
     try {
       const today = format(new Date(), 'yyyy-MM-dd');
-      console.log(`[App] Requesting games for date: ${today}`);
       const mlbData = await fetchMLBGames(today);
-      
-      console.log(`[App] Received ${mlbData?.length || 0} games.`);
       setGames(mlbData || []);
       setLastUpdated(new Date());
     } catch (error) {
@@ -129,10 +103,10 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    // Background load historical data for trends
     loadHistoricalData();
     loadLiveData(true);
     
-    // Original 1-minute heartbeat (silent background updates)
     const interval = setInterval(() => {
       loadLiveData();
     }, 60000);
@@ -419,78 +393,9 @@ export default function App() {
                 We couldn't find any MLB games scheduled for <span className="text-white bg-slate-800 px-2 py-0.5 rounded">{format(new Date(), 'MMMM do, yyyy').toUpperCase()}</span>.
               </p>
               
-              {new Date().getFullYear() > 2025 && (
-                <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl max-w-sm mx-auto">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                    <span className="text-[10px] text-blue-400 font-black uppercase tracking-[0.2em]">System Date Variance</span>
-                  </div>
-                  <p className="text-[11px] text-slate-400 mb-4 leading-relaxed italic">
-                    Your environment clock is set to {new Date().getFullYear()}. Official MLB data may not exist for this future date.
-                  </p>
-                  <button 
-                    onClick={() => {
-                      const demoDate = '2024-05-08';
-                      setSelectedDate(demoDate);
-                      toast.success(`Switching to ${demoDate} (Known Season Data)`);
-                      // force reload
-                      loadLiveData(true);
-                    }}
-                    className="w-full py-2 bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 rounded-lg text-[9px] font-black uppercase tracking-widest transition-colors border border-blue-500/20"
-                  >
-                    Load May 8, 2024 (Live Data Demo)
-                  </button>
-                </div>
-              )}
-
               <div className="mt-8 flex flex-col items-center gap-4">
                 <button 
-                  onClick={async () => {
-                    const todayStr = format(new Date(), 'yyyy-MM-dd');
-                    toast.info(`Running diagnostics for ${todayStr}...`);
-                    try {
-                      // Call the debug route first
-                      const debugRes = await fetch('/api/v1/mlb/debug');
-                      const debugData = await debugRes.json();
-                      
-                      const res = await fetch(`/api/v1/mlb/schedule?sportId=1&date=${todayStr}`);
-                      const contentType = res.headers.get('content-type');
-                      const text = await res.text();
-                      
-                      let data: any = {};
-                      try {
-                        data = JSON.parse(text);
-                      } catch (e) {
-                        data = { parsingError: true, raw: text.slice(0, 100) };
-                      }
-
-                      const success = res.ok && !data.parsingError && Array.isArray(data.dates);
-                      const message = [
-                        `DIAGNOSTIC ${success ? 'PASSED' : 'FAILED'}`,
-                        `-------------------`,
-                        `Base Health: ${debugData.success ? 'OK' : 'FAILED'}`,
-                        `Schedule Status: ${res.status} ${res.statusText}`,
-                        `Is JSON: ${!data.parsingError}`,
-                        `Dates Count: ${data.dates?.length || 0}`,
-                        `Games count: ${data.dates?.[0]?.games?.length || 0}`,
-                        data.parsingError ? `Raw: ${text.slice(0, 100)}` : ''
-                      ].filter(Boolean).join('\n');
-
-                      if (success) {
-                        toast.success('Sync Successful');
-                        if (data.dates.length === 0) {
-                          alert(message + '\n\nNote: The API responded successfully, but there are NO games scheduled for this specific date.');
-                        }
-                      } else {
-                        alert(message + `\n\nPreview: ${text.slice(0, 200)}`);
-                      }
-                      
-                      loadLiveData(true);
-                    } catch (e) {
-                      const errorMsg = e instanceof Error ? e.message : String(e);
-                      alert(`DIAGNOSTIC FATAL ERROR: ${errorMsg}`);
-                    }
-                  }}
+                  onClick={() => loadLiveData(true)}
                   disabled={isRefreshing}
                   className="px-8 py-3 bg-salami-red hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-black text-[11px] uppercase tracking-[0.3em] transition-all active:scale-95 shadow-lg shadow-red-900/20"
                 >
@@ -500,6 +405,25 @@ export default function App() {
                   <Activity className={`w-3 h-3 ${isRefreshing ? 'animate-pulse text-salami-red' : ''}`} />
                   {isRefreshing ? 'Communicating with MLB API...' : 'Ready to Request MLB Stats API...'}
                 </div>
+                
+                {new Date().getFullYear() > 2025 && (
+                   <button 
+                     onClick={async () => {
+                       const demoDate = '2024-05-08';
+                       toast.info(`Fetching demo data for ${demoDate}...`);
+                       try {
+                         const data = await fetchMLBGames(demoDate);
+                         setGames(data);
+                         toast.success(`Loaded ${data.length} games from 2024.`);
+                       } catch (e) {
+                         toast.error("Demo fetch failed.");
+                       }
+                     }}
+                     className="text-[9px] text-slate-500 hover:text-blue-400 font-mono uppercase tracking-widest underline decoration-slate-800"
+                   >
+                     Load 2024 Demo Data (Live Context)
+                   </button>
+                )}
               </div>
             </div>
           ) : (

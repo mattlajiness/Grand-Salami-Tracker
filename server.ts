@@ -76,13 +76,10 @@ async function startServer() {
   });
 
   app.get("/api/v1/mlb/*", async (req, res) => {
-    // Extract the portion of the path after /api/v1/mlb
-    // req.path for /api/v1/mlb/schedule is /api/v1/mlb/schedule
-    const apiPath = req.path.substring("/api/v1/mlb".length);
-    const query = req.originalUrl.split("?")[1] || "";
-    // Ensure we have a leading slash if needed, but not double slashes
-    const sanitizedPath = apiPath.startsWith('/') ? apiPath : `/${apiPath}`;
-    const url = `https://statsapi.mlb.com/api/v1${sanitizedPath}${query ? `?${query}` : ""}`;
+    const subpath = req.params[0];
+    const query = req.originalUrl.slice(req.originalUrl.indexOf('?') + 1);
+    const hasQuery = req.originalUrl.includes('?');
+    const url = `https://statsapi.mlb.com/api/v1/${subpath}${hasQuery ? `?${query}` : ""}`;
     
     try {
       const response = await fetch(url, {
@@ -98,7 +95,6 @@ async function startServer() {
         const errorBody = await response.text().catch(() => "");
         if (response.status !== 404) {
           console.error(`[MLB Proxy] API Error ${response.status}: ${url}`);
-          console.error(`[MLB Proxy] Response Body: ${errorBody.slice(0, 200)}`);
         }
         
         return res.status(response.status).json({ 
@@ -114,7 +110,6 @@ async function startServer() {
         return res.json(data);
       } else {
         const text = await response.text().catch(() => "");
-        console.warn(`[MLB Proxy] Non-JSON response for ${url}: ${contentType}`);
         return res.status(502).json({ 
           error: "Invalid response from MLB API (Expected JSON)", 
           contentType,
