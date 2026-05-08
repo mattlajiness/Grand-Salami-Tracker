@@ -3,7 +3,7 @@ import { fetchMLBGames, MLBGame } from './services/mlbService';
 import { calculateLiveThreat, calculateSmartProjection } from './lib/projectionEngine';
 import { GrandSalamiHeader } from './components/GrandSalamiHeader';
 import { calculateFatigueStats, calculateBullpenScore } from './lib/fatigueEngine';
-import { getParkFactor, getTeamOffensePower } from './lib/leagueConstants';
+import { getParkFactor, getTeamOffensePower, updateDetailedParkFactors } from './lib/leagueConstants';
 import { GameLog } from './components/GameLog';
 import { WagerTracker } from './components/WagerTracker';
 import { RunTrends } from './components/RunTrends';
@@ -38,6 +38,25 @@ export default function App() {
   
   const isLogoMode = new URLSearchParams(window.location.search).get('logo') === 'true';
   const isFetchingRef = useRef(false);
+
+  useEffect(() => {
+    // Fetch dynamic park factors from internal API
+    const fetchDynamicFactors = async () => {
+      try {
+        const response = await fetch('/api/v1/parkfactors');
+        const json = await response.json();
+        if (json.success && json.data) {
+          updateDetailedParkFactors(json.data);
+          if (json.metadata?.live) {
+            console.log("Live park factors loaded from Ballpark Pal.");
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to fetch dynamic park factors, using defaults.", err);
+      }
+    };
+    fetchDynamicFactors();
+  }, []);
 
   useEffect(() => {
     const q = collection(db, 'gameLines');

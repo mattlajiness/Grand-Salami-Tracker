@@ -62,26 +62,43 @@ const getSpecialIntelligence = (game: MLBGame) => {
   const climate = getClimateIntelligence(game);
   const temp = climate?.temp || 72;
   
-  const isStrictDome = venue.includes('tropicana') || venue.includes('loandepot') || venue.includes('globe life') || venue.includes('minute maid') || venue.includes('american family') || venue.includes('rogers centre') || venue.includes('skydome') || (venue.includes('chase field') && (condition.includes('dome') || condition.includes('roof closed')));
+  const isRetractable = venue.includes('loandepot') || venue.includes('globe life') || venue.includes('minute maid') || venue.includes('american family') || venue.includes('rogers centre') || venue.includes('skydome') || venue.includes('chase field') || venue.includes('t-mobile') || venue.includes('safeco');
+  const isExplicitlyOpen = condition.includes('open') || condition.includes('outdoor');
+  const isExplicitlyClosed = condition.includes('closed') || condition.includes('indoor') || (venue.includes('chase field') && condition.includes('dome'));
+  
+  // Tropicana is always a dome. 
+  // Others are strict domes if explicitly closed or if they are retractable and not explicitly open/clear weather.
+  const isStrictDome = venue.includes('tropicana') || (isRetractable && isExplicitlyClosed) || (isRetractable && !isExplicitlyOpen && !['clear', 'sunny', 'cloudy', 'fair', 'partly'].some(k => condition.includes(k)));
 
   const detailedFactor = getDetailedParkFactor(game.venue?.name || '');
 
   // 1. Primary Park Identity & Logic (Only one main park badge)
-  if (isStrictDome && (venue.includes('tropicana') || venue.includes('loandepot') || venue.includes('globe life') || venue.includes('minute maid') || venue.includes('rogers centre') || venue.includes('skydome'))) {
+  
+  // If retractable and explicitly OPEN
+  if (isRetractable && isExplicitlyOpen) {
+    const venueShort = (game.venue?.name || '').split(' ')[0].toUpperCase();
+    return [{ 
+      label: `${venueShort} ROOF OPEN`, 
+      color: 'bg-amber-500/10 text-amber-400 border-amber-500/20', 
+      icon: Sun, 
+      title: `${game.venue?.name}: Roof is reported OPEN. Outdoor atmospheric conditions and wind are active.` 
+    }];
+  }
+
+  if (isStrictDome && (venue.includes('tropicana') || isRetractable)) {
+    if (venue.includes('chase field')) {
+      return [{ 
+        label: 'HUMIDOR GAME', 
+        color: 'bg-teal-500/10 text-teal-300 border-teal-500/20', 
+        icon: Droplets, 
+        title: 'Chase Field: Humidor regulated environment reduces offensive variability in the desert.' 
+      }];
+    }
     return [{ 
       label: 'DOME CONTROL', 
       color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20', 
       icon: ShieldCheck, 
       title: `${game.venue?.name}: Atmospheric conditions are precisely regulated; outside weather is negated.` 
-    }];
-  } 
-  
-  if (venue.includes('chase field') && isStrictDome) {
-    return [{ 
-      label: 'HUMIDOR GAME', 
-      color: 'bg-teal-500/10 text-teal-300 border-teal-500/20', 
-      icon: Droplets, 
-      title: 'Chase Field: Humidor regulated environment reduces offensive variability in the desert.' 
     }];
   } 
 
