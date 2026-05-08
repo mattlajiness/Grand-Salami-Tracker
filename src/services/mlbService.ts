@@ -149,15 +149,16 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
 
   const searchParams = new URLSearchParams();
   searchParams.append('sportId', '1');
-  searchParams.append('hydrate', 'linescore,team,weather,venue,probablePitcher,boxscore,officials');
+  searchParams.append('hydrate', 'linescore,team,venue,probablePitcher');
   searchParams.append('_t', Math.floor(Date.now() / 60000).toString()); // Minute-level cache busting
   
   if (startDate && endDate) {
     searchParams.append('startDate', startDate);
     searchParams.append('endDate', endDate);
   } else if (date) {
-    // Exact day only to reduce payload and enrichment overhead
-    searchParams.append('date', date);
+    // Range of 1 day is often more reliable than 'date' param in some API versions
+    searchParams.append('startDate', date);
+    searchParams.append('endDate', date);
   }
   
   const relativeUrl = `/api/v1/mlb/schedule?${searchParams.toString()}`;
@@ -179,41 +180,21 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
     }
 
     let rawGames: MLBGame[] = [];
-    if (startDate && endDate) {
-      rawGames = data.dates.flatMap(d => (d.games || []).map(g => ({ ...g, officialDate: d.date })));
-    } else {
-      // Find the specific date in the response, or fallback to the first one
-      const dayData = date ? data.dates.find(d => d.date === date) : data.dates[0];
-      if (dayData) {
-        rawGames = (dayData.games || []).map(g => ({ ...g, officialDate: dayData.date }));
-      }
-    }
+    // Just get all games from the range
+    rawGames = data.dates.flatMap(d => (d.games || []).map(g => ({ ...g, officialDate: d.date })));
+    
+    if (rawGames.length === 0) return [];
 
-    // Limit concurrency for enrichment to avoid DOSing the proxy
+    // Limit enrichment to only what's absolutely necessary for the first load
+    // We'll do weather and odds for live/preview games only
     const enrichedGames: MLBGame[] = [];
-    const batchSize = 3;
+    const batchSize = 5; // Increase batch size
     for (let i = 0; i < rawGames.length; i += batchSize) {
       const batch = rawGames.slice(i, i + batchSize);
       const enrichedBatch = await Promise.all(batch.map(async (game) => {
         let enrichedGame = { ...game };
 
-        // 1. Boxscore enrichment
-        if (game.status.abstractGameState === 'Final' && (!game.boxscore?.teams.home.pitchers || game.boxscore.teams.home.pitchers.length === 0)) {
-          try {
-            const boxResponse = await fetch(`/api/v1/mlb/game/${game.gamePk}/boxscore`);
-            if (boxResponse.ok) {
-              const boxData = await boxResponse.json();
-              enrichedGame.boxscore = {
-                teams: {
-                  away: { pitchers: boxData.teams.away.pitchers || [] },
-                  home: { pitchers: boxData.teams.home.pitchers || [] }
-                }
-              };
-            }
-          } catch (e) {}
-        }
-
-        // 2. Weather Forecast enrichment
+        // 1. Weather Forecast enrichment - only if missing
         if (!enrichedGame.weather || !enrichedGame.weather.temp) {
           try {
             const forecast = await fetchWeatherForecast(game.teams.home.team.id, game.gameDate, game.venue?.name);
@@ -228,16 +209,18 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
           } catch (e) {}
         }
 
-        // 3. Over/Under enrichment
-        try {
-          const oddsRes = await fetch(`/api/v1/mlb/game/${game.gamePk}/contextMetrics?hydrate=odds`);
-          if (oddsRes.ok) {
-            const oddsData = await oddsRes.json();
-            if (oddsData && oddsData.odds && oddsData.odds.length > 0) {
-              enrichedGame.totalLine = oddsData.odds[0].total;
+        // 2. Over/Under enrichment - only if missing
+        if (!enrichedGame.totalLine) {
+          try {
+            const oddsRes = await fetch(`/api/v1/mlb/game/${game.gamePk}/contextMetrics?hydrate=odds`);
+            if (oddsRes.ok) {
+              const oddsData = await oddsRes.json();
+              if (oddsData && oddsData.odds && oddsData.odds.length > 0) {
+                enrichedGame.totalLine = oddsData.odds[0].total;
+              }
             }
-          }
-        } catch (e) {}
+          } catch (e) {}
+        }
 
         return enrichedGame;
       }));

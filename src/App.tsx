@@ -82,11 +82,21 @@ export default function App() {
     setHistoryLoading(true);
     try {
       const datesToFetch = [1, 2, 3, 4, 5, 6, 7].map(d => format(subDays(new Date(), d), 'yyyy-MM-dd'));
-      const historicalResults = await Promise.all(
-        datesToFetch.map(date => fetchMLBGames(date))
-      );
-      const combinedHistory = historicalResults.flat();
-      setHistoricalGames(combinedHistory || []);
+      
+      // Fetch history one by one to avoid overwhelming the proxy
+      const combinedHistory: MLBGame[] = [];
+      for (const date of datesToFetch) {
+        try {
+          const results = await fetchMLBGames(date);
+          if (results && results.length > 0) {
+            combinedHistory.push(...results);
+          }
+        } catch (e) {
+          console.warn(`Failed to fetch history for ${date}`, e);
+        }
+      }
+      
+      setHistoricalGames(combinedHistory);
     } catch (error) {
       console.error('Error loading historical data:', error);
     } finally {
@@ -102,8 +112,10 @@ export default function App() {
     
     try {
       const today = format(new Date(), 'yyyy-MM-dd');
+      console.log(`[App] Requesting games for date: ${today}`);
       const mlbData = await fetchMLBGames(today);
       
+      console.log(`[App] Received ${mlbData?.length || 0} games.`);
       setGames(mlbData || []);
       setLastUpdated(new Date());
     } catch (error) {
