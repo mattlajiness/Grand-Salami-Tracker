@@ -5,7 +5,6 @@ import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import fetch from "node-fetch";
 import { DetailedVenueFactors } from "./src/lib/leagueConstants.ts";
-import { fetchParkFactors, getCachedFactors, getFetchStatus } from "./src/services/ballparkPalService.ts";
 
 // Load environment variables from .env file
 dotenv.config();
@@ -19,29 +18,20 @@ async function startServer() {
 
   app.use(express.json());
 
-  // Initial fetch on startup
-  fetchParkFactors().catch(err => console.error("Initial fetch failed:", err));
-
-  // Set up periodic refresh every 6 hours
-  setInterval(() => {
-    fetchParkFactors().catch(err => console.error("Periodic fetch failed:", err));
-  }, 1000 * 60 * 60 * 6);
-
   // API routes go here
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
   });
 
   app.get("/api/v1/parkfactors", (req, res) => {
-    const dynamicFactors = getCachedFactors();
     res.json({
       success: true,
-      data: dynamicFactors || DetailedVenueFactors,
+      data: DetailedVenueFactors,
       metadata: {
-        lastUpdated: new Date(dynamicFactors ? getFetchStatus()?.time || Date.now() : Date.now()).toISOString(),
-        source: dynamicFactors ? "Ball Park Pal Live" : "Bundled Baseline",
+        lastUpdated: new Date().toISOString(),
+        source: "Bundled Baseline",
         version: "1.0.0",
-        live: !!dynamicFactors
+        live: false
       }
     });
   });
@@ -50,38 +40,24 @@ async function startServer() {
     try {
       const fullPath = req.path;
       const mlbPath = fullPath.replace(/^\/api\/v1\/mlb\//, "");
-      
       const queryIndex = req.originalUrl.indexOf("?");
       const queryParams = queryIndex !== -1 ? req.originalUrl.substring(queryIndex + 1) : "";
       
       const url = `https://statsapi.mlb.com/api/v1/${mlbPath}${queryParams ? `?${queryParams}` : ""}`;
       
-      console.log(`[MLB Proxy] Fetching: ${url}`);
-      
-      const response = await fetch(url, {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-          "Accept": "application/json"
-        }
-      });
-      
-      console.log(`[MLB Proxy] Status: ${response.status} ${response.statusText}`);
+      const response = await fetch(url);
       
       if (!response.ok) {
         if (response.status === 404 && url.includes('contextMetrics')) {
-          return res.status(404).json({ error: "No metrics or odds available" });
+          return res.status(404).json({ error: "No metrics available" });
         }
-        const errorText = await response.text().catch(() => "Unknown error");
-        console.error(`[MLB Proxy] API Error: ${response.status} ${response.statusText} for ${url}`);
-        return res.status(response.status).json({ error: `MLB API Error: ${response.statusText}`, details: errorText.slice(0, 100) });
+        return res.status(response.status).json({ error: `MLB API Error` });
       }
       
       const data = await response.json();
-      console.log(`[MLB Proxy] Successfully fetched data for ${mlbPath}. Dates: ${data.dates?.length || 0}`);
       res.json(data);
     } catch (error) {
-      console.error("[MLB Proxy] Fatal Error:", error);
-      res.status(500).json({ error: "Failed to fetch from MLB API" });
+      res.status(500).json({ error: "Proxy Failed" });
     }
   });
 

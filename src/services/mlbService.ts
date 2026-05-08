@@ -156,9 +156,7 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
     searchParams.append('startDate', startDate);
     searchParams.append('endDate', endDate);
   } else if (date) {
-    // startDate/endDate is often more robust than just 'date' in the MLB API
-    searchParams.append('startDate', date);
-    searchParams.append('endDate', date);
+    searchParams.append('date', date);
   }
   
   const relativeUrl = `/api/v1/mlb/schedule?${searchParams.toString()}`;
@@ -174,15 +172,19 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
     }
     
     const data: MLBScheduleResponse = await response.json();
+    console.log(`[MLB Service] Raw data received for ${date || startDate}:`, JSON.stringify(data).slice(0, 200));
     
     if (!data || !data.dates || !Array.isArray(data.dates) || data.dates.length === 0) {
+      console.warn(`[MLB Service] No dates returned for ${date || startDate}. Full response:`, JSON.stringify(data));
       return [];
     }
 
-    let rawGames: MLBGame[] = [];
-    rawGames = data.dates.flatMap(d => (d.games || []).map(g => ({ ...g, officialDate: d.date })));
+    const rawGames = data.dates.flatMap(d => (d.games || []).map(g => ({ ...g, officialDate: d.date })));
     
-    if (rawGames.length === 0) return [];
+    if (rawGames.length === 0) {
+      console.warn(`[MLB Service] No games returned for ${date || startDate}`);
+      return [];
+    }
 
     // Optional Weather Forecast enrichment for preview games missing weather
     const gamesToEnrich = rawGames.map(async (game) => {
