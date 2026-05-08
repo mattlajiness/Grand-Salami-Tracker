@@ -68,6 +68,10 @@ async function startServer() {
       });
       
       if (!response.ok) {
+        if (response.status === 404 && url.includes('contextMetrics')) {
+          // Silently handle 404 for contextMetrics as it's common for games without published odds
+          return res.status(404).json({ error: "No metrics or odds available for this game" });
+        }
         console.error(`MLB API Error: ${response.status} ${response.statusText} at ${url}`);
         return res.status(response.status).json({ error: `MLB API Error: ${response.statusText}` });
       }

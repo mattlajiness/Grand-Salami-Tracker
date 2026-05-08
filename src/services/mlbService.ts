@@ -252,9 +252,13 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
         const oddsRes = await fetch(oddsUrl);
         if (oddsRes.ok) {
           const oddsData = await oddsRes.json();
-          enrichedGame.totalLine = oddsData.odds?.[0]?.total;
+          if (oddsData && oddsData.odds && oddsData.odds.length > 0) {
+            enrichedGame.totalLine = oddsData.odds[0].total;
+          }
         }
-      } catch (e) {}
+      } catch (e) {
+        // Silently fail for odds - we'll use fallback estimates downstream
+      }
 
       return enrichedGame;
     }));
