@@ -147,28 +147,30 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
     }
   };
 
-  const urlObj = new URL('/api/v1/mlb/schedule', window.location.origin);
-  urlObj.searchParams.append('sportId', '1');
-  urlObj.searchParams.append('hydrate', 'linescore,team,weather,venue,probablePitcher,boxscore,officials');
-  urlObj.searchParams.append('_t', Math.floor(Date.now() / 60000).toString()); // Minute-level cache busting
+  const searchParams = new URLSearchParams();
+  searchParams.append('sportId', '1');
+  searchParams.append('hydrate', 'linescore,team,weather,venue,probablePitcher,boxscore,officials');
+  searchParams.append('_t', Math.floor(Date.now() / 60000).toString()); // Minute-level cache busting
   
   if (startDate && endDate) {
-    urlObj.searchParams.append('startDate', startDate);
-    urlObj.searchParams.append('endDate', endDate);
+    searchParams.append('startDate', startDate);
+    searchParams.append('endDate', endDate);
   } else if (date) {
     try {
       const targetDate = parseISO(date);
       const start = format(subDays(targetDate, 1), 'yyyy-MM-dd');
       const end = format(addDays(targetDate, 1), 'yyyy-MM-dd');
-      urlObj.searchParams.append('startDate', start);
-      urlObj.searchParams.append('endDate', end);
+      searchParams.append('startDate', start);
+      searchParams.append('endDate', end);
     } catch (e) {
-      urlObj.searchParams.append('date', date);
+      searchParams.append('date', date);
     }
   }
   
+  const relativeUrl = `/api/v1/mlb/schedule?${searchParams.toString()}`;
+  
   try {
-    const response = await fetchWithRetry(urlObj.toString());
+    const response = await fetchWithRetry(relativeUrl);
 
     if (!response.ok) {
       // If we have a cached version, use it during API errors

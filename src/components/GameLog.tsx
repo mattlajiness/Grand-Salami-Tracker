@@ -421,11 +421,14 @@ const getClimateIntelligence = (game: MLBGame) => {
       ], gamePk) + " ";
     } else if (temp <= 64) {
       // Modifier approach: only flip to negative if not already a hitter park, or if it's very cold
-      if (impulse === 'positive' && temp > 48) {
-        impulse = 'neutral';
-        // If it's a very strong hitter park (e.g. > 1.10), maybe keep it positive?
-        if (detailedFactor && detailedFactor.runs >= 1.08) impulse = 'positive';
-      } else if (impulse !== 'positive' || temp <= 48) {
+      if (impulse === 'positive' && temp > 45) {
+        // Keep as positive for good hitter parks even in mild cool weather
+        if (detailedFactor && detailedFactor.runs >= 1.03) {
+          impulse = 'positive';
+        } else {
+          impulse = 'neutral';
+        }
+      } else if (impulse !== 'positive' || temp <= 45) {
         impulse = 'negative';
       }
       techReport += getVariedPhrase([

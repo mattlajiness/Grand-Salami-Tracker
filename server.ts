@@ -3,6 +3,7 @@ import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
+import fetch from "node-fetch";
 import { DetailedVenueFactors } from "./src/lib/leagueConstants.ts";
 import { fetchParkFactors, getCachedFactors, getFetchStatus } from "./src/services/ballparkPalService.ts";
 
@@ -47,12 +48,27 @@ async function startServer() {
 
   app.get("/api/v1/mlb/*", async (req, res) => {
     try {
-      const mlbPath = req.params[0];
-      const queryParams = new URLSearchParams(req.query as any).toString();
+      // Get the path correctly, removing leading /api/v1/mlb/
+      const fullPath = req.path;
+      const mlbPath = fullPath.replace(/^\/api\/v1\/mlb\//, "");
+      
+      // Get the query string exactly as it came in to preserve formatting/encoding
+      const queryIndex = req.originalUrl.indexOf("?");
+      const queryParams = queryIndex !== -1 ? req.originalUrl.substring(queryIndex + 1) : "";
+      
       const url = `https://statsapi.mlb.com/api/v1/${mlbPath}${queryParams ? `?${queryParams}` : ""}`;
       
-      const response = await fetch(url);
+      console.log(`Proxying MLB Request: ${url}`);
+      
+      const response = await fetch(url, {
+        headers: {
+          "User-Agent": "MLB-Salami-Tracker/1.0",
+          "Accept": "application/json"
+        }
+      });
+      
       if (!response.ok) {
+        console.error(`MLB API Error: ${response.status} ${response.statusText} at ${url}`);
         return res.status(response.status).json({ error: `MLB API Error: ${response.statusText}` });
       }
       
@@ -61,6 +77,30 @@ async function startServer() {
     } catch (error) {
       console.error("MLB Proxy Error:", error);
       res.status(500).json({ error: "Failed to fetch from MLB API" });
+    }
+  });
+
+  app.get("/api/v1/debug/mlb", async (req, res) => {
+    try {
+      const url = "https://statsapi.mlb.com/api/v1/schedule?sportId=1";
+      const start = Date.now();
+      const response = await fetch(url);
+      const duration = Date.now() - start;
+      
+      res.json({
+        success: response.ok,
+        status: response.status,
+        statusText: response.statusText,
+        durationMs: duration,
+        url: url,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+        timestamp: new Date().toISOString()
+      });
     }
   });
 
