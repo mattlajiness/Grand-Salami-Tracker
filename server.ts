@@ -65,16 +65,19 @@ async function startServer() {
         }
       });
       
+      console.log(`[MLB Proxy] Status: ${response.status} ${response.statusText}`);
+      
       if (!response.ok) {
         if (response.status === 404 && url.includes('contextMetrics')) {
           return res.status(404).json({ error: "No metrics or odds available" });
         }
         const errorText = await response.text().catch(() => "Unknown error");
         console.error(`[MLB Proxy] API Error: ${response.status} ${response.statusText} for ${url}`);
-        return res.status(response.status).json({ error: `MLB API Error: ${response.statusText}` });
+        return res.status(response.status).json({ error: `MLB API Error: ${response.statusText}`, details: errorText.slice(0, 100) });
       }
       
       const data = await response.json();
+      console.log(`[MLB Proxy] Successfully fetched data for ${mlbPath}. Dates: ${data.dates?.length || 0}`);
       res.json(data);
     } catch (error) {
       console.error("[MLB Proxy] Fatal Error:", error);

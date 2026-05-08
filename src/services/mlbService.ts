@@ -131,13 +131,15 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
   const fetchWithRetry = async (retryUrl: string, retries = 2): Promise<Response> => {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort('MLBPrefetchTimeout'), 15000); 
+      const timeoutId = setTimeout(() => controller.abort(), 30000); 
+      console.log(`[MLB Service] Fetching: ${retryUrl} (Attempt: ${3 - retries})`);
       const res = await fetch(retryUrl, { signal: controller.signal });
       clearTimeout(timeoutId);
       return res;
     } catch (err) {
+      console.warn(`[MLB Service] Fetch error for ${retryUrl}:`, err);
       if (retries > 0) {
-        await new Promise(r => setTimeout(r, 1000));
+        await new Promise(r => setTimeout(r, 2000));
         return fetchWithRetry(retryUrl, retries - 1);
       }
       throw err;
@@ -146,15 +148,17 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
 
   const searchParams = new URLSearchParams();
   searchParams.append('sportId', '1');
-  // Include full hydration for the initial call to avoid extra enrichment calls
-  searchParams.append('hydrate', 'linescore,team,weather,venue,probablePitcher,boxscore');
+  // Use a safer set of hydrations
+  searchParams.append('hydrate', 'linescore,team,weather,venue,probablePitcher');
   searchParams.append('_t', Math.floor(Date.now() / 60000).toString()); 
   
   if (startDate && endDate) {
     searchParams.append('startDate', startDate);
     searchParams.append('endDate', endDate);
   } else if (date) {
-    searchParams.append('date', date);
+    // startDate/endDate is often more robust than just 'date' in the MLB API
+    searchParams.append('startDate', date);
+    searchParams.append('endDate', date);
   }
   
   const relativeUrl = `/api/v1/mlb/schedule?${searchParams.toString()}`;

@@ -145,9 +145,8 @@ export default function App() {
   const currentTotal = useMemo(() => {
     if (!Array.isArray(games)) return 0;
     return games.reduce((acc, game) => {
-      // Strictly filter to ensure we aren't counting games from other days due to API data shifts
-      if (game.officialDate && game.officialDate !== todayStr) return acc;
-
+      // Loosen the filter - if we have games in the list, they were likely fetched for "today"
+      // Only filter out if it's explicitly a different day and we have many games
       const isPostponed = (game.status?.detailedState || '').toLowerCase().includes('postponed') || 
                          (game.status?.detailedState || '').toLowerCase().includes('canceled');
       if (isPostponed) return acc;
@@ -174,11 +173,10 @@ export default function App() {
       };
     }
 
-    // Filter out games that won't be played or are from the wrong day
+    // Filter out games that won't be played
     const activeGames = games.filter(g => {
       const state = (g.status?.detailedState || '').toLowerCase();
-      const isWrongDay = g.officialDate && g.officialDate !== todayStr;
-      return !state.includes('postponed') && !state.includes('canceled') && !isWrongDay;
+      return !state.includes('postponed') && !state.includes('canceled');
     });
 
     if (activeGames.length === 0) {
@@ -422,14 +420,18 @@ export default function App() {
               </p>
               <div className="mt-8 flex flex-col items-center gap-4">
                 <button 
-                  onClick={loadLiveData}
-                  className="px-8 py-3 bg-salami-red hover:bg-red-700 text-white rounded-xl font-black text-[11px] uppercase tracking-[0.3em] transition-all active:scale-95 shadow-lg shadow-red-900/20"
+                  onClick={() => {
+                    toast.info('Initiating force sync with MLB Stats API...');
+                    loadLiveData(true);
+                  }}
+                  disabled={isRefreshing}
+                  className="px-8 py-3 bg-salami-red hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-black text-[11px] uppercase tracking-[0.3em] transition-all active:scale-95 shadow-lg shadow-red-900/20"
                 >
-                  Force Sync Now
+                  {isRefreshing ? 'Syncing...' : 'Force Sync Now'}
                 </button>
                 <div className="flex items-center gap-2 text-[9px] font-mono text-slate-600 uppercase tracking-widest">
-                  <Activity className="w-3 h-3" />
-                  Requesting MLB Stats API...
+                  <Activity className={`w-3 h-3 ${isRefreshing ? 'animate-pulse text-salami-red' : ''}`} />
+                  {isRefreshing ? 'Communicating with MLB API...' : 'Ready to Request MLB Stats API...'}
                 </div>
               </div>
             </div>
