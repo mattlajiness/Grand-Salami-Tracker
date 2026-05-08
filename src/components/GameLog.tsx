@@ -61,132 +61,103 @@ const getSpecialIntelligence = (game: MLBGame) => {
   
   const climate = getClimateIntelligence(game);
   const temp = climate?.temp || 72;
-  const windSpeed = climate?.windSpeed || 0;
   
-  const isStrictDome = venue.includes('tropicana') || venue.includes('loandepot') || venue.includes('globe life') || venue.includes('minute maid') || venue.includes('american family') || venue.includes('rogers centre') || (venue.includes('chase field') && (condition.includes('dome') || condition.includes('roof closed')));
-  const isRetractableSeattle = venue.includes('t-mobile') || venue.includes('safeco');
+  const isStrictDome = venue.includes('tropicana') || venue.includes('loandepot') || venue.includes('globe life') || venue.includes('minute maid') || venue.includes('american family') || venue.includes('rogers centre') || venue.includes('skydome') || (venue.includes('chase field') && (condition.includes('dome') || condition.includes('roof closed')));
 
-  const badges: { label: string; color: string; icon: any; title?: string }[] = [];
   const detailedFactor = getDetailedParkFactor(game.venue?.name || '');
 
   // 1. Primary Park Identity & Logic (Only one main park badge)
-  let hasSpecificParkIdentity = false;
+  if (isStrictDome && (venue.includes('tropicana') || venue.includes('loandepot') || venue.includes('globe life') || venue.includes('minute maid') || venue.includes('rogers centre') || venue.includes('skydome'))) {
+    return [{ 
+      label: 'DOME CONTROL', 
+      color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20', 
+      icon: ShieldCheck, 
+      title: `${game.venue?.name}: Atmospheric conditions are precisely regulated; outside weather is negated.` 
+    }];
+  } 
+  
+  if (venue.includes('chase field') && isStrictDome) {
+    return [{ 
+      label: 'HUMIDOR GAME', 
+      color: 'bg-teal-500/10 text-teal-300 border-teal-500/20', 
+      icon: Droplets, 
+      title: 'Chase Field: Humidor regulated environment reduces offensive variability in the desert.' 
+    }];
+  } 
 
-  if (isStrictDome) {
-    hasSpecificParkIdentity = true;
-    if (venue.includes('chase field')) {
-      badges.push({ 
-        label: 'HUMIDOR GAME', 
-        color: 'bg-teal-500/10 text-teal-300 border-teal-500/20', 
-        icon: Droplets, 
-        title: 'Chase Field: Humidor regulated environment reduces offensive variability in the desert.' 
-      });
-    } else {
-      badges.push({ 
-        label: 'DOME CONTROL', 
-        color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20', 
-        icon: ShieldCheck, 
-        title: `${game.venue?.name}: Atmospheric conditions are precisely regulated; outside weather is negated.` 
-      });
-    }
-  } else if (detailedFactor) {
-    hasSpecificParkIdentity = true;
+  if (detailedFactor) {
     const { hr, runs } = detailedFactor;
     const runChange = Math.round((runs - 1) * 100);
     const hrChange = Math.round((hr - 1) * 100);
     
-    // Determine sentiment and labels based on Run Factor
-    if (runs >= 1.10) {
-      badges.push({ 
-        label: `${game.venue?.name?.split(' ')[0].toUpperCase()} BOOST (${runChange > 0 ? '+' : ''}${runChange}%)`, 
-        color: 'bg-red-500/20 text-red-500 border-red-500/20', 
-        icon: Zap, 
-        title: `${game.venue?.name}: Extreme offensive environment today (${runChange > 0 ? '+' : ''}${runChange}% Runs, ${hrChange > 0 ? '+' : ''}${hrChange}% HR).` 
-      });
-    } else if (runs <= 0.90) {
-      badges.push({ 
-        label: `${game.venue?.name?.split(' ')[0].toUpperCase()} TRAP (${runChange}%)`, 
-        color: 'bg-blue-600/20 text-blue-400 border-blue-600/30', 
-        icon: ShieldCheck, 
-        title: `${game.venue?.name}: Premier pitcher-haven environment today (${runChange}% Runs, ${hrChange}% HR).` 
-      });
-    } else if (Math.abs(runs - 1) >= 0.05) {
-      badges.push({ 
-        label: `${game.venue?.name?.split(' ')[0].toUpperCase()} FACTOR (${runChange > 0 ? '+' : ''}${runChange}%)`, 
-        color: runs > 1 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10' : 'bg-slate-500/10 text-slate-400 border-white/5', 
-        icon: Activity, 
-        title: `${game.venue?.name}: Significant today (${runChange > 0 ? '+' : ''}${runChange}% Runs, ${hrChange > 0 ? '+' : ''}${hrChange}% HR).` 
-      });
-    } else {
-      // Near neutral
-       badges.push({ label: `${game.venue?.name?.split(' ')[0].toUpperCase()} NEUTRAL`, color: 'bg-slate-500/10 text-slate-400 border-white/5', icon: ShieldCheck, title: `${game.venue?.name} playing near neutral baseline tonight.` });
-    }
+    const venueShort = (game.venue?.name || '').split(' ')[0].toUpperCase();
+    const labelPrefix = runs > 1.05 ? 'BOOST' : (runs < 0.95 ? 'TRAP' : 'FACTOR');
+    
+    return [{ 
+      label: `${venueShort} ${labelPrefix} (${runChange > 0 ? '+' : ''}${runChange}%)`, 
+      color: runs >= 1.10 ? 'bg-red-500/20 text-red-500 border-red-500/20' : 
+             runs <= 0.90 ? 'bg-blue-600/20 text-blue-400 border-blue-600/30' :
+             runs > 1 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10' : 
+             'bg-slate-500/10 text-slate-400 border-white/5', 
+      icon: runs >= 1.10 ? Zap : (runs <= 0.90 ? ShieldCheck : Activity), 
+      title: `${game.venue?.name}: Daily Scoring Environment (${runChange > 0 ? '+' : ''}${runChange}% Runs, ${hrChange > 0 ? '+' : ''}${hrChange}% HR).` 
+    }];
   }
 
   // Backup for specific parks that might have unique complex logic not fully captured by factor alone
-  if (!hasSpecificParkIdentity) {
-    const isWrigley = homeId === 112 || venue.includes('wrigley');
-    const isCoors = homeId === 115 || venue.includes('coors');
-    const isTmobile = isRetractableSeattle || homeId === 136 || venue.includes('t-mobile');
-    const isPetco = homeId === 135 || venue.includes('petco');
-    const isSac = homeId === 133 || venue.includes('sutter health');
-    const isBusch = homeId === 138 || venue.includes('busch');
+  const isWrigley = homeId === 112 || venue.includes('wrigley');
+  const isCoors = homeId === 115 || venue.includes('coors');
 
-    if (isWrigley) {
-      hasSpecificParkIdentity = true;
-      if (wind.direction === 'OUT' && wind.speed >= 3) {
-        badges.push({ label: 'WRIGLEY BOOST (+2.27)', color: 'bg-red-600/20 text-red-500 border-red-500/30', icon: Wind, title: 'Wrigley Field Potential: Significant wind blowing out favors offensive clusters (+2.27 Runs).' });
-      } else if (wind.direction === 'IN' || temp < 55 || (wind.direction === 'CROSS' && temp < 60)) {
-         badges.push({ label: 'WRIGLEY GRAVEYARD (-35% HR)', color: 'bg-blue-700/30 text-blue-300 border-blue-500/40', icon: ShieldCheck, title: `Extreme Suppression (-10% Runs): ${wind.direction === 'IN' ? 'Headwind' : 'Cold air'} deadening fly balls tonight (-35% HR).` });
-      } else {
-         badges.push({ label: 'WRIGLEY NEUTRAL', color: 'bg-slate-500/10 text-slate-400 border-white/5', icon: ShieldCheck, title: 'Wrigley playing near neutral baseline tonight.' });
-      }
-    } else if (isCoors) {
-      hasSpecificParkIdentity = true;
-      if (temp > 70) {
-        badges.push({ label: 'COORS BOOST (+2.94)', color: 'bg-red-500/20 text-red-500 border-red-500/20', icon: Zap, title: 'Coors Field (+2.94 Runs): Extreme Altitude + Heat creates the most offensive environment in baseball.' });
-      } else {
-        badges.push({ label: 'ALTITUDE FACTOR (+2.94)', color: 'bg-orange-500/10 text-orange-400 border-orange-500/20', icon: Activity, title: 'Coors Field (+2.94 Runs): 5,280ft elevation consistently boosts fly ball carry by 5-10%.' });
-      }
+  if (isWrigley) {
+    if (wind.direction === 'OUT' && wind.speed >= 3) {
+      return [{ label: 'WRIGLEY BOOST (+2.27)', color: 'bg-red-600/20 text-red-500 border-red-500/30', icon: Wind, title: 'Wrigley Field Potential: Significant wind blowing out favors offensive clusters (+2.27 Runs).' }];
+    } else if (wind.direction === 'IN' || temp < 55 || (wind.direction === 'CROSS' && temp < 60)) {
+      return [{ label: 'WRIGLEY GRAVEYARD (-35% HR)', color: 'bg-blue-700/30 text-blue-300 border-blue-500/40', icon: ShieldCheck, title: `Extreme Suppression (-10% Runs): ${wind.direction === 'IN' ? 'Headwind' : 'Cold air'} deadening fly balls tonight (-35% HR).` }];
+    } else {
+      return [{ label: 'WRIGLEY NEUTRAL', color: 'bg-slate-500/10 text-slate-400 border-white/5', icon: ShieldCheck, title: 'Wrigley playing near neutral baseline tonight.' }];
+    }
+  } else if (isCoors) {
+    if (temp > 70) {
+      return [{ label: 'COORS BOOST (+2.94)', color: 'bg-red-500/20 text-red-500 border-red-500/20', icon: Zap, title: 'Coors Field (+2.94 Runs): Extreme Altitude + Heat creates the most offensive environment in baseball.' }];
+    } else {
+      return [{ label: 'ALTITUDE FACTOR (+2.94)', color: 'bg-orange-500/10 text-orange-400 border-orange-500/20', icon: Activity, title: 'Coors Field (+2.94 Runs): 5,280ft elevation consistently boosts fly ball carry by 5-10%.' }];
     }
   }
 
-  // 2. Fallback Atmospheric Pulse (Repetition Suppressed)
-  if (!hasSpecificParkIdentity) {
-    const pressureLabel = temp > 72 ? 'Low Pressure' : (temp < 68 ? 'High Pressure' : 'Normal');
-    const airDescription = temp > 72 ? 'Expanded' : (temp < 68 ? 'Compressed' : 'Stable');
-    
-    if (temp > 75) {
-      badges.push({ 
-        label: 'THIN AIR PULSE', 
-        color: 'bg-orange-500/10 text-orange-400 border-orange-500/20', 
-        icon: Activity, 
-        title: `${pressureLabel}: ${temp}°F temperature is reducing air density, boosting ball travel.` 
-      });
-    } else if (temp < 65) {
-      badges.push({ 
-        label: 'DENSE AIR LID', 
-        color: 'bg-blue-500/10 text-blue-400 border-blue-500/20', 
-        icon: ShieldCheck, 
-        title: `${pressureLabel}: ${temp}°F air is ${airDescription}, creating higher atmospheric resistance.` 
-      });
-    }
+  // Fallback Atmospheric Pulse
+  const pressureLabel = temp > 72 ? 'Low Pressure' : (temp < 68 ? 'High Pressure' : 'Normal');
+  const airDescription = temp > 72 ? 'Expanded' : (temp < 68 ? 'Compressed' : 'Stable');
+  
+  if (temp > 75) {
+    return [{ 
+      label: 'THIN AIR PULSE', 
+      color: 'bg-orange-500/10 text-orange-400 border-orange-500/20', 
+      icon: Activity, 
+      title: `${pressureLabel}: ${temp}°F temperature is reducing air density, boosting ball travel.` 
+    }];
+  } else if (temp < 65) {
+    return [{ 
+      label: 'DENSE AIR LID', 
+      color: 'bg-blue-500/10 text-blue-400 border-blue-500/20', 
+      icon: ShieldCheck, 
+      title: `${pressureLabel}: ${temp}°F air is ${airDescription}, creating higher atmospheric resistance.` 
+    }];
   }
 
-  // 3. Global Weather Factors (Only if no specific identity, to avoid "repeat badges")
-  if (!isStrictDome && !hasSpecificParkIdentity) {
+  // Global Weather Factors
+  if (!isStrictDome) {
     if (wind.direction === 'OUT' && wind.speed >= 10) {
-      badges.push({ label: 'TAILWIND', color: 'bg-red-500/10 text-red-400 border-red-500/20', icon: Wind, title: `${wind.speed}mph tailwind boosting flight` });
+      return [{ label: 'TAILWIND', color: 'bg-red-500/10 text-red-400 border-red-500/20', icon: Wind, title: `${wind.speed}mph tailwind boosting flight` }];
     } else if (wind.direction === 'IN' && wind.speed >= 10) {
-      badges.push({ label: 'HEADWIND', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20', icon: Wind, title: `${wind.speed}mph headwind stifling fly balls` });
+      return [{ label: 'HEADWIND', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20', icon: Wind, title: `${wind.speed}mph headwind stifling fly balls` }];
     }
 
     if (condition.includes('humid') || condition.includes('damp')) {
-      badges.push({ label: 'HUMID AIR', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: Droplets, title: 'Moisture in the air reduces density, aiding carry slightly.' });
+      return [{ label: 'HUMID AIR', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: Droplets, title: 'Moisture in the air reduces density, aiding carry slightly.' }];
     }
   }
 
-  // 4. Team/Park Static Intelligence fallback
+  // Team/Park Static Intelligence fallback
   const historicalParks: Record<number, any> = {
     141: { label: 'HITTERS PARK', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: Activity, title: 'Citizens Bank Park is historically favorable for home runs.' },
     119: { label: 'DODGER AIR', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20', icon: Sun, title: 'Dodger Stadium is a fair-to-pitching venue with consistent dry air.' },
@@ -194,12 +165,11 @@ const getSpecialIntelligence = (game: MLBGame) => {
     109: { label: 'HUMIDOR GAME', color: 'bg-teal-500/10 text-teal-300 border-teal-500/20', icon: Droplets, title: 'Chase Field humidor reduce extreme offensive variability in the desert.' }
   };
   
-  if (badges.length < 2 && historicalParks[homeId as keyof typeof historicalParks]) {
-    const hist = historicalParks[homeId as keyof typeof historicalParks];
-    if (!badges.some(b => b.label === hist.label)) badges.push(hist);
+  if (historicalParks[homeId as keyof typeof historicalParks]) {
+    return [historicalParks[homeId as keyof typeof historicalParks]];
   }
 
-  return badges.length > 0 ? badges : [{ 
+  return [{ 
     label: 'STABLE ATMOSPHERE', 
     color: 'bg-slate-500/10 text-slate-400 border-white/5', 
     icon: Activity, 
@@ -210,7 +180,20 @@ const getSpecialIntelligence = (game: MLBGame) => {
 const getEnvironmentalWarning = (game: MLBGame) => {
   const homeId = game.teams.home.team.id;
   const venue = (game.venue?.name || '').toLowerCase();
+  const condition = (game.weather?.condition || '').toLowerCase();
   const wind = parseWind(game.weather?.wind, homeId, venue);
+
+  // Domes negate environmental warnings
+  const isStrictDome = venue.includes('tropicana') || 
+                      venue.includes('loandepot') || 
+                      venue.includes('globe life') || 
+                      venue.includes('minute maid') || 
+                      venue.includes('american family') || 
+                      venue.includes('rogers centre') || 
+                      venue.includes('skydome') || 
+                      (venue.includes('chase field') && (condition.includes('dome') || condition.includes('roof closed')));
+  
+  if (isStrictDome) return null;
   
   // Specific Wrigley/Coors Warnings
   if (homeId === 115) return { label: 'THIN AIR BLOWOUT', color: 'text-orange-400', icon: Zap };
@@ -257,7 +240,7 @@ const getClimateIntelligence = (game: MLBGame) => {
   const rainKeywords = ['rain', 'shower', 'storm', 'drizzle', 'precip', 'thunder', 'lightning', 'mist'];
   const isRainy = rainKeywords.some(k => condition.includes(k));
   const isHighAltitude = venue.includes('coors') || venue.includes('chase');
-  const isStrictDome = venue.includes('tropicana') || venue.includes('loandepot') || venue.includes('globe life') || venue.includes('minute maid') || venue.includes('american family') || venue.includes('rogers centre') || (venue.includes('chase field') && (condition.includes('dome') || condition.includes('roof closed')));
+  const isStrictDome = venue.includes('tropicana') || venue.includes('loandepot') || venue.includes('globe life') || venue.includes('minute maid') || venue.includes('american family') || venue.includes('rogers centre') || venue.includes('skydome') || (venue.includes('chase field') && (condition.includes('dome') || condition.includes('roof closed')));
   const isRetractableSeattle = venue.includes('t-mobile');
 
   if (isStrictDome) {
@@ -787,10 +770,58 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                           
                           {/* O/U Line UI */}
                           <div className="pt-2 border-t border-slate-800 w-full flex flex-col items-center">
-                            <div className="flex items-center gap-1 mb-1">
-                              <span className="text-[10px] font-mono font-black text-slate-300">
-                                {(manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine) !== undefined ? `L: ${manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine}` : 'NO LINE'}
-                              </span>
+                            <div className="flex items-center gap-2 mb-1">
+                              {editingLineId === game.gamePk ? (
+                                <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                                  <input
+                                    type="number"
+                                    step="0.5"
+                                    value={tempLine}
+                                    onChange={(e) => setTempLine(e.target.value)}
+                                    className="w-12 bg-slate-950 border border-salami-red rounded px-1 py-0.5 text-xs font-mono text-white text-center focus:outline-none"
+                                    autoFocus
+                                  />
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleSaveLine(game.gamePk);
+                                    }}
+                                    className="p-1 hover:bg-slate-800 rounded text-green-500"
+                                  >
+                                    <Save className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <>
+                                  <span 
+                                    className={cn(
+                                      "text-[10px] font-mono font-black text-slate-300",
+                                      isAdmin && "hover:text-salami-red cursor-pointer"
+                                    )}
+                                    onClick={(e) => {
+                                      if (isAdmin) {
+                                        e.stopPropagation();
+                                        setEditingLineId(game.gamePk);
+                                        setTempLine((manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine)?.toString() || '');
+                                      }
+                                    }}
+                                  >
+                                    {(manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine) !== undefined ? `L: ${manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine}` : 'NO LINE'}
+                                  </span>
+                                  {isAdmin && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setEditingLineId(game.gamePk);
+                                        setTempLine((manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine)?.toString() || '');
+                                      }}
+                                      className="p-1 hover:bg-slate-800 rounded text-slate-400"
+                                    >
+                                      <Edit2 className="w-2.5 h-2.5" />
+                                    </button>
+                                  )}
+                                </>
+                              )}
                             </div>
                             
                             {(manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine) !== undefined && (
@@ -1054,7 +1085,19 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                                 ) : (
                                   <div className="flex flex-col items-center">
                                     <div className="flex items-center gap-2">
-                                      <span className="text-sm font-mono font-black text-white">
+                                      <span 
+                                        className={cn(
+                                          "text-sm font-mono font-black text-white",
+                                          isAdmin && "hover:text-salami-red cursor-pointer"
+                                        )}
+                                        onClick={(e) => {
+                                          if (isAdmin) {
+                                            e.stopPropagation();
+                                            setEditingLineId(game.gamePk);
+                                            setTempLine((manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine)?.toString() || '');
+                                          }
+                                        }}
+                                      >
                                         {(manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine) !== undefined ? (manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine).toFixed(1) : '---'}
                                       </span>
                                       {isAdmin && (
