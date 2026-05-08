@@ -147,7 +147,7 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
     }
   };
 
-  const urlObj = new URL('https://statsapi.mlb.com/api/v1/schedule');
+  const urlObj = new URL('/api/v1/mlb/schedule', window.location.origin);
   urlObj.searchParams.append('sportId', '1');
   urlObj.searchParams.append('hydrate', 'linescore,team,weather,venue,probablePitcher,boxscore,officials');
   urlObj.searchParams.append('_t', Math.floor(Date.now() / 60000).toString()); // Minute-level cache busting
@@ -214,7 +214,7 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
       // 1. Boxscore enrichment
       if (game.status.abstractGameState === 'Final' && (!game.boxscore?.teams.home.pitchers || game.boxscore.teams.home.pitchers.length === 0)) {
         try {
-          const boxResponse = await fetch(`https://statsapi.mlb.com/api/v1/game/${game.gamePk}/boxscore`);
+          const boxResponse = await fetch(`/api/v1/mlb/game/${game.gamePk}/boxscore`);
           if (boxResponse.ok) {
             const boxData = await boxResponse.json();
             enrichedGame.boxscore = {
@@ -246,7 +246,7 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
 
       // 3. Over/Under TotalLine enrichment
       try {
-        const oddsUrl = `https://statsapi.mlb.com/api/v1/game/${game.gamePk}/contextMetrics?hydrate=odds`;
+        const oddsUrl = `/api/v1/mlb/game/${game.gamePk}/contextMetrics?hydrate=odds`;
         const oddsRes = await fetch(oddsUrl);
         if (oddsRes.ok) {
           const oddsData = await oddsRes.json();
@@ -324,7 +324,7 @@ async function fetchPitcherStats(pitcherIds: number[]): Promise<Record<number, s
 
   await Promise.all(batches.map(async (batch) => {
     try {
-      const url = `https://statsapi.mlb.com/api/v1/people?personIds=${batch.join(',')}&hydrate=stats(group=[pitching],type=[season])`;
+      const url = `/api/v1/mlb/people?personIds=${batch.join(',')}&hydrate=stats(group=[pitching],type=[season])`;
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort('PitcherStatsTimeout'), 20000); // 20s per batch
       

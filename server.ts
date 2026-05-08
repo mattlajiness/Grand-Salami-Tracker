@@ -45,6 +45,25 @@ async function startServer() {
     });
   });
 
+  app.get("/api/v1/mlb/*", async (req, res) => {
+    try {
+      const mlbPath = req.params[0];
+      const queryParams = new URLSearchParams(req.query as any).toString();
+      const url = `https://statsapi.mlb.com/api/v1/${mlbPath}${queryParams ? `?${queryParams}` : ""}`;
+      
+      const response = await fetch(url);
+      if (!response.ok) {
+        return res.status(response.status).json({ error: `MLB API Error: ${response.statusText}` });
+      }
+      
+      const data = await response.json();
+      res.json(data);
+    } catch (error) {
+      console.error("MLB Proxy Error:", error);
+      res.status(500).json({ error: "Failed to fetch from MLB API" });
+    }
+  });
+
   app.get("/api/v1/debug/ballparkpal", (req, res) => {
     const status = getFetchStatus();
     const apiKey = process.env.BALLPARKPAL_API_KEY;

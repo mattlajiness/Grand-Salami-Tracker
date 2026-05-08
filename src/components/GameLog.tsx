@@ -232,15 +232,17 @@ interface GameLogProps {
   games: MLBGame[];
   gameLines: Record<number, number>;
   manualLines?: Record<number, number>;
-}
+}const getVariedPhrase = (phrases: string[], seed: number) => {
+  return phrases[seed % phrases.length];
+};
 
 const getClimateIntelligence = (game: MLBGame) => {
   const tempStr = game.weather?.temp?.toString() || "";
   const temp = parseInt(tempStr.match(/\d+/)?.[0] || "72");
   const windStr = game.weather?.wind || "";
-  const windDirRaw = windStr.toLowerCase();
   const homeId = game.teams.home.team.id;
   const venue = (game.venue?.name || '').toLowerCase();
+  const gamePk = game.gamePk || 0;
   
   const wind = parseWind(windStr, homeId, venue);
   const windSpeed = wind.speed;
@@ -251,53 +253,87 @@ const getClimateIntelligence = (game: MLBGame) => {
   // Directional Detection
   const isOut = wind.direction === 'OUT';
   const isIn = wind.direction === 'IN';
-  const isToRight = windDirRaw.includes('to rf') || windDirRaw.includes('from lf') || (windDirRaw.includes('r to l') && isIn) || (windDirRaw.includes('l to r') && isOut);
-  const isToLeft = windDirRaw.includes('to lf') || windDirRaw.includes('from rf') || (windDirRaw.includes('l to r') && isIn) || (windDirRaw.includes('r to l') && isOut);
 
   const rainKeywords = ['rain', 'shower', 'storm', 'drizzle', 'precip', 'thunder', 'lightning', 'mist'];
   const isRainy = rainKeywords.some(k => condition.includes(k));
-  const isHighAltitude = venue.includes('coors') || venue.includes('chase');
   const isStrictDome = venue.includes('tropicana') || venue.includes('loandepot') || venue.includes('globe life') || venue.includes('minute maid') || venue.includes('american family') || venue.includes('rogers centre') || venue.includes('skydome') || (venue.includes('chase field') && (condition.includes('dome') || condition.includes('roof closed')));
-  const isRetractableSeattle = venue.includes('t-mobile');
+  
+  const detailedFactor = getDetailedParkFactor(game.venue?.name || '');
+  let factorPrefix = "";
+  if (detailedFactor) {
+    const runChange = Math.round((detailedFactor.runs - 1) * 100);
+    const hrChange = Math.round((detailedFactor.hr - 1) * 100);
+    
+    // Set baseline impulse based on park factor
+    if (detailedFactor.runs > 1.00) impulse = 'positive';
+    else if (detailedFactor.runs < 1.00) impulse = 'negative';
+    
+    const impact = runChange > 0 ? "Offense Boosted" : (runChange < 0 ? "Pitching Edge" : "Neutral Atmosphere");
+    factorPrefix = `${impact}: (${runChange > 0 ? '+' : ''}${runChange}% Runs, ${hrChange > 0 ? '+' : ''}${hrChange}% HR). `;
+  }
 
   if (isStrictDome) {
     const domeName = venue.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-    // Tropicana is the primary focus but this covers others too
     const isTropicana = venue.includes('tropicana');
     const isChase = venue.includes('chase field');
     
+    const tropPhrases = [
+      `DOME CONTROL. Atmospheric conditions are precisely regulated; outside weather is irrelevant to play dynamics.`,
+      `Stable environment: Balanced barometric pressure and recycled air create a perfectly neutral scoring baseline.`,
+      `Climate Negation: Local humidity is locked outside; conditions are static for tonight's matchup.`
+    ];
+
+    const chasePhrases = [
+      `HUMIDOR REGULATED. Climate control and humidor storage negate desert atmospheric thinning.`,
+      `Desert Shield: Phoenix heat is neutralized by the roof and humidor, stabilizing ball carry.`,
+      `Atmospheric Anchor: Climate-controlled conditions prevent high-altitude dry-air flight anomalies.`
+    ];
+
+    const genericDomePhrases = [
+      `Controlled Environment: Outside weather is negated; play will strictly follow baseline park factors.`,
+      `Dome Stability: Stable air density and zero wind interference ensure player mechanics dictate the outcome.`,
+      `Regulated Atmospherics: The climate-controlled roof negates all external environmental variables.`
+    ];
+    
     return { 
-      impulse: 'neutral', 
+      impulse: (detailedFactor && detailedFactor.runs > 1.00) ? 'positive' : ((detailedFactor && detailedFactor.runs < 1.00) ? 'negative' : 'neutral'), 
       isDome: true,
       isHumidor: isChase,
-      message: isTropicana 
-        ? `Tropicana Field: DOME CONTROL. Atmospheric conditions are precisely regulated; outside weather is irrelevant to play dynamics.`
+      message: (factorPrefix + (isTropicana 
+        ? getVariedPhrase(tropPhrases, gamePk)
         : isChase
-        ? `Chase Field: HUMIDOR REGULATED. Climate control and humidor storage negate desert atmospheric thinning.`
-        : `Controlled Environment at ${domeName}. Outside weather is negated; play will strictly follow baseline park factors and player mechanics.`,
+        ? getVariedPhrase(chasePhrases, gamePk)
+        : getVariedPhrase(genericDomePhrases, gamePk))).trim(),
       temp, windStr, windSpeed, condition 
     };
   }
 
-  let techReport = "";
+  let techReport = factorPrefix;
 
   // 0. Park Specific Intelligence
   let hasSpecificClimateIntel = false;
 
   const isWrigley = homeId === 112 || venue.includes('wrigley');
   const isCoors = homeId === 115 || venue.includes('coors');
-  const isTmobile = isRetractableSeattle || homeId === 136 || venue.includes('t-mobile');
+  const isTmobile = homeId === 136 || venue.includes('t-mobile');
   const isPetco = homeId === 135 || venue.includes('petco');
 
   if (isWrigley) {
     hasSpecificClimateIntel = true;
-    const wrigleyReport = `Wrigley Graveyard (-35% HR, -10% Runs): ${windSpeed}mph ${isIn ? 'headwind' : 'air'} and ${temp}°F temp are suppressing elite carry. `;
     if ((isIn || wind.direction === 'CROSS') && (windSpeed >= 5 || temp < 55)) {
        impulse = 'negative';
-       techReport += wrigleyReport;
+       techReport += getVariedPhrase([
+         `Wrigley Graveyard (-35% HR, -10% Runs): ${windSpeed}mph ${isIn ? 'headwind' : 'air'} and ${temp}°F temp are suppressing elite carry.`,
+         `The "Hawk" is Out: Biting ${temp}°F air and a ${windSpeed}mph inward breeze are deadening fly balls at Lake Michigan's edge.`,
+         `Wrigley Suppression: Heavy air and a ${isIn ? 'stiff headwind' : 'cold cross-current'} will likely keep power hitters in the yard.`
+       ], gamePk) + " ";
     } else if (isOut && windSpeed >= 5) {
        impulse = 'positive';
-       techReport += `Wrigley Wind Boost (+2.27 Potential): Significant tailwind favors offensive carry today. `;
+       techReport += getVariedPhrase([
+         `Wrigley Wind Boost (+2.27 Potential): Significant tailwind favors offensive carry today.`,
+         `Tailwind Alert: The ${windSpeed}mph wind blowing out at the Friendly Confines creates massive home run potential.`,
+         `Chicago Offensive Pulse: Outward gusts are notorious for turning routine fly balls into bleacher souvenirs here.`
+       ], gamePk) + " ";
     } else {
        techReport += `Wrigley Field Neutral: Atmospheric conditions are within the 5% baseline. `;
     }
@@ -305,9 +341,17 @@ const getClimateIntelligence = (game: MLBGame) => {
     hasSpecificClimateIntel = true;
     impulse = 'positive';
     if (temp < 65 && !isRainy) {
-       techReport += `Coors Thin Air Factor (+2.94 Runs): Low humidity and 5,280ft elevation are compensating for the ${temp}°F temperature, keeping air resistance at a minimum. `;
+       techReport += getVariedPhrase([
+         `Coors Thin Air Factor (+2.94 Runs): Low humidity and 5,280ft elevation are compensating for the ${temp}°F temperature, keeping air resistance at a minimum.`,
+         `Altitude Advantage: Even in cool ${temp}°F weather, the Rockies' elevation ensures the air remains remarkably thin for ball travel.`,
+         `Elevation Pulse: Mile High physics are active; reduced air resistance will boost carry regardless of the mild temperature.`
+       ], gamePk) + " ";
     } else {
-       techReport += `Coors Altitude Factor (+2.94 Runs): 5,280ft elevation lowers air density, boosting fly ball carry and reducing breaking movement. `;
+       techReport += getVariedPhrase([
+         `Coors Altitude Factor (+2.94 Runs): 5,280ft elevation lowers air density, boosting fly ball carry and reducing breaking movement.`,
+         `Mountain Dynamics: Historic altitude benefits are in full effect, aiding everything from exit velocity carry to baseline run production.`,
+         `Thin Air Alert: Physics at 5,280ft consistently favor hitters by reducing the "lid" on fly ball distance.`
+       ], gamePk) + " ";
     }
   } else if (homeId === 133 || venue.includes('sutter health')) { // Sacramento
     hasSpecificClimateIntel = true;
@@ -320,7 +364,11 @@ const getClimateIntelligence = (game: MLBGame) => {
   } else if (isTmobile) {
     hasSpecificClimateIntel = true;
     impulse = 'negative';
-    techReport += `T-Mobile Park dynamics (-1.45 Runs): Cold sea-level air and marine layer presence significantly suppress power output. `;
+    techReport += getVariedPhrase([
+      `T-Mobile Park dynamics (-1.45 Runs): Cold sea-level air and marine layer presence significantly suppress power output.`,
+      `Marine Layer Alert: Thick, damp air in Seattle is settling over the field, acting as a natural brake on fly balls.`,
+      `Cold Water Pulse: The Puget Sound influence is strong tonight; heavy air will likely favor pitching and under outcomes.`
+    ], gamePk) + " ";
   } else if (homeId === 138 || venue.includes('busch')) { // Cardinals
     hasSpecificClimateIntel = true;
     impulse = 'negative';
@@ -353,22 +401,44 @@ const getClimateIntelligence = (game: MLBGame) => {
   if (!hasSpecificClimateIntel) {
     if (temp >= 94) {
       impulse = 'positive';
-      techReport += `${condition.includes('clear') ? 'Desert-like' : 'Extreme'} ${temp}°F heat will keep the air extremely thin (expanded molecules), maximizing ball flight with minimal drag. `;
-    } else if (temp >= 82) {
+      techReport += getVariedPhrase([
+        `${condition.includes('clear') ? 'Desert-like' : 'Extreme'} ${temp}°F heat will keep the air extremely thin (expanded molecules), maximizing ball flight with minimal drag.`,
+        `Fever Pitch: At ${temp}°F, air resistance is at its lowest point, allowing for maximum flight efficiency.`,
+        `Thermal Thinning: Scalding temperatures have reduced air density to a minimum, significantly aiding fly ball carry.`
+      ], gamePk) + " ";
+    } else if (temp >= 78) {
       impulse = 'positive';
-      techReport += `Warm ${temp}°F conditions are classic for higher offense, favoring the carry of fly balls as air molecules provide less resistance due to thermal expansion. `;
-    } else if (temp >= 72) {
-      techReport += `Standard ${temp}°F air provides consistent travel with a predictable atmospheric baseline for air density and pressure. `;
-    } else if (temp >= 62) {
-      techReport += `Mild ${temp}°F air is beginning to stabilize, offering traditional defensive travel conditions with standard atmospheric friction. `;
-    } else if (temp >= 50) {
-      techReport += `Cool ${temp}°F air is beginning to thicken; the increased density will likely increase drag and peel a few feet off fly ball distance. `;
+      techReport += getVariedPhrase([
+        `Warm ${temp}°F conditions are classic for higher offense, favoring the carry of fly balls as air molecules provide less resistance.`,
+        `Hitter's Weather: Low air density at ${temp}°F provides the ideal medium for power hitters to thrive.`,
+        `Expanded Atmosphere: Warmer air molecules are spaced further apart, creating "thin" air that deadens drag.`
+      ], gamePk) + " ";
+    } else if (temp >= 70) {
+      techReport += getVariedPhrase([
+        `Standard ${temp}°F air provides consistent travel with a predictable atmospheric baseline for air density.`,
+        `Baseline Environment: At ${temp}°F, the air density is optimal for standard ball flight dynamics.`,
+        `Atmospheric Balance: Predicted ${temp}°F temperatures suggest the game will play true to architectural park factors.`
+      ], gamePk) + " ";
+    } else if (temp <= 64) {
+      // Modifier approach: only flip to negative if not already a hitter park, or if it's very cold
+      if (impulse === 'positive' && temp > 48) {
+        impulse = 'neutral';
+        // If it's a very strong hitter park (e.g. > 1.10), maybe keep it positive?
+        if (detailedFactor && detailedFactor.runs >= 1.08) impulse = 'positive';
+      } else if (impulse !== 'positive' || temp <= 48) {
+        impulse = 'negative';
+      }
+      techReport += getVariedPhrase([
+        `Cool ${temp}°F air is beginning to thicken; the increased density will likely increase drag on fly balls.`,
+        `Lid Effect: Colder air molecules are compressed, creating a denser medium that fly balls must push through.`,
+        `Aerodynamic Friction: The ${temp}°F air provides more resistance than a standard summer afternoon.`
+      ], gamePk) + " ";
     } else if (temp > 0) {
       if (windSpeed >= 10) {
-        impulse = 'negative';
+        impulse = temp < 55 ? 'negative' : (impulse === 'positive' ? 'neutral' : 'negative');
         techReport += `Chilly ${temp}°F conditions combined with ${windSpeed}mph winds create dense air that will likely stifle deep fly balls. `;
       } else {
-        techReport += `Chilly ${temp}°F conditions increase air density and atmospheric resistance. `;
+        techReport += `Chilly ${temp}°F air increases air density and atmospheric resistance. `;
       }
     } else {
       techReport += "Atmospheric data normalizing... ";
@@ -378,38 +448,72 @@ const getClimateIntelligence = (game: MLBGame) => {
   // 2. Wind Vector Analysis
   if (windSpeed >= 15) {
     impulse = isOut ? 'positive' : (isIn ? 'negative' : impulse);
-    techReport += `A punishing ${windSpeed}mph ${isOut ? 'tailwind' : isIn ? 'headwind' : 'cross-current'} is dominating the field. `;
-    if (isOut) techReport += "Routine fly balls have a massive probability of being carried over the fence by the sheer force of the gust. ";
-    else if (isIn) techReport += "Hitters will be fighting a severe atmospheric wall; deep fly balls are likely to die at the warning track. ";
-    else techReport += "Erratic cross-currents will make defensive tracking and outfield communication a major challenge today. ";
+    techReport += getVariedPhrase([
+      `A punishing ${windSpeed}mph ${isOut ? 'tailwind' : isIn ? 'headwind' : 'cross-current'} is dominating the field.`,
+      `Weather Dominance: A heavy ${windSpeed}mph air current from the ${wind.direction} is the primary factor today.`,
+      `Gale Pulse: High-velocity ${windSpeed}mph guests are reshaping the field's scoring dimensions.`
+    ], gamePk) + " ";
+    
+    if (isOut) techReport += "Routine fly balls have a massive probability of being carried over the fence. ";
+    else if (isIn) techReport += "Hitters will be fighting a severe atmospheric wall; deep fly balls are likely to die early. ";
+    else techReport += "Erratic cross-currents will make defensive tracking a major challenge today. ";
   } else if (windSpeed >= 10) {
     if (isOut) {
       impulse = impulse === 'negative' ? 'neutral' : 'positive';
-      techReport += `The steady ${windSpeed}mph tailwind provides a meaningful boost to exit velocity carry. `;
+      techReport += getVariedPhrase([
+        `The steady ${windSpeed}mph tailwind provides a meaningful boost to exit velocity carry.`,
+        `Outbound Assistance: A consistent ${windSpeed}mph breeze is pushing toward the fences today.`,
+        `Tailwind Advantage: Hitters should see an extra few feet of carry from the ${windSpeed}mph tailwind.`
+      ], gamePk) + " ";
     } else if (isIn) {
       impulse = impulse === 'positive' ? 'neutral' : 'negative';
-      techReport += `Persistent ${windSpeed}mph resistance is present, favoring ground-ball pitchers who can avoid the air. `;
-    } else if (isToRight) {
-      techReport += `Significant ${windSpeed}mph push toward Right Field favors left-handed pull hitters today. `;
-    } else if (isToLeft) {
-      techReport += `Significant ${windSpeed}mph push toward Left Field favors right-handed pull hitters today. `;
+      techReport += getVariedPhrase([
+        `Persistent ${windSpeed}mph resistance is present, favoring ground-ball pitchers.`,
+        `Inbound Pressure: The ${windSpeed}mph headwind is working against fly ball carry tonight.`,
+        `Atmospheric Resistance: A ${windSpeed}mph wind blowing in will likely nullify some of the carry on deep flies.`
+      ], gamePk) + " ";
     } else {
-      techReport += `Brisk ${windSpeed}mph cross-breeze may impart late movement on fly balls. `;
+      techReport += getVariedPhrase([
+        `Brisk ${windSpeed}mph cross-breeze may impart late movement on fly balls.`,
+        `Crosswind Pulse: A ${windSpeed}mph lateral breeze is active, potentially complicating outfield defensive tracking.`,
+        `Lateral Airflow: The ${windSpeed}mph cross-current is a variable that may keep outfielders on their toes.`
+      ], gamePk) + " ";
     }
   } else if (windSpeed > 4) {
-    techReport += `A marginal ${windSpeed}mph breeze is present, though its impact will likely be secondary to humidity and temperature. `;
+    techReport += getVariedPhrase([
+      `A marginal ${windSpeed}mph breeze is present, though its impact will likely be secondary.`,
+      `Light Airflow: Minimal ${windSpeed}mph wind activity should not significantly disrupt standard play.`,
+      `Secondary Wind Factor: At ${windSpeed}mph, the breeze is a minor variable compared to temperature and density.`
+    ], gamePk) + " ";
   } else {
-    techReport += "Calm wind conditions suggest the game will play true to its baseline park dimensions. ";
+    techReport += getVariedPhrase([
+      "Calm wind conditions suggest the game will play true to its baseline park dimensions.",
+      "Static Air: Negligible wind levels ensure a clean, predictable environment for ball flight.",
+      "Wind Neutrality: With calm conditions, atmospheric resistance is purely a function of density tonight."
+    ], gamePk) + " ";
   }
 
   // 3. Moisture & Environmental Factors
   if (isRainy) {
-    impulse = 'negative';
-    techReport += `Precipitation Risk (${condition}): High-friction environment and damp ball surfaces favor pitchers and "Under" outcomes. `;
+    // Rain is a suppressor, but we'll neutralize it for strong hitter parks instead of a total flip to negative
+    impulse = impulse === 'positive' ? 'neutral' : 'negative';
+    techReport += getVariedPhrase([
+      `Precipitation Risk (${condition}): High-friction environment and damp surfaces favor "Under" outcomes.`,
+      `Active Moisture: ${condition} conditions are increasing air friction and making ball surfaces slicker.`,
+      `Wet Field Dynamics: Rain-influenced air is heavier and more resistant to flight than dry conditions.`
+    ], gamePk) + " ";
   } else if (condition.includes('humid') && temp > 72) {
-    techReport += `Thermal Humidity: At ${temp}°F, the moist air reduced molecular weight (water vapor is lighter than dry air), aiding ball carry. `;
+    techReport += getVariedPhrase([
+      `Thermal Humidity: At ${temp}°F, the moist air reduced molecular weight, aiding ball carry slightly.`,
+      `Moisture Carry: Higher humidity levels are paradoxically thinning the air, providing a minor offensive offset.`,
+      `Humid Pulse: The combination of heat and moisture is creating a slightly more favorable medium for ball travel.`
+    ], gamePk) + " ";
   } else if (condition.includes('clear')) {
-    techReport += "Visibility Factor: Optimal contrast and lighting should benefit hitters' reaction times. ";
+    techReport += getVariedPhrase([
+      "Visibility Factor: Optimal contrast and lighting should benefit hitters' reaction times.",
+      "Visual Clarity: Clear skies ensure maximum visibility for tracking high-velocity pitches.",
+      "Pristine Visibility: Hitters will have a clean visual baseline under tonight's clear sky conditions."
+    ], gamePk) + " ";
   }
 
   return { impulse, message: techReport.trim(), temp, windStr, windSpeed, condition, isDome: false, isHumidor: false };
@@ -421,6 +525,9 @@ const getUmpireIntelligence = (umpireName: string) => {
   const strikeZone = tendency.strikeZone;
   const Krate = tendency.Krate;
   
+  // Use umpire name as a simple seed for variety
+  const seed = umpireName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+
   let impulse: 'positive' | 'negative' | 'neutral' = 
     tendency.tendency === 'Hitter Friendly' ? 'positive' : 
     tendency.tendency === 'Pitcher Friendly' ? 'negative' : 'neutral';
@@ -430,25 +537,33 @@ const getUmpireIntelligence = (umpireName: string) => {
   // 1. Strike Zone Analysis
   if (strikeZone === 'Small') {
     impulse = 'positive';
-    techReport += `${umpireName} is known for a "tight" or "micro" strike zone, forcing pitchers to come over the heart of the plate. `;
+    techReport += getVariedPhrase([
+      `${umpireName} is known for a "tight" or "micro" strike zone, forcing pitchers to come over the heart of the plate.`,
+      `Strike Zone Narrowing: ${umpireName} typically squeezes the corners, often frustrating technical pitchers.`,
+      `Hitter's Count Advantage: An exceptionally small zone from ${umpireName} usually leads to more walks and deeper counts.`
+    ], seed) + " ";
   } else if (strikeZone === 'Large') {
     impulse = 'negative';
-    techReport += `${umpireName} typically maintains an "expansive" zone, often rewarding pitchers who can paint the corners and "chase" hitters. `;
+    techReport += getVariedPhrase([
+      `${umpireName} typically maintains an "expansive" zone, rewarding pitchers who can paint the corners.`,
+      `Generous Zone Alert: ${umpireName} is notorious for awarding strikes on the black, favoring "edge" specialists.`,
+      `Expansive Officiating: A wide strike zone today will likely benefit pitchers with high chase rates.`
+    ], seed) + " ";
   } else {
-    techReport += `${umpireName} generally enforces a standard, predictable strike zone with few unexpected deviations. `;
+    techReport += `${umpireName} generally enforces a standard, predictable strike zone. `;
   }
 
   // 2. Performance Metric Analysis (Runs & K-Rate)
   if (runsPerGame >= 10.0) {
     impulse = 'positive';
-    techReport += `Statistically, games managed by this official average a high ${runsPerGame} runs, suggesting a severe offensive advantage. `;
+    techReport += `Statistically, games managed by this official average a high ${runsPerGame} runs. `;
   } else if (runsPerGame <= 8.5) {
     impulse = 'negative';
     techReport += `With a career average of just ${runsPerGame} runs per game, this official is a notable "Pitcher's Umpire". `;
   }
 
   if (Krate >= 0.20) {
-    techReport += `A high strikeout frequency (${(Krate * 100).toFixed(1)}%) indicates a low tolerance for "taking" close two-strike pitches. `;
+    techReport += `A high strikeout frequency (${(Krate * 100).toFixed(1)}%) indicates low tolerance for taking close pitches. `;
   } else if (Krate <= 0.15) {
     techReport += `A lower-than-average strikeout rate suggests hitters are often given the benefit of the doubt on borderline 50/50 calls. `;
   }
@@ -1489,7 +1604,7 @@ function GameDetailView({ game }: { game: MLBGame }) {
                 intelligence.impulse === 'negative' ? "bg-blue-500/10 text-blue-400 border-blue-500/20" :
                 "bg-slate-800 text-slate-400 border-slate-700/50"
               )}>
-                {intelligence.isHumidor ? 'HUMIDOR REGULATED' : (intelligence.isDome ? 'DOME CONTROL' : (intelligence.impulse === 'positive' ? 'Offense Boost' : intelligence.impulse === 'negative' ? 'Pitching Edge' : 'Neutral'))}
+                {intelligence.isHumidor ? 'HUMIDOR REGULATED' : (intelligence.isDome ? 'DOME CONTROL' : (intelligence.impulse === 'positive' ? 'Hitting Edge' : intelligence.impulse === 'negative' ? 'Pitching Edge' : 'Neutral'))}
               </div>
             </div>
           </div>
