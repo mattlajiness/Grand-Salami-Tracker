@@ -94,12 +94,24 @@ service cloud.firestore {
              (data.get('createdAt', request.time) is timestamp);
     }
 
+    function isValidDailyIntelligence(data) {
+      return data.title is string && data.title.size() > 0 &&
+             data.content is string && data.content.size() > 0 &&
+             (data.get('lastUpdated', '') is string) &&
+             (data.get('updatedAt', request.time) is timestamp);
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
 
     match /test/connection {
       allow read: if true;
+    }
+
+    match /dailyIntelligence/{date} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidDailyIntelligence(request.resource.data);
     }
 
     match /feedback/{feedbackId} {

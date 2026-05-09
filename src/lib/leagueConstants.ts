@@ -1,6 +1,6 @@
 /**
  * MLB League Constants for Model Projections
- * Based on 2023-2024 Scoring Environments
+ * Based on 2026 Scoring Environments
  */
 
 // 1.00 is league average (neutral)

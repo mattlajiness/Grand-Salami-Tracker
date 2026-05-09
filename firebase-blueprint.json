@@ -74,9 +74,25 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "message", "createdAt"]
+    },
+    "DailyIntelligenceReport": {
+      "title": "Daily Park Intelligence Report",
+      "description": "Daily summary text provided by Ballpark Pal.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "lastUpdated": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "content"]
     }
   },
   "firestore": {
+    "/dailyIntelligence/{date}": {
+      "schema": "DailyIntelligenceReport",
+      "description": "Daily park factor reports and summaries"
+    },
     "/users/{userId}": {
       "schema": "User",
       "description": "User profile and settings"

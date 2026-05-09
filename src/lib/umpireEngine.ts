@@ -8,7 +8,7 @@ export interface UmpireTendency {
   description: string;
 }
 
-// Data sourced from historical averages (e.g., 2023-2024 seasons)
+// Data sourced from historical averages (e.g., 2026 season)
 const UMPIRE_DATA: Record<string, UmpireTendency> = {
   "Pat Hoberg": {
     name: "Pat Hoberg",

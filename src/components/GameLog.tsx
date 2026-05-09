@@ -1620,7 +1620,7 @@ function GameDetailView({ game }: { game: MLBGame }) {
 
         <div className="mt-auto pt-3 relative z-10">
           <p className="text-[8px] font-mono text-slate-500 uppercase tracking-tighter leading-relaxed">
-            Data calibrated for 2024-2025 scoring environments relative to league average.
+            Data calibrated for 2026 scoring environments relative to league average.
           </p>
         </div>
       </div>
