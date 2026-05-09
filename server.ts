@@ -36,19 +36,6 @@ async function startServer() {
     res.json({ status: "ok" });
   });
 
-  app.get("/api/v1/parkfactors", (req, res) => {
-    res.json({
-      success: true,
-      data: DetailedVenueFactors,
-      metadata: {
-        lastUpdated: new Date().toISOString(),
-        source: "Bundled Baseline",
-        version: "1.0.0",
-        live: false
-      }
-    });
-  });
-
   app.get("/api/v1/mlb/debug", async (req, res) => {
     try {
       const url = "https://statsapi.mlb.com/api/v1/schedule?sportId=1";

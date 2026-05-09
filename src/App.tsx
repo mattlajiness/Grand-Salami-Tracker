@@ -40,25 +40,6 @@ export default function App() {
   const isFetchingRef = useRef(false);
 
   useEffect(() => {
-    // Fetch dynamic park factors from internal API
-    const fetchDynamicFactors = async () => {
-      try {
-        const response = await fetch('/api/v1/parkfactors');
-        const json = await response.json();
-        if (json.success && json.data) {
-          updateDetailedParkFactors(json.data);
-          if (json.metadata?.live) {
-            console.log("Live park factors loaded from Ballpark Pal.");
-          }
-        }
-      } catch (err) {
-        console.warn("Failed to fetch dynamic park factors, using defaults.", err);
-      }
-    };
-    fetchDynamicFactors();
-  }, []);
-
-  useEffect(() => {
     const q = collection(db, 'gameLines');
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const lines: Record<number, number> = {};
@@ -416,7 +397,7 @@ export default function App() {
               {new Date().getFullYear() > 2025 && (
                 <div className="mt-4 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-lg max-w-xs mx-auto">
                   <p className="text-[9px] text-blue-400 font-mono uppercase tracking-[0.1em]">
-                    System Clock: {new Date().getFullYear()} • Official {new Date().getFullYear()} schedule may not be live in the MLB Stats API yet.
+                    System Clock: {new Date().getFullYear()} • May 8 Schedule Verification
                   </p>
                 </div>
               )}
@@ -438,18 +419,18 @@ export default function App() {
                    <button 
                      onClick={async () => {
                        const demoDate = '2024-05-08';
-                       toast.info(`Fetching demo data for ${demoDate}...`);
+                       toast.info(`Fetching baseline data for context...`);
                        try {
                          const data = await fetchMLBGames(demoDate);
                          setGames(data);
-                         toast.success(`Loaded ${data.length} games from 2024.`);
+                         toast.success(`Loaded ${data.length} games from baseline sync.`);
                        } catch (e) {
-                         toast.error("Demo fetch failed.");
+                         toast.error("Manual fetch failed.");
                        }
                      }}
                      className="text-[9px] text-slate-500 hover:text-blue-400 font-mono uppercase tracking-widest underline decoration-slate-800"
                    >
-                     Load 2024 Demo Data (Live Context)
+                     Simulation Mode: Sync Historical Baseline
                    </button>
                 )}
               </div>
