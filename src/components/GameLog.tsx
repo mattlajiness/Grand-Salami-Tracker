@@ -59,7 +59,7 @@ const getSpecialIntelligence = (game: MLBGame) => {
   const wind = parseWind(game.weather?.wind, homeId, venue);
   const condition = (game.weather?.condition || '').toLowerCase();
   
-  const climate = getClimateIntelligence(game);
+  const climate = getParkIntelligence(game);
   const temp = climate?.temp || 72;
   
   const isRetractable = venue.includes('loandepot') || venue.includes('globe life') || venue.includes('minute maid') || venue.includes('american family') || venue.includes('rogers centre') || venue.includes('skydome') || venue.includes('chase field') || venue.includes('t-mobile') || venue.includes('safeco');
@@ -247,7 +247,7 @@ interface GameLogProps {
   manualLines?: Record<number, number>;
 }
 
-const getClimateIntelligence = (game: MLBGame) => {
+const getParkIntelligence = (game: MLBGame) => {
   const tempStr = game.weather?.temp?.toString() || "";
   const temp = parseInt(tempStr.match(/\d+/)?.[0] || "72");
   const windStr = game.weather?.wind || "";
@@ -580,7 +580,7 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
               Daily Scorecard
             </h2>
             <span className="text-[8px] font-mono text-slate-500 uppercase tracking-[0.2em] mt-0.5">
-              Live updates • Umpire & Climate Intelligence available in game details
+              Live updates • Umpire & Park Intelligence available in game details
             </span>
           </div>
         </div>
@@ -704,8 +704,8 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                                  </button>
                                );
                               }
-                              // 2. Climate Intelligence 
-                              const climate = getClimateIntelligence(game);
+                              // 2. Park Intelligence 
+                              const climate = getParkIntelligence(game);
                               
                               // 2. Intelligence Badges
                               const intelBadges = getSpecialIntelligence(game);
@@ -1238,8 +1238,8 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                                      );
                                    }
  
-                                   // 2. Climate Intelligence 
-                                   const climate = getClimateIntelligence(game);
+                                   // 2. Park Intelligence 
+                                   const climate = getParkIntelligence(game);
  
                                    // 2. Intelligence Badges
                                    const intelBadges = getSpecialIntelligence(game);
@@ -1466,7 +1466,7 @@ function GameDetailView({ game }: { game: MLBGame }) {
   })();
 
   const WeatherIntelligenceModule = (() => {
-    const intelligence = getClimateIntelligence(game);
+    const intelligence = getParkIntelligence(game);
     if (!intelligence) return null;
 
     return (
