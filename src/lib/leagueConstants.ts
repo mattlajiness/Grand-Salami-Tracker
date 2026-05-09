@@ -81,7 +81,8 @@ export interface DetailedParkFactor {
 }
 
 export const DetailedVenueFactors: Record<string, DetailedParkFactor> = {
-  "Chase Field": { hr: 0.98, extraBase: 1.11, single: 1.06, runs: 1.08 },
+  "Chase Field": { hr: 1.08, extraBase: 1.15, single: 1.08, runs: 1.15 },
+  "Chase Field (Closed)": { hr: 0.92, extraBase: 1.05, single: 1.00, runs: 1.01 },
   "Great American Ball Park": { hr: 1.12, extraBase: 0.96, single: 0.97, runs: 1.04 },
   "Progressive Field": { hr: 1.05, extraBase: 0.99, single: 1.01, runs: 1.04 },
   "Kauffman Stadium": { hr: 1.12, extraBase: 1.04, single: 0.97, runs: 1.02 },
@@ -115,9 +116,17 @@ export const DetailedVenueFactors: Record<string, DetailedParkFactor> = {
   "loanDepot park": { hr: 0.85, extraBase: 1.01, single: 0.98, runs: 0.94 },
 };
 
-export function getDetailedParkFactor(venueName: string): DetailedParkFactor | null {
+export function getDetailedParkFactor(venueName: string, weatherCondition?: string): DetailedParkFactor | null {
   const normalized = venueName.toLowerCase();
-  
+  const lowerCondition = (weatherCondition || '').toLowerCase();
+  const isClosed = lowerCondition.includes('closed') || lowerCondition.includes('indoor') || lowerCondition.includes('dome');
+  const isOpen = lowerCondition.includes('open') || lowerCondition.includes('outdoor') || ['clear', 'sunny', 'fair', 'partly'].some(k => lowerCondition.includes(k));
+
+  // Specialized retractable logic
+  if (normalized.includes('chase field')) {
+    return isClosed ? DetailedVenueFactors["Chase Field (Closed)"] : DetailedVenueFactors["Chase Field"];
+  }
+
   // Try exact match first
   if (DetailedVenueFactors[venueName]) return DetailedVenueFactors[venueName];
 

@@ -63,14 +63,14 @@ const getSpecialIntelligence = (game: MLBGame) => {
   const temp = climate?.temp || 72;
   
   const isRetractable = venue.includes('loandepot') || venue.includes('globe life') || venue.includes('minute maid') || venue.includes('american family') || venue.includes('rogers centre') || venue.includes('skydome') || venue.includes('chase field') || venue.includes('t-mobile') || venue.includes('safeco');
-  const isExplicitlyOpen = condition.includes('open') || condition.includes('outdoor');
-  const isExplicitlyClosed = condition.includes('closed') || condition.includes('indoor') || (venue.includes('chase field') && condition.includes('dome'));
+  const isExplicitlyOpen = condition.includes('open') || condition.includes('outdoor') || ['clear', 'sunny', 'fair', 'partly'].some(k => condition.includes(k));
+  const isExplicitlyClosed = condition.includes('closed') || condition.includes('indoor') || condition.includes('dome');
   
   // Tropicana is always a dome. 
-  // Others are strict domes if explicitly closed or if they are retractable and not explicitly open/clear weather.
-  const isStrictDome = venue.includes('tropicana') || (isRetractable && isExplicitlyClosed) || (isRetractable && !isExplicitlyOpen && !['clear', 'sunny', 'cloudy', 'fair', 'partly'].some(k => condition.includes(k)));
+  // Others are strict domes if explicitly closed or if they are retractable and not explicitly open.
+  const isStrictDome = venue.includes('tropicana') || (isRetractable && isExplicitlyClosed) || (isRetractable && !isExplicitlyOpen && (venue.includes('chase field') ? false : true));
 
-  const detailedFactor = getDetailedParkFactor(game.venue?.name || '');
+  const detailedFactor = getDetailedParkFactor(game.venue?.name || '', game.weather?.condition);
 
   // 1. Primary Park Identity & Logic (Only one main park badge)
   
@@ -88,10 +88,10 @@ const getSpecialIntelligence = (game: MLBGame) => {
   if (isStrictDome && (venue.includes('tropicana') || isRetractable)) {
     if (venue.includes('chase field')) {
       return [{ 
-        label: 'HUMIDOR GAME', 
+        label: 'HUMIDOR CONTROL', 
         color: 'bg-teal-500/10 text-teal-300 border-teal-500/20', 
         icon: Droplets, 
-        title: 'Chase Field: Humidor regulated environment reduces offensive variability in the desert.' 
+        title: 'Chase Field: Climate controlled and humidor storage negate high desert volatility.' 
       }];
     }
     return [{ 
@@ -112,7 +112,9 @@ const getSpecialIntelligence = (game: MLBGame) => {
     const venueName = game.venue?.name || '';
     const venueShort = venueName.includes('Great American') 
       ? 'GREAT AMERICAN' 
-      : venueName.split(' ')[0].toUpperCase();
+      : venueName.toLowerCase().includes('chase field')
+        ? 'CHASE FIELD'
+        : venueName.split(' ')[0].toUpperCase();
       
     // Create detailed hover text
     const detailedTitle = `${game.venue?.name}: Daily Environment
@@ -191,9 +193,16 @@ HR: ${hrChange > 0 ? '+' : ''}${hrChange}%
   const historicalParks: Record<number, any> = {
     141: { label: 'HITTERS PARK', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: Activity, title: 'Citizens Bank Park is historically favorable for home runs.' },
     119: { label: 'DODGER AIR', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20', icon: Sun, title: 'Dodger Stadium is a fair-to-pitching venue with consistent dry air.' },
-    137: { label: 'BAY CLASSIC', color: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20', icon: ShieldCheck, title: 'Oracle Park is a premier defensive venue.' },
-    109: { label: 'HUMIDOR GAME', color: 'bg-teal-500/10 text-teal-300 border-teal-500/20', icon: Droplets, title: 'Chase Field humidor reduce extreme offensive variability in the desert.' }
+    137: { label: 'BAY CLASSIC', color: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20', icon: ShieldCheck, title: 'Oracle Park is a premier defensive venue.' }
   };
+  
+  // Custom Chase Field logic for special intelligence
+  if (homeId === 109) {
+    const isClosed = condition.includes('dome') || condition.includes('roof closed') || condition.includes('indoor');
+    if (isClosed) {
+      return [{ label: 'HUMIDOR CONTROL', color: 'bg-teal-500/10 text-teal-300 border-teal-500/20', icon: Droplets, title: 'Chase Field: Climate control and humidor storage negate desert atmospheric thinning.' }];
+    }
+  }
   
   if (historicalParks[homeId as keyof typeof historicalParks]) {
     return [historicalParks[homeId as keyof typeof historicalParks]];
@@ -214,14 +223,10 @@ const getEnvironmentalWarning = (game: MLBGame) => {
   const wind = parseWind(game.weather?.wind, homeId, venue);
 
   // Domes negate environmental warnings
-  const isStrictDome = venue.includes('tropicana') || 
-                      venue.includes('loandepot') || 
-                      venue.includes('globe life') || 
-                      venue.includes('minute maid') || 
-                      venue.includes('american family') || 
-                      venue.includes('rogers centre') || 
-                      venue.includes('skydome') || 
-                      (venue.includes('chase field') && (condition.includes('dome') || condition.includes('roof closed')));
+  const isExplicitlyOpen = condition.includes('open') || condition.includes('outdoor') || ['clear', 'sunny', 'fair', 'partly'].some(k => condition.includes(k));
+  const isExplicitlyClosed = condition.includes('closed') || condition.includes('indoor') || condition.includes('dome');
+  const isRetractable = venue.includes('loandepot') || venue.includes('globe life') || venue.includes('minute maid') || venue.includes('american family') || venue.includes('rogers centre') || venue.includes('skydome') || venue.includes('chase field') || venue.includes('t-mobile') || venue.includes('safeco');
+  const isStrictDome = venue.includes('tropicana') || (isRetractable && isExplicitlyClosed) || (isRetractable && !isExplicitlyOpen && (venue.includes('chase field') ? false : true));
   
   if (isStrictDome) return null;
   
@@ -269,8 +274,10 @@ const getParkIntelligence = (game: MLBGame) => {
 
   const rainKeywords = ['rain', 'shower', 'storm', 'drizzle', 'precip', 'thunder', 'lightning', 'mist'];
   const isRainy = rainKeywords.some(k => condition.includes(k));
-  const isHighAltitude = venue.includes('coors') || venue.includes('chase');
-  const isStrictDome = venue.includes('tropicana') || venue.includes('loandepot') || venue.includes('globe life') || venue.includes('minute maid') || venue.includes('american family') || venue.includes('rogers centre') || venue.includes('skydome') || (venue.includes('chase field') && (condition.includes('dome') || condition.includes('roof closed')));
+  const isExplicitlyOpen = condition.includes('open') || condition.includes('outdoor') || ['clear', 'sunny', 'fair', 'partly'].some(k => condition.includes(k));
+  const isExplicitlyClosed = condition.includes('closed') || condition.includes('indoor') || condition.includes('dome');
+  const isRetractable = venue.includes('loandepot') || venue.includes('globe life') || venue.includes('minute maid') || venue.includes('american family') || venue.includes('rogers centre') || venue.includes('skydome') || venue.includes('chase field') || venue.includes('t-mobile') || venue.includes('safeco');
+  const isStrictDome = venue.includes('tropicana') || (isRetractable && isExplicitlyClosed) || (isRetractable && !isExplicitlyOpen && (venue.includes('chase field') ? false : true));
   const isRetractableSeattle = venue.includes('t-mobile');
 
   if (isStrictDome) {
@@ -425,7 +432,18 @@ const getParkIntelligence = (game: MLBGame) => {
     techReport += "Visibility Factor: Optimal contrast and lighting should benefit hitters' reaction times. ";
   }
 
-  return { impulse, message: techReport.trim(), temp, windStr, windSpeed, condition, isDome: false, isHumidor: false };
+  const isChase = venue.includes('chase field');
+  
+  return { 
+    impulse, 
+    message: techReport.trim(), 
+    temp, 
+    windStr, 
+    windSpeed, 
+    condition, 
+    isDome: false, 
+    isHumidor: isChase && (condition.includes('dome') || condition.includes('roof closed') || condition.includes('indoor'))
+  };
 };
 
 const getUmpireIntelligence = (umpireName: string) => {
@@ -1551,7 +1569,7 @@ function GameDetailView({ game }: { game: MLBGame }) {
   })();
 
   const ParkFactorsModule = (() => {
-    const factors = getDetailedParkFactor(game.venue?.name || '');
+    const factors = getDetailedParkFactor(game.venue?.name || '', game.weather?.condition);
     if (!factors) return null;
 
     const formatVal = (val: number) => {
