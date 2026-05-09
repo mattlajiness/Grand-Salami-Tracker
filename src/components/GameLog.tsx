@@ -72,6 +72,38 @@ const getSpecialIntelligence = (game: MLBGame) => {
 
   const detailedFactor = getDetailedParkFactor(game.venue?.name || '', game.weather?.condition);
 
+  // 0. Latest Park Intelligence (Priority 1)
+  const intelligenceParks: Record<number, any> = {
+    111: { label: 'PEAK OFFENSE', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: Activity, title: 'Fenway Park: Top-rated venue today with +9% scoring boost, +24% extra-base appeal, +9% singles.' },
+    118: { label: 'HR BOOST', color: 'bg-orange-500/10 text-orange-400 border-orange-500/10', icon: Zap, title: 'Kauffman Stadium: Significant +18% Home Run environment projected today (+6% overall runs).' },
+    113: { label: 'LAUNCH PAD', color: 'bg-red-500/10 text-red-400 border-red-500/10', icon: Wind, title: 'Great American BP: Receptive +12% Home Run bias flagged for today (+4% overall runs).' },
+    141: { label: 'HITTERS PARK', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: Activity, title: 'Citizens Bank Park: Favorable +10% Home Run bias remains in effect (+2% overall runs).' },
+    119: { label: 'DODGER AIR', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20', icon: Sun, title: 'Dodger Stadium: +12% Home Run boost despite -2% overall run environment and -7% singles.' },
+    137: { label: 'PITCHERS HAVEN', color: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20', icon: ShieldCheck, title: 'Oracle Park: -19% Home Run reduction makes this a premier defensive venue today (-4% runs).' },
+    135: { label: 'OFFENSE CRUSH', color: 'bg-slate-500/10 text-slate-400 border-slate-500/20', icon: ShieldCheck, title: 'Petco Park: Drastic -9% scoring environment with -19% extra-base appeal and -1% HR.' },
+    114: { label: 'NEUTRAL HUB', color: 'bg-slate-500/10 text-slate-400 border-slate-500/20', icon: Activity, title: 'Progressive Field: Balanced 0% scoring environment with slight +4% HR tilt today.' },
+    110: { label: 'DIMINISHED LIFT', color: 'bg-blue-500/10 text-blue-400 border-blue-500/10', icon: ShieldCheck, title: 'Oriole Park: -13% Home Run reduction projected for today\'s match (-1% overall runs).' },
+    145: { label: 'GABP RECEPTIVE', color: 'bg-blue-500/10 text-blue-400 border-blue-500/10', icon: Wind, title: 'Guaranteed Rate Field: -13% extra-base hit suppression and -3% HR (-2% overall runs).' },
+    158: { label: 'GAP SUPPRESSION', color: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20', icon: ShieldCheck, title: 'American Family Field: -14% extra-base appeal and -5% overall runs with +6% HR.' },
+    142: { label: 'FAIR OFFENSE', color: 'bg-slate-500/10 text-slate-400 border-slate-500/20', icon: Activity, title: 'Rogers Centre: Stable -6% environment with minimal +2% home run deviation.' },
+    146: { label: 'DEAD BALL', color: 'bg-slate-800/50 text-slate-500 border-slate-700/50', icon: ShieldCheck, title: 'LoanDepot Park: Heavy -15% Home Run suppression and -6% overall runs.' },
+    140: { label: 'DEFENSIVE DOME', color: 'bg-slate-800/50 text-slate-500 border-slate-700/50', icon: ShieldCheck, title: 'Globe Life Field: -11% HR and -8% extra-base appeal favors pitchers today (-8% runs).' },
+    109: { label: 'DESERT HEAT', color: 'bg-orange-500/10 text-orange-400 border-orange-500/10', icon: Sun, title: 'Chase Field: Significant +7% scoring boost projected in the open desert heat (+11% 2B/3B).' }
+  };
+
+  const isChase = (game.venue?.name || '').toLowerCase().includes('chase field');
+  const isClosed = condition.includes('dome') || condition.includes('roof closed') || condition.includes('indoor');
+
+  if (isChase && isClosed) {
+    return [{ label: 'HUMIDOR CONTROL', color: 'bg-teal-500/10 text-teal-300 border-teal-500/20', icon: Droplets, title: 'Chase Field: Climate controlled and humidor storage negate high desert volatility.' }];
+  }
+
+  const tid = Number(homeId);
+  if (intelligenceParks[tid]) {
+    // If it's Chase and it's OPEN, we return the Desert Heat one from the object above
+    return [intelligenceParks[tid]];
+  }
+
   // 1. Primary Park Identity & Logic (Only one main park badge)
   
   // If retractable and explicitly OPEN
@@ -86,14 +118,6 @@ const getSpecialIntelligence = (game: MLBGame) => {
   }
 
   if (isStrictDome && (venue.includes('tropicana') || isRetractable)) {
-    if (venue.includes('chase field')) {
-      return [{ 
-        label: 'HUMIDOR CONTROL', 
-        color: 'bg-teal-500/10 text-teal-300 border-teal-500/20', 
-        icon: Droplets, 
-        title: 'Chase Field: Climate controlled and humidor storage negate high desert volatility.' 
-      }];
-    }
     return [{ 
       label: 'DOME CONTROL', 
       color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20', 
@@ -187,25 +211,6 @@ HR: ${hrChange > 0 ? '+' : ''}${hrChange}%
     if (condition.includes('humid') || condition.includes('damp')) {
       return [{ label: 'HUMID AIR', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: Droplets, title: 'Moisture in the air reduces density, aiding carry slightly.' }];
     }
-  }
-
-  // Team/Park Static Intelligence fallback
-  const historicalParks: Record<number, any> = {
-    141: { label: 'HITTERS PARK', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: Activity, title: 'Citizens Bank Park is historically favorable for home runs.' },
-    119: { label: 'DODGER AIR', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20', icon: Sun, title: 'Dodger Stadium is a fair-to-pitching venue with consistent dry air.' },
-    137: { label: 'BAY CLASSIC', color: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20', icon: ShieldCheck, title: 'Oracle Park is a premier defensive venue.' }
-  };
-  
-  // Custom Chase Field logic for special intelligence
-  if (homeId === 109) {
-    const isClosed = condition.includes('dome') || condition.includes('roof closed') || condition.includes('indoor');
-    if (isClosed) {
-      return [{ label: 'HUMIDOR CONTROL', color: 'bg-teal-500/10 text-teal-300 border-teal-500/20', icon: Droplets, title: 'Chase Field: Climate control and humidor storage negate desert atmospheric thinning.' }];
-    }
-  }
-  
-  if (historicalParks[homeId as keyof typeof historicalParks]) {
-    return [historicalParks[homeId as keyof typeof historicalParks]];
   }
 
   return [{ 
