@@ -26,13 +26,10 @@ async function predictGrandSalami() {
       try {
         const url = `https://statsapi.mlb.com/api/v1/game/${game.gamePk}/contextMetrics?hydrate=odds`;
         const res = await fetch(url);
-        if (!res.ok) {
-          return { ...game, totalLine: 0 };
-        }
         const data = await res.json();
         
         // Path: odds[0].total
-        const total = (data && data.odds && data.odds[0]) ? data.odds[0].total : 0;
+        const total = data.odds?.[0]?.total || 0;
         return { ...game, totalLine: total };
       } catch (e) {
         return { ...game, totalLine: 0 };

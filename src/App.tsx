@@ -3,7 +3,7 @@ import { fetchMLBGames, MLBGame } from './services/mlbService';
 import { calculateLiveThreat, calculateSmartProjection } from './lib/projectionEngine';
 import { GrandSalamiHeader } from './components/GrandSalamiHeader';
 import { calculateFatigueStats, calculateBullpenScore } from './lib/fatigueEngine';
-import { getParkFactor, getTeamOffensePower, updateDetailedParkFactors } from './lib/leagueConstants';
+import { getParkFactor, getTeamOffensePower } from './lib/leagueConstants';
 import { GameLog } from './components/GameLog';
 import { WagerTracker } from './components/WagerTracker';
 import { RunTrends } from './components/RunTrends';
@@ -51,6 +51,7 @@ export default function App() {
       try {
         handleFirestoreError(error, OperationType.LIST, 'gameLines');
       } catch (e) {
+        // Keep the app working despite the logged error
         console.warn("Failed to stream game lines - verifying connectivity...");
       }
     });
@@ -62,18 +63,11 @@ export default function App() {
     setHistoryLoading(true);
     try {
       const datesToFetch = [1, 2, 3, 4, 5, 6, 7].map(d => format(subDays(new Date(), d), 'yyyy-MM-dd'));
-      const combinedHistory: MLBGame[] = [];
-      for (const date of datesToFetch) {
-        try {
-          const results = await fetchMLBGames(date);
-          if (results && results.length > 0) {
-            combinedHistory.push(...results);
-          }
-        } catch (e) {
-          console.warn(`Failed to fetch history for ${date}`, e);
-        }
-      }
-      setHistoricalGames(combinedHistory);
+      const historicalResults = await Promise.all(
+        datesToFetch.map(date => fetchMLBGames(date))
+      );
+      const combinedHistory = historicalResults.flat();
+      setHistoricalGames(combinedHistory || []);
     } catch (error) {
       console.error('Error loading historical data:', error);
     } finally {
@@ -104,10 +98,10 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    // Background load historical data for trends
     loadHistoricalData();
     loadLiveData(true);
     
+    // Original 1-minute heartbeat (silent background updates)
     const interval = setInterval(() => {
       loadLiveData();
     }, 60000);
@@ -120,8 +114,9 @@ export default function App() {
   const currentTotal = useMemo(() => {
     if (!Array.isArray(games)) return 0;
     return games.reduce((acc, game) => {
-      // Loosen the filter - if we have games in the list, they were likely fetched for "today"
-      // Only filter out if it's explicitly a different day and we have many games
+      // Strictly filter to ensure we aren't counting games from other days due to API data shifts
+      if (game.officialDate && game.officialDate !== todayStr) return acc;
+
       const isPostponed = (game.status?.detailedState || '').toLowerCase().includes('postponed') || 
                          (game.status?.detailedState || '').toLowerCase().includes('canceled');
       if (isPostponed) return acc;
@@ -148,10 +143,11 @@ export default function App() {
       };
     }
 
-    // Filter out games that won't be played
+    // Filter out games that won't be played or are from the wrong day
     const activeGames = games.filter(g => {
       const state = (g.status?.detailedState || '').toLowerCase();
-      return !state.includes('postponed') && !state.includes('canceled');
+      const isWrongDay = g.officialDate && g.officialDate !== todayStr;
+      return !state.includes('postponed') && !state.includes('canceled') && !isWrongDay;
     });
 
     if (activeGames.length === 0) {
@@ -393,46 +389,17 @@ export default function App() {
               <p className="text-slate-500 font-mono text-[10px] uppercase tracking-[0.2em] max-w-md mx-auto leading-relaxed">
                 We couldn't find any MLB games scheduled for <span className="text-white bg-slate-800 px-2 py-0.5 rounded">{format(new Date(), 'MMMM do, yyyy').toUpperCase()}</span>.
               </p>
-
-              {new Date().getFullYear() > 2025 && (
-                <div className="mt-4 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-lg max-w-xs mx-auto">
-                  <p className="text-[9px] text-blue-400 font-mono uppercase tracking-[0.1em]">
-                    System Clock: {new Date().getFullYear()} • May 8 Schedule Verification
-                  </p>
-                </div>
-              )}
-              
               <div className="mt-8 flex flex-col items-center gap-4">
                 <button 
-                  onClick={() => loadLiveData(true)}
-                  disabled={isRefreshing}
-                  className="px-8 py-3 bg-salami-red hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-black text-[11px] uppercase tracking-[0.3em] transition-all active:scale-95 shadow-lg shadow-red-900/20"
+                  onClick={loadLiveData}
+                  className="px-8 py-3 bg-salami-red hover:bg-red-700 text-white rounded-xl font-black text-[11px] uppercase tracking-[0.3em] transition-all active:scale-95 shadow-lg shadow-red-900/20"
                 >
-                  {isRefreshing ? 'Syncing...' : 'Force Sync Now'}
+                  Force Sync Now
                 </button>
                 <div className="flex items-center gap-2 text-[9px] font-mono text-slate-600 uppercase tracking-widest">
-                  <Activity className={`w-3 h-3 ${isRefreshing ? 'animate-pulse text-salami-red' : ''}`} />
-                  {isRefreshing ? 'Communicating with MLB API...' : 'Ready to Request MLB Stats API...'}
+                  <Activity className="w-3 h-3" />
+                  Requesting MLB Stats API...
                 </div>
-                
-                {new Date().getFullYear() > 2025 && (
-                   <button 
-                     onClick={async () => {
-                       const demoDate = '2024-05-08';
-                       toast.info(`Fetching baseline data for context...`);
-                       try {
-                         const data = await fetchMLBGames(demoDate);
-                         setGames(data);
-                         toast.success(`Loaded ${data.length} games from baseline sync.`);
-                       } catch (e) {
-                         toast.error("Manual fetch failed.");
-                       }
-                     }}
-                     className="text-[9px] text-slate-500 hover:text-blue-400 font-mono uppercase tracking-widest underline decoration-slate-800"
-                   >
-                     Simulation Mode: Sync Historical Baseline
-                   </button>
-                )}
               </div>
             </div>
           ) : (

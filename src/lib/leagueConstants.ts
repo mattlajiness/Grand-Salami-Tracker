@@ -26,7 +26,6 @@ export const VenueParkFactors: Record<string, number> = {
   "Busch Stadium": 0.84,
   "Minute Maid Park": 0.96,
   "Dodger Stadium": 0.96,
-  "Dodgers Stadium": 0.96,
   "Angel Stadium": 1.01,
   "Petco Park": 0.90,
   "Oracle Park": 0.92,
@@ -81,7 +80,7 @@ export interface DetailedParkFactor {
   runs: number;
 }
 
-export let DetailedVenueFactors: Record<string, DetailedParkFactor> = {
+export const DetailedVenueFactors: Record<string, DetailedParkFactor> = {
   "Coors Field": { hr: 1.18, extraBase: 1.35, single: 1.13, runs: 1.31 },
   "Sutter Health Park": { hr: 1.22, extraBase: 1.11, single: 1.03, runs: 1.16 },
   "Kauffman Stadium": { hr: 0.91, extraBase: 1.01, single: 0.94, runs: 0.91 },
@@ -104,7 +103,6 @@ export let DetailedVenueFactors: Record<string, DetailedParkFactor> = {
   "Chase Field": { hr: 0.92, extraBase: 1.11, single: 1.00, runs: 1.01 },
   "Great American Ball Park": { hr: 1.05, extraBase: 0.99, single: 0.95, runs: 1.01 },
   "Dodger Stadium": { hr: 1.09, extraBase: 0.94, single: 0.94, runs: 0.96 },
-  "Dodgers Stadium": { hr: 1.09, extraBase: 0.94, single: 0.94, runs: 0.96 },
   "Guaranteed Rate Field": { hr: 1.01, extraBase: 0.85, single: 1.00, runs: 0.95 },
   "American Family Field": { hr: 1.06, extraBase: 0.86, single: 0.92, runs: 0.95 },
   "Oriole Park at Camden Yards": { hr: 0.86, extraBase: 0.98, single: 1.04, runs: 0.94 },
@@ -113,52 +111,12 @@ export let DetailedVenueFactors: Record<string, DetailedParkFactor> = {
   "Globe Life Field": { hr: 0.89, extraBase: 0.92, single: 0.98, runs: 0.92 },
 };
 
-export function updateDetailedParkFactors(newFactors: Record<string, DetailedParkFactor>) {
-  DetailedVenueFactors = { ...DetailedVenueFactors, ...newFactors };
-}
-
 export function getDetailedParkFactor(venueName: string): DetailedParkFactor | null {
-  if (!venueName) return null;
-  const normalized = venueName.toLowerCase().trim();
-  
-  // Try direct match first
-  if (DetailedVenueFactors[venueName]) return DetailedVenueFactors[venueName];
-  
-  // Try case-insensitive match
-  for (const [key, value] of Object.entries(DetailedVenueFactors)) {
-    if (key.toLowerCase() === normalized) return value;
-  }
-  
-  // Partial match fallback
-  for (const [key, value] of Object.entries(DetailedVenueFactors)) {
-    if (normalized.includes(key.toLowerCase()) || key.toLowerCase().includes(normalized)) {
-      return value;
-    }
-  }
-
-  return null;
+  return DetailedVenueFactors[venueName] || null;
 }
 
 export function getParkFactor(venueName: string): number {
-  if (!venueName) return 1.00;
-  const normalized = venueName.toLowerCase().trim();
-  
-  // Try direct match first
-  if (VenueParkFactors[venueName]) return VenueParkFactors[venueName];
-  
-  // Try case-insensitive match
-  for (const [key, value] of Object.entries(VenueParkFactors)) {
-    if (key.toLowerCase() === normalized) return value;
-  }
-
-  // Partial match fallback
-  for (const [key, value] of Object.entries(VenueParkFactors)) {
-    if (normalized.includes(key.toLowerCase()) || key.toLowerCase().includes(normalized)) {
-      return value;
-    }
-  }
-
-  return 1.00;
+  return VenueParkFactors[venueName] || 1.00;
 }
 
 export function getTeamOffensePower(teamName: string): number {
