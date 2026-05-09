@@ -77,9 +77,9 @@ async function startServer() {
 
   app.get("/api/v1/mlb/*", async (req, res) => {
     const subpath = req.params[0];
-    const query = req.originalUrl.slice(req.originalUrl.indexOf('?') + 1);
-    const hasQuery = req.originalUrl.includes('?');
-    const url = `https://statsapi.mlb.com/api/v1/${subpath}${hasQuery ? `?${query}` : ""}`;
+    const parts = req.originalUrl.split("?");
+    const query = parts.length > 1 ? `?${parts[1]}` : "";
+    const url = `https://statsapi.mlb.com/api/v1/${subpath}${query}`;
     
     try {
       const response = await fetch(url, {

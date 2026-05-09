@@ -40,6 +40,25 @@ export default function App() {
   const isFetchingRef = useRef(false);
 
   useEffect(() => {
+    // Fetch dynamic park factors from internal API
+    const fetchDynamicFactors = async () => {
+      try {
+        const response = await fetch('/api/v1/parkfactors');
+        const json = await response.json();
+        if (json.success && json.data) {
+          updateDetailedParkFactors(json.data);
+          if (json.metadata?.live) {
+            console.log("Live park factors loaded from Ballpark Pal.");
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to fetch dynamic park factors, using defaults.", err);
+      }
+    };
+    fetchDynamicFactors();
+  }, []);
+
+  useEffect(() => {
     const q = collection(db, 'gameLines');
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const lines: Record<number, number> = {};
@@ -90,6 +109,7 @@ export default function App() {
     try {
       const today = format(new Date(), 'yyyy-MM-dd');
       const mlbData = await fetchMLBGames(today);
+      
       setGames(mlbData || []);
       setLastUpdated(new Date());
     } catch (error) {
@@ -392,6 +412,14 @@ export default function App() {
               <p className="text-slate-500 font-mono text-[10px] uppercase tracking-[0.2em] max-w-md mx-auto leading-relaxed">
                 We couldn't find any MLB games scheduled for <span className="text-white bg-slate-800 px-2 py-0.5 rounded">{format(new Date(), 'MMMM do, yyyy').toUpperCase()}</span>.
               </p>
+
+              {new Date().getFullYear() > 2025 && (
+                <div className="mt-4 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-lg max-w-xs mx-auto">
+                  <p className="text-[9px] text-blue-400 font-mono uppercase tracking-[0.1em]">
+                    System Clock: {new Date().getFullYear()} • Official {new Date().getFullYear()} schedule may not be live in the MLB Stats API yet.
+                  </p>
+                </div>
+              )}
               
               <div className="mt-8 flex flex-col items-center gap-4">
                 <button 

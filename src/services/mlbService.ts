@@ -148,9 +148,8 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
 
   const searchParams = new URLSearchParams();
   searchParams.append('sportId', '1');
-  // Use a safer set of hydrations
+  // Use a stable set of hydrations that don't overhead the API
   searchParams.append('hydrate', 'linescore,team,weather,venue,probablePitcher');
-  searchParams.append('_t', Math.floor(Date.now() / 60000).toString()); 
   
   if (startDate && endDate) {
     searchParams.append('startDate', startDate);
@@ -172,25 +171,18 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
     }
     
     const data: MLBScheduleResponse = await response.json();
-    console.log(`[MLB Service] Raw data received for ${date || startDate}:`, JSON.stringify(data).slice(0, 200));
     
     if (!data || !data.dates || !Array.isArray(data.dates) || data.dates.length === 0) {
-      console.warn(`[MLB Service] No dates returned for ${date || startDate}. Full response:`, JSON.stringify(data));
       return [];
     }
 
     const rawGames = data.dates.flatMap(d => (d.games || []).map(g => ({ ...g, officialDate: d.date })));
     
-    if (rawGames.length === 0) {
-      console.warn(`[MLB Service] No games returned for ${date || startDate}`);
-      return [];
-    }
-
-    // Optional Weather Forecast enrichment for preview games missing weather
+    // Enrich games with weather and odds
     const gamesToEnrich = rawGames.map(async (game) => {
       let enrichedGame = { ...game };
 
-      // Try to get weather from forecast service if not present
+      // Try to get weather from forecast service if not present or incomplete
       if (!enrichedGame.weather || !enrichedGame.weather.temp) {
         try {
           const forecast = await fetchWeatherForecast(game.teams.home.team.id, game.gameDate, game.venue?.name);
@@ -208,11 +200,9 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
       }
 
       // Check for odds if not included in hydrate. 
-      // Only check for games today or recent history.
       const gameState = game.status?.abstractGameState;
       if (!enrichedGame.totalLine && game.gamePk && (gameState === 'Live' || gameState === 'Preview')) {
         try {
-          // Silence the console noise by only attempting if it looks promising
           const oddsRes = await fetch(`/api/v1/mlb/game/${game.gamePk}/contextMetrics?hydrate=odds`);
           if (oddsRes.ok) {
             const oddsData = await oddsRes.json();
@@ -254,7 +244,7 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
         console.error("Failed to fetch pitcher stats", e);
       }
     }
-
+    
     // Update cache
     if (resultGames.length > 0) {
       scheduleCache = {
