@@ -77,7 +77,7 @@ const getSpecialIntelligence = (game: MLBGame) => {
     111: { label: 'PEAK OFFENSE', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: Activity, title: 'Fenway Park: Top-rated venue today with +9% scoring boost, +24% extra-base appeal, +9% singles.' },
     118: { label: 'HR BOOST', color: 'bg-orange-500/10 text-orange-400 border-orange-500/10', icon: Zap, title: 'Kauffman Stadium: Significant +18% Home Run environment projected today (+6% overall runs).' },
     113: { label: 'LAUNCH PAD', color: 'bg-red-500/10 text-red-400 border-red-500/10', icon: Wind, title: 'Great American BP: Receptive +12% Home Run bias flagged for today (+4% overall runs).' },
-    141: { label: 'HITTERS PARK', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: Activity, title: 'Citizens Bank Park: Favorable +10% Home Run bias remains in effect (+2% overall runs).' },
+    143: { label: 'HITTERS PARK', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: Activity, title: 'Citizens Bank Park: Favorable +10% Home Run bias remains in effect (+2% overall runs).' },
     119: { label: 'DODGER AIR', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20', icon: Sun, title: 'Dodger Stadium: +12% Home Run boost despite -2% overall run environment and -7% singles.' },
     137: { label: 'PITCHERS HAVEN', color: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20', icon: ShieldCheck, title: 'Oracle Park: -19% Home Run reduction makes this a premier defensive venue today (-4% runs).' },
     135: { label: 'OFFENSE CRUSH', color: 'bg-slate-500/10 text-slate-400 border-slate-500/20', icon: ShieldCheck, title: 'Petco Park: Drastic -9% scoring environment with -19% extra-base appeal and -1% HR.' },
@@ -85,7 +85,7 @@ const getSpecialIntelligence = (game: MLBGame) => {
     110: { label: 'DIMINISHED LIFT', color: 'bg-blue-500/10 text-blue-400 border-blue-500/10', icon: ShieldCheck, title: 'Oriole Park: -13% Home Run reduction projected for today\'s match (-1% overall runs).' },
     145: { label: 'SUPPRESSIVE', color: 'bg-blue-500/10 text-blue-400 border-blue-500/10', icon: Wind, title: 'Guaranteed Rate Field: -13% extra-base hit suppression and -3% HR leads to a -2% overall run environment.' },
     158: { label: 'GAP SUPPRESSION', color: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20', icon: ShieldCheck, title: 'American Family Field: -14% extra-base appeal and -5% overall runs with +6% HR.' },
-    142: { label: 'FAIR OFFENSE', color: 'bg-slate-500/10 text-slate-400 border-slate-500/20', icon: Activity, title: 'Rogers Centre: Stable -6% environment with minimal +2% home run deviation.' },
+    141: { label: 'FAIR OFFENSE', color: 'bg-slate-500/10 text-slate-400 border-slate-500/20', icon: Activity, title: 'Rogers Centre: Stable -6% environment with minimal +2% home run deviation.' },
     146: { label: 'DEAD BALL', color: 'bg-slate-800/50 text-slate-500 border-slate-700/50', icon: ShieldCheck, title: 'LoanDepot Park: Heavy -15% Home Run suppression and -6% overall runs.' },
     140: { label: 'DEFENSIVE DOME', color: 'bg-slate-800/50 text-slate-500 border-slate-700/50', icon: ShieldCheck, title: 'Globe Life Field: -11% HR and -8% extra-base appeal favors pitchers today (-8% runs).' },
     109: { label: 'DESERT HEAT', color: 'bg-orange-500/10 text-orange-400 border-orange-500/10', icon: Sun, title: 'Chase Field: Significant +7% scoring boost projected in the open desert heat (+11% 2B/3B).' }
@@ -312,7 +312,7 @@ const getParkIntelligence = (game: MLBGame) => {
     111: { impulse: 'positive', tech: "Fenway Park (Peak Offense): Today's top-rated venue with a +9% scoring boost. Expect +24% extra-base appeal and +9% singles carry. " },
     118: { impulse: 'positive', tech: "Kauffman Stadium (HR Boost): A significant +18% Home Run environment is projected for today (+6% overall runs). " },
     113: { impulse: 'positive', tech: "Great American BP (Launch Pad): Receptive +12% Home Run bias flagged for today (+4% overall runs). " },
-    141: { impulse: 'positive', tech: "Citizens Bank Park (Hitters Park): Favorable +10% Home Run bias remains in effect (+2% overall runs). " },
+    143: { impulse: 'positive', tech: "Citizens Bank Park (Hitters Park): Favorable +10% Home Run bias remains in effect (+2% overall runs). " },
     119: { impulse: 'negative', tech: "Dodger Stadium (Dodger Air): While HRs see a +12% boost, the overall environment is -2% with a notable -7% singles suppression. " },
     137: { impulse: 'negative', tech: "Oracle Park (Pitchers Haven): A massive -19% Home Run reduction makes this a premier defensive venue today (-4% runs). " },
     135: { impulse: 'negative', tech: "Petco Park (Offense Crush): Drastic -9% scoring environment with -19% extra-base hits and -1% HR suppression. " },
@@ -320,7 +320,7 @@ const getParkIntelligence = (game: MLBGame) => {
     110: { impulse: 'negative', tech: "Oriole Park (Diminished Lift): -13% Home Run reduction projected for today's match (-1% overall runs). " },
     145: { impulse: 'negative', tech: "Guaranteed Rate Field (Suppressive Environment): -13% extra-base hit suppression and -3% HR leads to a -2% overall run environment. " },
     158: { impulse: 'negative', tech: "American Family Field (Gap Suppression): -14% extra-base appeal suppresses overall run production by -5%, despite +6% HR. " },
-    142: { impulse: 'negative', tech: "Rogers Centre (Fair Offense): Stable -6% environment expected with minimal +2% home run deviation. " },
+    141: { impulse: 'negative', tech: "Rogers Centre (Fair Offense): Stable -6% environment expected with minimal +2% home run deviation. " },
     146: { impulse: 'negative', tech: "LoanDepot Park (Dead Ball): Heavy -15% Home Run suppression and -6% overall run environment is active. " },
     140: { impulse: 'negative', tech: "Globe Life Field (Defensive Dome): -11% HR and -8% extra-base appeal favors pitchers today (-8% overall runs). " },
     109: { impulse: 'positive', tech: "Chase Field (Desert Heat): Significant +7% scoring boost projected in the open desert heat with +11% extra-base carry. " }
@@ -394,7 +394,7 @@ const getParkIntelligence = (game: MLBGame) => {
       impulse = 'positive';
       techReport += "Bronx Humidity (-0.65 Base but +Offset): Moist air at sea level often aids the 'Short Porch' carry in the evening. ";
     }
-  } else if (homeId === 141 && isOut) { // Citizens Bank
+  } else if (homeId === 143 && isOut) { // Citizens Bank
     hasSpecificClimateIntel = true;
     impulse = 'positive';
     techReport += "Philly Wind Tunnel (+0.44 Potential): The outbound wind vector is notoriously active at this venue. ";
