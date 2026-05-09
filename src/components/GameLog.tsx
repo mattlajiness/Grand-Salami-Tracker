@@ -83,7 +83,7 @@ const getSpecialIntelligence = (game: MLBGame) => {
     135: { label: 'OFFENSE CRUSH', color: 'bg-slate-500/10 text-slate-400 border-slate-500/20', icon: ShieldCheck, title: 'Petco Park: Drastic -9% scoring environment with -19% extra-base appeal and -1% HR.' },
     114: { label: 'NEUTRAL HUB', color: 'bg-slate-500/10 text-slate-400 border-slate-500/20', icon: Activity, title: 'Progressive Field: Balanced 0% scoring environment with slight +4% HR tilt today.' },
     110: { label: 'DIMINISHED LIFT', color: 'bg-blue-500/10 text-blue-400 border-blue-500/10', icon: ShieldCheck, title: 'Oriole Park: -13% Home Run reduction projected for today\'s match (-1% overall runs).' },
-    145: { label: 'GABP RECEPTIVE', color: 'bg-blue-500/10 text-blue-400 border-blue-500/10', icon: Wind, title: 'Guaranteed Rate Field: -13% extra-base hit suppression and -3% HR (-2% overall runs).' },
+    145: { label: 'SUPPRESSIVE', color: 'bg-blue-500/10 text-blue-400 border-blue-500/10', icon: Wind, title: 'Guaranteed Rate Field: -13% extra-base hit suppression and -3% HR leads to a -2% overall run environment.' },
     158: { label: 'GAP SUPPRESSION', color: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20', icon: ShieldCheck, title: 'American Family Field: -14% extra-base appeal and -5% overall runs with +6% HR.' },
     142: { label: 'FAIR OFFENSE', color: 'bg-slate-500/10 text-slate-400 border-slate-500/20', icon: Activity, title: 'Rogers Centre: Stable -6% environment with minimal +2% home run deviation.' },
     146: { label: 'DEAD BALL', color: 'bg-slate-800/50 text-slate-500 border-slate-700/50', icon: ShieldCheck, title: 'LoanDepot Park: Heavy -15% Home Run suppression and -6% overall runs.' },
@@ -305,16 +305,42 @@ const getParkIntelligence = (game: MLBGame) => {
   }
 
   let techReport = "";
-
-  // 0. Park Specific Intelligence
   let hasSpecificClimateIntel = false;
+
+  // 0. Park Specific Intelligence (Daily Report Overrides)
+  const intelligenceReports: Record<number, { impulse: 'positive' | 'negative' | 'neutral', tech: string }> = {
+    111: { impulse: 'positive', tech: "Fenway Park (Peak Offense): Today's top-rated venue with a +9% scoring boost. Expect +24% extra-base appeal and +9% singles carry. " },
+    118: { impulse: 'positive', tech: "Kauffman Stadium (HR Boost): A significant +18% Home Run environment is projected for today (+6% overall runs). " },
+    113: { impulse: 'positive', tech: "Great American BP (Launch Pad): Receptive +12% Home Run bias flagged for today (+4% overall runs). " },
+    141: { impulse: 'positive', tech: "Citizens Bank Park (Hitters Park): Favorable +10% Home Run bias remains in effect (+2% overall runs). " },
+    119: { impulse: 'negative', tech: "Dodger Stadium (Dodger Air): While HRs see a +12% boost, the overall environment is -2% with a notable -7% singles suppression. " },
+    137: { impulse: 'negative', tech: "Oracle Park (Pitchers Haven): A massive -19% Home Run reduction makes this a premier defensive venue today (-4% runs). " },
+    135: { impulse: 'negative', tech: "Petco Park (Offense Crush): Drastic -9% scoring environment with -19% extra-base hits and -1% HR suppression. " },
+    114: { impulse: 'neutral', tech: "Progressive Field (Neutral Hub): Balanced 0% scoring environment today with a slight +4% HR tilt. " },
+    110: { impulse: 'negative', tech: "Oriole Park (Diminished Lift): -13% Home Run reduction projected for today's match (-1% overall runs). " },
+    145: { impulse: 'negative', tech: "Guaranteed Rate Field (Suppressive Environment): -13% extra-base hit suppression and -3% HR leads to a -2% overall run environment. " },
+    158: { impulse: 'negative', tech: "American Family Field (Gap Suppression): -14% extra-base appeal suppresses overall run production by -5%, despite +6% HR. " },
+    142: { impulse: 'negative', tech: "Rogers Centre (Fair Offense): Stable -6% environment expected with minimal +2% home run deviation. " },
+    146: { impulse: 'negative', tech: "LoanDepot Park (Dead Ball): Heavy -15% Home Run suppression and -6% overall run environment is active. " },
+    140: { impulse: 'negative', tech: "Globe Life Field (Defensive Dome): -11% HR and -8% extra-base appeal favors pitchers today (-8% overall runs). " },
+    109: { impulse: 'positive', tech: "Chase Field (Desert Heat): Significant +7% scoring boost projected in the open desert heat with +11% extra-base carry. " }
+  };
+
+  const currentIntel = intelligenceReports[Number(homeId)];
+  if (currentIntel && !isStrictDome) {
+    hasSpecificClimateIntel = true;
+    impulse = currentIntel.impulse;
+    techReport += currentIntel.tech;
+  }
 
   const isWrigley = homeId === 112 || venue.includes('wrigley');
   const isCoors = homeId === 115 || venue.includes('coors');
   const isTmobile = isRetractableSeattle || homeId === 136 || venue.includes('t-mobile');
   const isPetco = homeId === 135 || venue.includes('petco');
 
-  if (isWrigley) {
+  if (hasSpecificClimateIntel) {
+    // Already handled by Daily Report intelligenceReports
+  } else if (isWrigley) {
     hasSpecificClimateIntel = true;
     const wrigleyReport = `Wrigley Graveyard (-35% HR, -10% Runs): ${windSpeed}mph ${isIn ? 'headwind' : 'air'} and ${temp}°F temp are suppressing elite carry. `;
     if ((isIn || wind.direction === 'CROSS') && (windSpeed >= 5 || temp < 55)) {
@@ -402,17 +428,19 @@ const getParkIntelligence = (game: MLBGame) => {
 
   // 2. Wind Vector Analysis
   if (windSpeed >= 15) {
-    impulse = isOut ? 'positive' : (isIn ? 'negative' : impulse);
+    if (!hasSpecificClimateIntel) {
+      impulse = isOut ? 'positive' : (isIn ? 'negative' : impulse);
+    }
     techReport += `A punishing ${windSpeed}mph ${isOut ? 'tailwind' : isIn ? 'headwind' : 'cross-current'} is dominating the field. `;
     if (isOut) techReport += "Routine fly balls have a massive probability of being carried over the fence by the sheer force of the gust. ";
     else if (isIn) techReport += "Hitters will be fighting a severe atmospheric wall; deep fly balls are likely to die at the warning track. ";
     else techReport += "Erratic cross-currents will make defensive tracking and outfield communication a major challenge today. ";
   } else if (windSpeed >= 10) {
     if (isOut) {
-      impulse = impulse === 'negative' ? 'neutral' : 'positive';
+      if (!hasSpecificClimateIntel) impulse = impulse === 'negative' ? 'neutral' : 'positive';
       techReport += `The steady ${windSpeed}mph tailwind provides a meaningful boost to exit velocity carry. `;
     } else if (isIn) {
-      impulse = impulse === 'positive' ? 'neutral' : 'negative';
+      if (!hasSpecificClimateIntel) impulse = impulse === 'positive' ? 'neutral' : 'negative';
       techReport += `Persistent ${windSpeed}mph resistance is present, favoring ground-ball pitchers who can avoid the air. `;
     } else if (isToRight) {
       techReport += `Significant ${windSpeed}mph push toward Right Field favors left-handed pull hitters today. `;
@@ -603,7 +631,7 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
               Daily Scorecard
             </h2>
             <span className="text-[8px] font-mono text-slate-500 uppercase tracking-[0.2em] mt-0.5">
-              Live updates • Umpire & Park Intelligence available in game details
+              Live updates • Umpire & Daily Park Intelligence available in game details
             </span>
           </div>
         </div>
@@ -1507,7 +1535,7 @@ function GameDetailView({ game }: { game: MLBGame }) {
             </div>
             <div className="flex flex-col min-w-0">
               <div className="flex items-center gap-2">
-                 <span className="text-[7px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black whitespace-nowrap">Weather Intelligence</span>
+                 <span className="text-[7px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black whitespace-nowrap">Daily Atmospherics</span>
                  <div className="h-px w-8 bg-slate-800" />
               </div>
               <span className="text-xs font-black text-white uppercase tracking-tight truncate">Atmospheric Analysis</span>
@@ -1516,7 +1544,7 @@ function GameDetailView({ game }: { game: MLBGame }) {
 
           <div className="flex items-center gap-4">
             <div className="flex flex-col items-end">
-              <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest mb-1">{intelligence.isHumidor ? "Atmospherics" : (intelligence.isDome ? "Environment" : "Scoring Bias")}</span>
+              <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest mb-1">{intelligence.isHumidor ? "Daily Pulse" : (intelligence.isDome ? "Environment" : "Scoring Bias")}</span>
               <div className={cn(
                 "px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shadow-sm border whitespace-nowrap",
                 intelligence.isHumidor ? "bg-teal-500/10 text-teal-300 border-teal-500/20" :
@@ -1525,7 +1553,7 @@ function GameDetailView({ game }: { game: MLBGame }) {
                 intelligence.impulse === 'negative' ? "bg-blue-500/10 text-blue-400 border-blue-500/20" :
                 "bg-slate-800 text-slate-400 border-slate-700/50"
               )}>
-                {intelligence.isHumidor ? 'HUMIDOR REGULATED' : (intelligence.isDome ? 'DOME CONTROL' : (intelligence.impulse === 'positive' ? 'Offense Boost' : intelligence.impulse === 'negative' ? 'Pitching Edge' : 'Neutral'))}
+                {intelligence.isHumidor ? 'HUMIDOR CONTROL' : (intelligence.isDome ? 'DOME CONTROL' : (intelligence.impulse === 'positive' ? 'Offense Boost' : intelligence.impulse === 'negative' ? 'Pitching Edge' : 'Neutral'))}
               </div>
             </div>
           </div>
@@ -1597,7 +1625,7 @@ function GameDetailView({ game }: { game: MLBGame }) {
            </div>
            <div className="flex flex-col min-w-0">
              <div className="flex items-center gap-2">
-                <span className="text-[7px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black whitespace-nowrap">Park Intelligence</span>
+                <span className="text-[7px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black whitespace-nowrap">Daily Park Intelligence</span>
                 <div className="h-px w-8 bg-slate-800" />
              </div>
              <span className="text-xs font-black text-white uppercase tracking-tight truncate">{game.venue?.name || 'Venue'}</span>
