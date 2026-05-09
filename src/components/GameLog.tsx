@@ -103,22 +103,35 @@ const getSpecialIntelligence = (game: MLBGame) => {
   } 
 
   if (detailedFactor) {
-    const { hr, runs } = detailedFactor;
-    const runChange = Math.round((runs - 1) * 100);
+    const { hr, extraBase, single, runs: runVal } = detailedFactor;
+    const runChange = Math.round((runVal - 1) * 100);
     const hrChange = Math.round((hr - 1) * 100);
+    const ebChange = Math.round((extraBase - 1) * 100);
+    const sChange = Math.round((single - 1) * 100);
     
-    const venueShort = (game.venue?.name || '').split(' ')[0].toUpperCase();
-    const labelPrefix = runs > 1.05 ? 'BOOST' : (runs < 0.95 ? 'TRAP' : 'FACTOR');
-    
-    return [{ 
-      label: `${venueShort} ${labelPrefix} (${runChange > 0 ? '+' : ''}${runChange}%)`, 
-      color: runs >= 1.10 ? 'bg-red-500/20 text-red-500 border-red-500/20' : 
-             runs <= 0.90 ? 'bg-blue-600/20 text-blue-400 border-blue-600/30' :
-             runs > 1 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10' : 
+    const venueName = game.venue?.name || '';
+    const venueShort = venueName.includes('Great American') 
+      ? 'GREAT AMERICAN' 
+      : venueName.split(' ')[0].toUpperCase();
+      
+    // Create detailed hover text
+    const detailedTitle = `${game.venue?.name}: Daily Environment
+Runs: ${runChange > 0 ? '+' : ''}${runChange}%
+HR: ${hrChange > 0 ? '+' : ''}${hrChange}%
+2B/3B: ${ebChange > 0 ? '+' : ''}${ebChange}%
+1B: ${sChange > 0 ? '+' : ''}${sChange}%`;
+
+    const mainBadge = { 
+      label: `${venueShort} (${runChange > 0 ? '+' : ''}${runChange}%)`, 
+      color: runVal >= 1.10 ? 'bg-red-500/20 text-red-500 border-red-500/20' : 
+             runVal <= 0.90 ? 'bg-blue-600/20 text-blue-400 border-blue-600/30' :
+             runVal > 1 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10' : 
              'bg-slate-500/10 text-slate-400 border-white/5', 
-      icon: runs >= 1.10 ? Zap : (runs <= 0.90 ? ShieldCheck : Activity), 
-      title: `${game.venue?.name}: Daily Scoring Environment (${runChange > 0 ? '+' : ''}${runChange}% Runs, ${hrChange > 0 ? '+' : ''}${hrChange}% HR).` 
-    }];
+      icon: runVal >= 1.10 ? Zap : (runVal <= 0.90 ? ShieldCheck : Activity), 
+      title: detailedTitle
+    };
+
+    return [mainBadge];
   }
 
   // Backup for specific parks that might have unique complex logic not fully captured by factor alone
@@ -1537,6 +1550,65 @@ function GameDetailView({ game }: { game: MLBGame }) {
     );
   })();
 
+  const ParkFactorsModule = (() => {
+    const factors = getDetailedParkFactor(game.venue?.name || '');
+    if (!factors) return null;
+
+    const formatVal = (val: number) => {
+      const p = Math.round((val - 1) * 100);
+      return { text: `${p >= 0 ? '+' : ''}${p}%`, color: p > 0 ? 'text-emerald-400' : p < 0 ? 'text-rose-400' : 'text-slate-500' };
+    };
+
+    const hr = formatVal(factors.hr);
+    const xb = formatVal(factors.extraBase);
+    const s = formatVal(factors.single);
+    const r = formatVal(factors.runs);
+
+    return (
+      <div className="bg-slate-900/40 rounded-xl border border-slate-800/80 p-3 sm:p-4 shadow-xl shadow-black/20 overflow-hidden relative group h-full flex flex-col min-h-[140px]">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-500/5 to-transparent -mr-16 -mt-16 rounded-full blur-3xl" />
+        
+        <div className="flex items-center gap-3 mb-4 relative z-10">
+           <div className="w-9 h-9 rounded-full bg-slate-950 flex items-center justify-center border border-slate-800 shadow-inner shrink-0">
+             <Activity className="w-4 h-4 text-emerald-400" />
+           </div>
+           <div className="flex flex-col min-w-0">
+             <div className="flex items-center gap-2">
+                <span className="text-[7px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black whitespace-nowrap">Park Intelligence</span>
+                <div className="h-px w-8 bg-slate-800" />
+             </div>
+             <span className="text-xs font-black text-white uppercase tracking-tight truncate">{game.venue?.name || 'Venue'}</span>
+           </div>
+        </div>
+
+        <div className="grid grid-cols-4 gap-2 py-3 border-t border-b border-slate-800/50 relative z-10">
+          <div className="flex flex-col items-center">
+            <span className="text-[6px] font-mono text-slate-600 uppercase tracking-widest mb-1">HR</span>
+            <span className={cn("text-[10px] font-black font-mono shadow-sm", hr.color)}>{hr.text}</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-[6px] font-mono text-slate-600 uppercase tracking-widest mb-1">2B/3B</span>
+            <span className={cn("text-[10px] font-black font-mono shadow-sm", xb.color)}>{xb.text}</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-[6px] font-mono text-slate-600 uppercase tracking-widest mb-1">1B</span>
+            <span className={cn("text-[10px] font-black font-mono shadow-sm", s.color)}>{s.text}</span>
+          </div>
+          <div className="flex flex-col items-center bg-slate-950/40 rounded py-1 border border-slate-800/50">
+            <span className="text-[6px] font-mono text-slate-400 uppercase tracking-widest mb-1 font-bold">Runs</span>
+            <span className={cn("text-[10px] font-black font-mono", r.color)}>{r.text}</span>
+          </div>
+        </div>
+
+        <div className="mt-auto pt-3 relative z-10">
+          <p className="text-[8px] font-mono text-slate-500 uppercase tracking-tighter leading-relaxed">
+            Data calibrated for 2024-2025 scoring environments relative to league average.
+          </p>
+        </div>
+      </div>
+    );
+  })();
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -1719,13 +1791,15 @@ function GameDetailView({ game }: { game: MLBGame }) {
         </div>
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
         <div className="flex flex-col h-full">
            {UmpireIntelligenceModule}
         </div>
-        <div className="flex flex-col h-full">
-           {WeatherIntelligenceModule}
-        </div>
+        {ParkFactorsModule && (
+          <div className="flex flex-col h-full">
+             {ParkFactorsModule}
+          </div>
+        )}
       </div>
     </div>
   );
