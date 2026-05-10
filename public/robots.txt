@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://grand-salami.app/sitemap.xml

@@ -126,8 +126,8 @@ export function InfoSection() {
       <div className="flex items-center gap-4 mb-2">
         <div className="h-px flex-1 bg-slate-800" />
         <div className="flex items-center gap-2 px-4 py-1 bg-slate-900 rounded-full border border-slate-800">
-          <HelpCircle className="w-3 h-3 text-salami-red" />
-          <span className="text-[10px] font-mono font-black text-slate-500 uppercase tracking-[0.2em]">Knowledge Base</span>
+          <HelpCircle className="w-3 h-3 text-blue-400" />
+          <h2 className="text-[10px] font-mono font-black text-white uppercase tracking-[0.2em]">Daily Tracker & Model Insights</h2>
         </div>
         <div className="h-px flex-1 bg-slate-800" />
       </div>
@@ -140,9 +140,9 @@ export function InfoSection() {
               <Info className="w-5 h-5 text-salami-red" />
             </div>
             <div>
-              <h3 className="font-black text-white uppercase tracking-tighter text-lg mb-2">What is a Grand Salami?</h3>
+              <h3 className="font-black text-white uppercase tracking-tighter text-lg mb-2">MLB Grand Salami Tracker</h3>
               <p className="text-sm text-slate-400 leading-relaxed">
-                In MLB betting, the <span className="text-salami-red font-bold">Grand Salami</span> is a unique wager on the <span className="font-bold text-slate-200">Total Runs scored across every single game</span> on a specific day's slate. 
+                The <span className="text-salami-red font-bold">Grand Salami</span> is a unique wager on the <span className="font-bold text-slate-200">combined runs scored across every game on today's slate</span>. Track the total in real-time.
               </p>
             </div>
           </div>
