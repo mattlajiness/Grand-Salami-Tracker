@@ -161,7 +161,10 @@ export function GrandSalamiHeader({
             <SalamiLogo className="w-12 h-12 relative z-10" />
           </div>
           <div className="flex flex-col">
-            <span className="font-mono font-black tracking-tighter text-sm sm:text-xl leading-none text-white whitespace-nowrap uppercase">GRAND SALAMI</span>
+            <h1 className="font-mono font-black tracking-tighter text-sm sm:text-xl leading-none text-white whitespace-nowrap uppercase">
+              GRAND SALAMI
+              <span className="sr-only"> - Live MLB Total Runs Tracker & Interactive Betting Pace Tool</span>
+            </h1>
             <span className="text-[7px] sm:text-[9px] font-mono text-salami-red font-black tracking-[0.3em] sm:tracking-[0.4em] mt-0.5 uppercase mb-1">Live Tracker</span>
           </div>
         </div>

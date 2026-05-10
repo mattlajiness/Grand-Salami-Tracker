@@ -234,3 +234,4 @@ export function InfoSection() {
     </div>
   );
 }
+
