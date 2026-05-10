@@ -63,8 +63,8 @@ const getSpecialIntelligence = (game: MLBGame) => {
   const temp = climate?.temp || 72;
   
   const isRetractable = venue.includes('loandepot') || venue.includes('globe life') || venue.includes('minute maid') || venue.includes('american family') || venue.includes('rogers centre') || venue.includes('skydome') || venue.includes('chase field') || venue.includes('t-mobile') || venue.includes('safeco');
-  const isExplicitlyOpen = condition.includes('open') || condition.includes('outdoor') || ['clear', 'sunny', 'fair', 'partly'].some(k => condition.includes(k));
-  const isExplicitlyClosed = condition.includes('closed') || condition.includes('indoor') || condition.includes('dome');
+  const isExplicitlyOpen = condition.includes('open') || condition.includes('outdoor') || ['clear', 'sunny', 'fair', 'partly', 'night'].some(k => condition.includes(k));
+  const isExplicitlyClosed = (condition.includes('closed') || condition.includes('indoor') || condition.includes('dome')) && !isExplicitlyOpen;
   
   // Tropicana is always a dome. 
   // Others are strict domes if explicitly closed or if they are retractable and not explicitly open.
@@ -74,28 +74,30 @@ const getSpecialIntelligence = (game: MLBGame) => {
 
   // 0. Latest Park Intelligence (Priority 1)
   const intelligenceParks: Record<number, any> = {
-    111: { label: 'PEAK OFFENSE', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: Activity, title: 'Fenway Park: Top-rated venue today with +9% scoring boost, +24% extra-base appeal, +9% singles.' },
-    118: { label: 'HR BOOST', color: 'bg-orange-500/10 text-orange-400 border-orange-500/10', icon: Zap, title: 'Kauffman Stadium: Significant +18% Home Run environment projected today (+6% overall runs).' },
-    113: { label: 'LAUNCH PAD', color: 'bg-red-500/10 text-red-400 border-red-500/10', icon: Wind, title: 'Great American BP: Receptive +12% Home Run bias flagged for today (+4% overall runs).' },
-    143: { label: 'HITTERS PARK', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: Activity, title: 'Citizens Bank Park: Favorable +10% Home Run bias remains in effect (+2% overall runs).' },
-    119: { label: 'DODGER AIR', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20', icon: Sun, title: 'Dodger Stadium: +12% Home Run boost despite -2% overall run environment and -7% singles.' },
-    137: { label: 'PITCHERS HAVEN', color: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20', icon: ShieldCheck, title: 'Oracle Park: -19% Home Run reduction makes this a premier defensive venue today (-4% runs).' },
-    135: { label: 'OFFENSE CRUSH', color: 'bg-slate-500/10 text-slate-400 border-slate-500/20', icon: ShieldCheck, title: 'Petco Park: Drastic -9% scoring environment with -19% extra-base appeal and -1% HR.' },
-    114: { label: 'NEUTRAL HUB', color: 'bg-slate-500/10 text-slate-400 border-slate-500/20', icon: Activity, title: 'Progressive Field: Balanced 0% scoring environment with slight +4% HR tilt today.' },
-    110: { label: 'DIMINISHED LIFT', color: 'bg-blue-500/10 text-blue-400 border-blue-500/10', icon: ShieldCheck, title: 'Oriole Park: -13% Home Run reduction projected for today\'s match (-1% overall runs).' },
-    145: { label: 'SUPPRESSIVE', color: 'bg-blue-500/10 text-blue-400 border-blue-500/10', icon: Wind, title: 'Guaranteed Rate Field: -13% extra-base hit suppression and -3% HR leads to a -2% overall run environment.' },
-    158: { label: 'GAP SUPPRESSION', color: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20', icon: ShieldCheck, title: 'American Family Field: -14% extra-base appeal and -5% overall runs with +6% HR.' },
-    141: { label: 'FAIR OFFENSE', color: 'bg-slate-500/10 text-slate-400 border-slate-500/20', icon: Activity, title: 'Rogers Centre: Stable -6% environment with minimal +2% home run deviation.' },
-    146: { label: 'DEAD BALL', color: 'bg-slate-800/50 text-slate-500 border-slate-700/50', icon: ShieldCheck, title: 'LoanDepot Park: Heavy -15% Home Run suppression and -6% overall runs.' },
-    140: { label: 'DEFENSIVE DOME', color: 'bg-slate-800/50 text-slate-500 border-slate-700/50', icon: ShieldCheck, title: 'Globe Life Field: -11% HR and -8% extra-base appeal favors pitchers today (-8% runs).' },
-    109: { label: 'DESERT HEAT', color: 'bg-orange-500/10 text-orange-400 border-orange-500/10', icon: Sun, title: 'Chase Field: Significant +7% scoring boost projected in the open desert heat (+11% 2B/3B).' }
+    111: { label: 'GREEN MONSTER', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: Activity, title: 'Fenway Park: Top-rated venue today with +11% scoring boost and +25% extra-base appeal.' },
+    118: { label: 'ROYAL DEPTH', color: 'bg-blue-500/10 text-blue-400 border-blue-500/10', icon: ShieldCheck, title: 'Kauffman Stadium: Significant -19% Home Run reduction and -9% overall runs.' },
+    113: { label: 'LAUNCH PAD', color: 'bg-slate-500/10 text-slate-400 border-slate-500/20', icon: Activity, title: 'Great American BP: Stable environment today (+1% runs, +3% HR).' },
+    143: { label: 'PHILLY POWER', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: Zap, title: 'Citizens Bank Park: +13% Home Run environment projected today (+8% overall runs).' },
+    119: { label: 'LA HR FACTORY', color: 'bg-red-500/10 text-red-400 border-red-500/10', icon: Zap, title: 'Dodger Stadium: Significant +22% Home Run boost projected for today.' },
+    137: { label: 'PITCHERS HAVEN', color: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20', icon: ShieldCheck, title: 'Oracle Park: Massive -22% Home Run reduction active today.' },
+    135: { label: 'PADRE SHIELD', color: 'bg-blue-900/20 text-blue-300 border-blue-800/30', icon: ShieldCheck, title: 'Petco Park: Drastic -9% scoring environment with -22% extra-base hits.' },
+    114: { label: 'CLE SHIELD', color: 'bg-blue-900/20 text-blue-300 border-blue-800/30', icon: ShieldCheck, title: 'Progressive Field: Drastic -25% Home Run reduction leads to -8% overall runs.' },
+    110: { label: 'BIRD LAND', color: 'bg-orange-500/10 text-orange-400 border-orange-500/10', icon: Activity, title: 'Oriole Park: +5% Scoring Environment with +9% extra-base hits and +7% singles.' },
+    145: { label: 'CHICAGO COLD', color: 'bg-blue-500/10 text-blue-400 border-blue-500/10', icon: ShieldCheck, title: 'Guaranteed Rate Field: -9% scoring environment with heavy -16% extra-base hit suppression.' },
+    158: { label: 'DAIRY CRUSH', color: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20', icon: ShieldCheck, title: 'American Family Field: -6% Run environment with heavy extra-base suppression (-14%).' },
+    141: { label: 'NORTHERN LID', color: 'bg-slate-500/10 text-slate-400 border-slate-500/20', icon: Activity, title: 'Rogers Centre: -6% scoring environment with -5% extra-base hits.' },
+    146: { label: 'MIAMI DEPOT', color: 'bg-slate-800/50 text-slate-500 border-slate-700/50', icon: ShieldCheck, title: 'LoanDepot Park: Heavy -15% Home Run suppression and -6% overall runs.' },
+    140: { label: 'TEXAS TURF', color: 'bg-slate-800/50 text-slate-500 border-slate-700/50', icon: ShieldCheck, title: 'Globe Life Field: -11% HR and -8% overall run production favors pitchers today.' },
+    109: { label: 'SNAKE PIT', color: 'bg-slate-700/30 text-slate-400 border-slate-700/50', icon: Activity, title: 'Chase Field: +12% extra-base carry flagged for today.' }
   };
 
   const isChase = (game.venue?.name || '').toLowerCase().includes('chase field');
-  const isClosed = condition.includes('dome') || condition.includes('roof closed') || condition.includes('indoor');
+  // Strict: only Humidor if closed AND NOT open. 
+  const isActuallyOpen = condition.includes('open') || condition.includes('outdoor');
+  const isChaseClosed = isChase && (condition.includes('closed') || condition.includes('indoor')) && !isActuallyOpen;
 
-  if (isChase && isClosed) {
-    return [{ label: 'HUMIDOR CONTROL', color: 'bg-teal-500/10 text-teal-300 border-teal-500/20', icon: Droplets, title: 'Chase Field: Climate controlled and humidor storage negate high desert volatility.' }];
+  if (isChaseClosed) {
+    return [{ label: 'HUMIDOR CONTROL', color: 'bg-teal-500/10 text-teal-300 border-teal-500/20', icon: Droplets, title: 'Chase Field (Closed): Climate controlled and humidor storage negate high desert volatility.' }];
   }
 
   const tid = Number(homeId);
@@ -279,8 +281,8 @@ const getParkIntelligence = (game: MLBGame) => {
 
   const rainKeywords = ['rain', 'shower', 'storm', 'drizzle', 'precip', 'thunder', 'lightning', 'mist'];
   const isRainy = rainKeywords.some(k => condition.includes(k));
-  const isExplicitlyOpen = condition.includes('open') || condition.includes('outdoor') || ['clear', 'sunny', 'fair', 'partly'].some(k => condition.includes(k));
-  const isExplicitlyClosed = condition.includes('closed') || condition.includes('indoor') || condition.includes('dome');
+  const isExplicitlyOpen = condition.includes('open') || condition.includes('outdoor') || ['clear', 'sunny', 'fair', 'partly', 'night'].some(k => condition.includes(k));
+  const isExplicitlyClosed = (condition.includes('closed') || condition.includes('indoor') || condition.includes('dome')) && !isExplicitlyOpen;
   const isRetractable = venue.includes('loandepot') || venue.includes('globe life') || venue.includes('minute maid') || venue.includes('american family') || venue.includes('rogers centre') || venue.includes('skydome') || venue.includes('chase field') || venue.includes('t-mobile') || venue.includes('safeco');
   const isStrictDome = venue.includes('tropicana') || (isRetractable && isExplicitlyClosed) || (isRetractable && !isExplicitlyOpen && (venue.includes('chase field') ? false : true));
   const isRetractableSeattle = venue.includes('t-mobile');
@@ -294,11 +296,13 @@ const getParkIntelligence = (game: MLBGame) => {
     return { 
       impulse: 'neutral', 
       isDome: true,
-      isHumidor: isChase,
+      isHumidor: isChase && (condition.includes('closed') || condition.includes('indoor')),
       message: isTropicana 
         ? `Tropicana Field: DOME CONTROL. Atmospheric conditions are precisely regulated; outside weather is irrelevant to play dynamics.`
-        : isChase
-        ? `Chase Field: HUMIDOR REGULATED. Climate control and humidor storage negate desert atmospheric thinning.`
+        : (isChase && (condition.includes('closed') || condition.includes('indoor')))
+        ? `Chase Field (Closed): HUMIDOR REGULATED. Climate control and humidor storage negate desert atmospheric thinning.`
+        : isChase 
+        ? `Chase Field (Open): DESERT ENVIRONMENT. Atmospheric thinning and dry heat are active today.`
         : `Controlled Environment at ${domeName}. Outside weather is negated; play will strictly follow baseline park factors and player mechanics.`,
       temp, windStr, windSpeed, condition 
     };
@@ -309,21 +313,21 @@ const getParkIntelligence = (game: MLBGame) => {
 
   // 0. Park Specific Intelligence (Daily Report Overrides)
   const intelligenceReports: Record<number, { impulse: 'positive' | 'negative' | 'neutral', tech: string }> = {
-    111: { impulse: 'positive', tech: "Fenway Park (Peak Offense): Today's top-rated venue with a +9% scoring boost. Expect +24% extra-base appeal and +9% singles carry. " },
-    118: { impulse: 'positive', tech: "Kauffman Stadium (HR Boost): A significant +18% Home Run environment is projected for today (+6% overall runs). " },
-    113: { impulse: 'positive', tech: "Great American BP (Launch Pad): Receptive +12% Home Run bias flagged for today (+4% overall runs). " },
-    143: { impulse: 'positive', tech: "Citizens Bank Park (Hitters Park): Favorable +10% Home Run bias remains in effect (+2% overall runs). " },
-    119: { impulse: 'negative', tech: "Dodger Stadium (Dodger Air): While HRs see a +12% boost, the overall environment is -2% with a notable -7% singles suppression. " },
-    137: { impulse: 'negative', tech: "Oracle Park (Pitchers Haven): A massive -19% Home Run reduction makes this a premier defensive venue today (-4% runs). " },
-    135: { impulse: 'negative', tech: "Petco Park (Offense Crush): Drastic -9% scoring environment with -19% extra-base hits and -1% HR suppression. " },
-    114: { impulse: 'neutral', tech: "Progressive Field (Neutral Hub): Balanced 0% scoring environment today with a slight +4% HR tilt. " },
-    110: { impulse: 'negative', tech: "Oriole Park (Diminished Lift): -13% Home Run reduction projected for today's match (-1% overall runs). " },
-    145: { impulse: 'negative', tech: "Guaranteed Rate Field (Suppressive Environment): -13% extra-base hit suppression and -3% HR leads to a -2% overall run environment. " },
-    158: { impulse: 'negative', tech: "American Family Field (Gap Suppression): -14% extra-base appeal suppresses overall run production by -5%, despite +6% HR. " },
-    141: { impulse: 'negative', tech: "Rogers Centre (Fair Offense): Stable -6% environment expected with minimal +2% home run deviation. " },
-    146: { impulse: 'negative', tech: "LoanDepot Park (Dead Ball): Heavy -15% Home Run suppression and -6% overall run environment is active. " },
-    140: { impulse: 'negative', tech: "Globe Life Field (Defensive Dome): -11% HR and -8% extra-base appeal favors pitchers today (-8% overall runs). " },
-    109: { impulse: 'positive', tech: "Chase Field (Desert Heat): Significant +7% scoring boost projected in the open desert heat with +11% extra-base carry. " }
+    111: { impulse: 'positive', tech: "Fenway Park (Green Monster): Today's top-rated venue with a +11% scoring boost. Expect +25% extra-base appeal. " },
+    118: { impulse: 'negative', tech: "Kauffman Stadium (Royal Depth): A significant -19% Home Run reduction and -9% overall runs projected. " },
+    113: { impulse: 'neutral', tech: "Great American BP (Launch Pad): Stable environment today with only marginal +1% runs and +3% HR activity. " },
+    143: { impulse: 'positive', tech: "Citizens Bank Park (Philly Power): Significant power environment with +13% HR boost and +8% overall runs. " },
+    119: { impulse: 'positive', tech: "Dodger Stadium (LA HR Factory): Elite +22% Home Run boost projected for today's atmospheric profile. " },
+    137: { impulse: 'negative', tech: "Oracle Park (Pitchers Haven): A massive -22% Home Run reduction makes this a premier defensive venue today (-1% runs). " },
+    135: { impulse: 'negative', tech: "Petco Park (Padre Shield): Drastic -9% scoring environment with -22% extra-base hit suppression. " },
+    114: { impulse: 'negative', tech: "Progressive Field (CLE Shield): Extreme -25% Home Run reduction active today (-8% overall runs). " },
+    110: { impulse: 'positive', tech: "Oriole Park (Bird Land): +5% scoringEnvironment with +9% extra-base carry and +7% singles. " },
+    145: { impulse: 'negative', tech: "Guaranteed Rate Field (Chicago Cold): -9% scoring environment with heavy -16% extra-base hit suppression and -13% HR. " },
+    158: { impulse: 'negative', tech: "American Family Field (Dairy Crush): -14% extra-base appeal suppresses overall run production by -6%, despite +5% HR. " },
+    141: { impulse: 'negative', tech: "Rogers Centre (Northern Lid): -6% scoring environment expected with -5% extra-base hit suppression. " },
+    146: { impulse: 'negative', tech: "LoanDepot Park (Miami Depot): Heavy -15% Home Run suppression and -6% overall run environment is active. " },
+    140: { impulse: 'negative', tech: "Globe Life Field (Texas Turf): -11% HR and -8% overall run production favors pitchers today. " },
+    109: { impulse: 'neutral', tech: "Chase Field (Snake Pit): +12% extra-base carry is the primary driver in a strictly neutral scoring environment (+1%). " }
   };
 
   const currentIntel = intelligenceReports[Number(homeId)];
@@ -475,7 +479,7 @@ const getParkIntelligence = (game: MLBGame) => {
     windSpeed, 
     condition, 
     isDome: false, 
-    isHumidor: isChase && (condition.includes('dome') || condition.includes('roof closed') || condition.includes('indoor'))
+    isHumidor: isChase && (condition.includes('closed') || condition.includes('indoor')) && !(condition.includes('open') || condition.includes('outdoor'))
   };
 };
 

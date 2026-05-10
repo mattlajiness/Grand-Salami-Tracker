@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { History, Trophy, Frown, Calendar, TrendingUp, TrendingDown, ChevronRight, Loader2, Target, Activity, Trash2, RefreshCw } from 'lucide-react';
+import { History, Trophy, Frown, Calendar, TrendingUp, TrendingDown, ChevronRight, Loader2, Target, Activity, Trash2, RefreshCw, Flame, Zap } from 'lucide-react';
 import { collection, query, orderBy, getDocs, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -20,49 +20,19 @@ interface WagerHistoryProps {
   historicalGames: MLBGame[];
   isOpen: boolean;
   onClose: () => void;
+  userWagers: WagerRecord[];
+  historicalTotals: Record<string, number>;
+  currentStreak: { type: 'WIN' | 'LOSS' | 'PUSH'; count: number } | null;
+  isLoading: boolean;
 }
 
-export function WagerHistory({ historicalGames, isOpen, onClose }: WagerHistoryProps) {
+export function WagerHistory({ historicalGames, isOpen, onClose, userWagers, historicalTotals, currentStreak, isLoading }: WagerHistoryProps) {
   const { user } = useAuth();
-  const [wagers, setWagers] = useState<WagerRecord[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Group historical games by date and calculate totals
-  const historicalTotals = useMemo(() => {
-    const totals: Record<string, number> = {};
-    historicalGames.forEach(game => {
-      const date = game.officialDate || format(new Date(game.gameDate), 'yyyy-MM-dd');
-      if (!totals[date]) totals[date] = 0;
-      totals[date] += (game.teams.away.score || 0) + (game.teams.home.score || 0);
-    });
-    return totals;
-  }, [historicalGames]);
+  const [wagers, setWagers] = useState<WagerRecord[]>(userWagers);
 
   useEffect(() => {
-    if (!user || !isOpen) return;
-
-    const fetchWagers = async () => {
-      setIsLoading(true);
-      try {
-        const wagersRef = collection(db, 'users', user.uid, 'wagers');
-        const q = query(wagersRef, orderBy('date', 'desc'));
-        const querySnapshot = await getDocs(q);
-        
-        const fetchedWagers = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as WagerRecord[];
-        
-        setWagers(fetchedWagers);
-      } catch (error) {
-        console.error("Error fetching wagers:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchWagers();
-  }, [user, isOpen]);
+    setWagers(userWagers);
+  }, [userWagers]);
 
   const handleDelete = async (date: string) => {
     if (!user) return;
@@ -109,6 +79,60 @@ export function WagerHistory({ historicalGames, isOpen, onClose }: WagerHistoryP
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+              {/* Streak Header */}
+              {currentStreak && !isLoading && (
+                <div className="mb-6 p-4 rounded-xl bg-slate-950 border border-slate-800 shadow-xl overflow-hidden relative group">
+                  <div className={cn(
+                    "absolute top-0 right-0 w-32 h-32 -mt-16 -mr-16 rounded-full blur-3xl opacity-20",
+                    currentStreak.type === 'WIN' ? "bg-emerald-500" : currentStreak.type === 'LOSS' ? "bg-red-500" : "bg-blue-500"
+                  )} />
+                  
+                  <div className="flex items-center justify-between relative z-10">
+                    <div className="flex items-center gap-4">
+                      <div className={cn(
+                        "w-12 h-12 rounded-xl flex items-center justify-center border-2 shadow-lg transition-transform group-hover:scale-110 duration-500",
+                        currentStreak.type === 'WIN' ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" : 
+                        currentStreak.type === 'LOSS' ? "bg-red-500/10 border-red-500/30 text-red-400" : 
+                        "bg-blue-500/10 border-blue-500/30 text-blue-400"
+                      )}>
+                        {currentStreak.type === 'WIN' ? <Flame className="w-6 h-6 animate-pulse" /> : 
+                         currentStreak.type === 'LOSS' ? <TrendingDown className="w-6 h-6" /> : 
+                         <RefreshCw className="w-6 h-6 rotate-180" />}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm font-black text-white uppercase tracking-tighter">Salami Streak</h3>
+                          <span className={cn(
+                            "px-2 py-0.5 rounded text-[8px] font-mono font-black uppercase tracking-widest border",
+                            currentStreak.type === 'WIN' ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" : 
+                            currentStreak.type === 'LOSS' ? "bg-red-500/20 text-red-400 border-red-500/30" : 
+                            "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                          )}>
+                            {currentStreak.type === 'WIN' ? 'Hot' : currentStreak.type === 'LOSS' ? 'Cold' : 'Stable'}
+                          </span>
+                        </div>
+                        <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mt-0.5">
+                          {currentStreak.count} {currentStreak.type}{currentStreak.count > 1 ? (currentStreak.type === 'PUSH' ? 'ES' : 'S') : ''} IN A ROW
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="text-right">
+                      <div className="flex items-baseline justify-end gap-1">
+                        <span className={cn(
+                          "text-3xl font-mono font-black tracking-tighter",
+                          currentStreak.type === 'WIN' ? "text-emerald-400" : currentStreak.type === 'LOSS' ? "text-red-400" : "text-blue-400"
+                        )}>
+                          {currentStreak.count}
+                        </span>
+                        <Zap className={cn("w-4 h-4 mb-1", currentStreak.type === 'WIN' ? "text-emerald-500" : "text-slate-700")} />
+                      </div>
+                      <span className="text-[8px] font-mono text-slate-600 uppercase tracking-widest block">Day Streak</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {isLoading ? (
                 <div className="flex flex-col items-center justify-center py-20 gap-4">
                   <Loader2 className="w-8 h-8 text-salami-red animate-spin opacity-50" />

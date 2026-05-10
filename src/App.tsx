@@ -18,7 +18,7 @@ import { Calendar, Share2, Droplets, Activity } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { useAuth } from './contexts/AuthContext';
 import { db, handleFirestoreError, OperationType } from './firebase';
-import { collection, onSnapshot, doc, getDoc } from 'firebase/firestore';
+import { collection, onSnapshot, doc, getDoc, query, orderBy, getDocs } from 'firebase/firestore';
 import { format, subDays } from 'date-fns';
 import { AnimatePresence, motion } from 'motion/react';
 
@@ -35,6 +35,7 @@ export default function App() {
   const [betLine, setBetLine] = useState<number | ''>('');
   const [betType, setBetType] = useState<'over' | 'under'>('over');
   const [isWagerLoading, setIsWagerLoading] = useState(false);
+  const [userWagers, setUserWagers] = useState<any[]>([]);
   
   const isLogoMode = new URLSearchParams(window.location.search).get('logo') === 'true';
   const isFetchingRef = useRef(false);
@@ -269,22 +270,43 @@ export default function App() {
     };
   }, [games, historicalGames]);
 
+  // Group historical games by date for results
+  const historicalTotals = useMemo(() => {
+    const totals: Record<string, number> = {};
+    historicalGames.forEach(game => {
+      const date = game.officialDate || format(new Date(game.gameDate), 'yyyy-MM-dd');
+      if (!totals[date]) totals[date] = 0;
+      totals[date] += (game.teams.away.score || 0) + (game.teams.home.score || 0);
+    });
+    return totals;
+  }, [historicalGames]);
+
   // Load Wager Data for global access
   useEffect(() => {
-    const loadWager = async () => {
+    const loadWagers = async () => {
       const today = format(new Date(), 'yyyy-MM-dd');
       if (user) {
         setIsWagerLoading(true);
         try {
-          const wagerDoc = doc(db, 'users', user.uid, 'wagers', today);
-          const snap = await getDoc(wagerDoc);
+          // Get today's wager for tracker state
+          const todayWagerDoc = doc(db, 'users', user.uid, 'wagers', today);
+          const snap = await getDoc(todayWagerDoc);
           if (snap.exists()) {
             const data = snap.data();
             setBetLine(data.line);
             setBetType(data.side.toLowerCase() as 'over' | 'under');
+          } else {
+            setBetLine(''); // Reset if no wager today
           }
+
+          // Get all wagers for streak calculation
+          const wagersRef = collection(db, 'users', user.uid, 'wagers');
+          const q = query(wagersRef, orderBy('date', 'desc'));
+          const wagerSnap = await getDocs(q);
+          const fetchedWagers = wagerSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+          setUserWagers(fetchedWagers);
         } catch (error) {
-          handleFirestoreError(error, OperationType.GET, `users/${user.uid}/wagers/${today}`);
+          handleFirestoreError(error, OperationType.GET, `users/${user.uid}/wagers`);
         } finally {
           setIsWagerLoading(false);
         }
@@ -295,8 +317,37 @@ export default function App() {
         if (savedType) setBetType(savedType as 'over' | 'under');
       }
     };
-    loadWager();
+    loadWagers();
   }, [user]);
+
+  const currentStreak = useMemo(() => {
+    if (userWagers.length === 0) return null;
+    
+    const settled = userWagers.filter(w => historicalTotals[w.date] !== undefined);
+    if (settled.length === 0) return null;
+
+    let streakCount = 0;
+    let streakType: 'WIN' | 'LOSS' | 'PUSH' | null = null;
+
+    for (let i = 0; i < settled.length; i++) {
+        const wager = settled[i];
+        const finalTotal = historicalTotals[wager.date];
+        const isPush = finalTotal === wager.line;
+        const isWin = !isPush && (wager.side === 'OVER' ? finalTotal > wager.line : finalTotal < wager.line);
+        const result = isWin ? 'WIN' : isPush ? 'PUSH' : 'LOSS';
+
+        if (i === 0) {
+            streakType = result as any;
+            streakCount = 1;
+        } else if (result === streakType) {
+            streakCount++;
+        } else {
+            break;
+        }
+    }
+
+    return { type: streakType, count: streakCount };
+  }, [userWagers, historicalTotals]);
 
   const projectedTotal = useMemo(() => {
     // Requirement for stabilization: at least 1 full inning cumulative across the slate
@@ -434,6 +485,7 @@ export default function App() {
                   projectedTotal={projectedTotal}
                   todayStr={todayStr}
                   onOpenHistory={() => setIsHistoryModalOpen(true)}
+                  currentStreak={currentStreak}
                 />
 
                 <DailyApex games={games} />
@@ -482,6 +534,10 @@ export default function App() {
             historicalGames={historicalGames} 
             isOpen={isHistoryModalOpen} 
             onClose={() => setIsHistoryModalOpen(false)} 
+            userWagers={userWagers}
+            historicalTotals={historicalTotals}
+            currentStreak={currentStreak}
+            isLoading={isWagerLoading}
           />
 
           <FeedbackSection />

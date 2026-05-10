@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Target, TrendingUp, TrendingDown, AlertCircle, CheckCircle2, XCircle, Bell, BellOff, Save, Cloud, RefreshCw, Activity, Trophy, Frown, Sparkles, History } from 'lucide-react';
+import { Target, TrendingUp, TrendingDown, AlertCircle, CheckCircle2, XCircle, Bell, BellOff, Save, Cloud, RefreshCw, Activity, Trophy, Frown, Sparkles, History, Flame } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { toast } from 'sonner';
@@ -26,6 +26,7 @@ interface WagerTrackerProps {
   projectedTotal: number | null;
   onOpenHistory?: () => void;
   todayStr?: string;
+  currentStreak?: { type: 'WIN' | 'LOSS' | 'PUSH'; count: number } | null;
 }
 
 export function WagerTracker({ 
@@ -42,7 +43,8 @@ export function WagerTracker({
   setBetType,
   projectedTotal,
   onOpenHistory,
-  todayStr
+  todayStr,
+  currentStreak
 }: WagerTrackerProps) {
   const { user, profile, updateProfile } = useAuth();
   const [isSyncing, setIsSyncing] = useState(false);
@@ -411,13 +413,30 @@ export function WagerTracker({
           </div>
           <div className="flex items-center gap-2">
             {user && (
-              <button 
-                onClick={onOpenHistory}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900/50 text-slate-400 hover:text-white hover:border-slate-700 transition-all group"
-              >
-                <History className="w-3.5 h-3.5 text-blue-500 group-hover:scale-110 transition-transform" />
-                <span className="text-[9px] font-mono font-black uppercase tracking-widest">History</span>
-              </button>
+              <div className="flex items-center gap-2">
+                {currentStreak && (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className={cn(
+                      "flex items-center gap-1 px-2 py-1 rounded-lg border font-mono font-black text-[8px] uppercase tracking-widest",
+                      currentStreak.type === 'WIN' ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" :
+                      currentStreak.type === 'LOSS' ? "bg-red-500/10 border-red-500/30 text-red-400" :
+                      "bg-blue-500/10 border-blue-500/30 text-blue-400"
+                    )}
+                  >
+                    {currentStreak.type === 'WIN' ? <Flame className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
+                    {currentStreak.count} {currentStreak.type}
+                  </motion.div>
+                )}
+                <button 
+                  onClick={onOpenHistory}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900/50 text-slate-400 hover:text-white hover:border-slate-700 transition-all group"
+                >
+                  <History className="w-3.5 h-3.5 text-blue-500 group-hover:scale-110 transition-transform" />
+                  <span className="text-[9px] font-mono font-black uppercase tracking-widest">History</span>
+                </button>
+              </div>
             )}
             <div className="flex items-center gap-2">
               <button 

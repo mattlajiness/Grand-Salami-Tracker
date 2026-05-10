@@ -119,12 +119,13 @@ export const DetailedVenueFactors: Record<string, DetailedParkFactor> = {
 export function getDetailedParkFactor(venueName: string, weatherCondition?: string): DetailedParkFactor | null {
   const normalized = venueName.toLowerCase();
   const lowerCondition = (weatherCondition || '').toLowerCase();
-  const isClosed = lowerCondition.includes('closed') || lowerCondition.includes('indoor') || lowerCondition.includes('dome');
-  const isOpen = lowerCondition.includes('open') || lowerCondition.includes('outdoor') || ['clear', 'sunny', 'fair', 'partly'].some(k => lowerCondition.includes(k));
+  const isOpen = lowerCondition.includes('open') || lowerCondition.includes('outdoor') || ['clear', 'sunny', 'fair', 'partly', 'night'].some(k => lowerCondition.includes(k));
+  const isClosed = (lowerCondition.includes('closed') || lowerCondition.includes('indoor') || lowerCondition.includes('dome')) && !isOpen;
 
   // Specialized retractable logic
   if (normalized.includes('chase field')) {
-    return isClosed ? DetailedVenueFactors["Chase Field (Closed)"] : DetailedVenueFactors["Chase Field"];
+    const isStrictlyClosed = (lowerCondition.includes('closed') || lowerCondition.includes('indoor')) && !lowerCondition.includes('open');
+    return isStrictlyClosed ? DetailedVenueFactors["Chase Field (Closed)"] : DetailedVenueFactors["Chase Field"];
   }
 
   // Try exact match first
