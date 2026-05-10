@@ -140,7 +140,7 @@ export function InfoSection() {
               <Info className="w-5 h-5 text-salami-red" />
             </div>
             <div>
-              <h3 className="font-black text-white uppercase tracking-tighter text-lg mb-2">MLB Grand Salami Tracker</h3>
+              <h2 className="font-black text-white uppercase tracking-tighter text-lg mb-2">MLB Grand Salami Tracker</h2>
               <p className="text-sm text-slate-400 leading-relaxed">
                 The <span className="text-salami-red font-bold">Grand Salami</span> is a unique wager on the <span className="font-bold text-slate-200">combined runs scored across every game on today's slate</span>. Track the total in real-time.
               </p>
@@ -155,7 +155,7 @@ export function InfoSection() {
               <Calculator className="w-5 h-5 text-blue-400" />
             </div>
             <div>
-              <h3 className="font-black text-white uppercase tracking-tighter text-lg mb-2">Smart Projection Engine</h3>
+              <h2 className="font-black text-white uppercase tracking-tighter text-lg mb-2">Smart Projection Engine</h2>
               <p className="text-sm text-slate-400 leading-relaxed">
                 Our tracker uses a <span className="font-bold text-slate-200">Smart Projection Engine</span> that goes beyond simple math. 
                 It monitors <span className="text-blue-400 font-bold">Live Threats</span> in real-time to anticipate runs before they happen.
@@ -172,7 +172,7 @@ export function InfoSection() {
               <Zap className="w-5 h-5 text-salami-red" />
             </div>
             <div className="flex-1">
-              <h3 className="font-black text-white uppercase tracking-tighter text-lg mb-2">Daily Strategy and Picks</h3>
+              <h2 className="font-black text-white uppercase tracking-tighter text-lg mb-2">Grand Salami Betting Strategy</h2>
               <p className="text-sm text-slate-400 leading-relaxed mb-4">
                 Get <span className="text-white font-bold">Free Picks</span> and <span className="text-salami-red font-bold">Salami Slate Daily Updates</span> via our official Winible storefront.
               </p>
