@@ -1655,10 +1655,18 @@ function GameDetailView({ game }: { game: MLBGame }) {
           </div>
         </div>
 
-        <div className="mt-auto pt-3 relative z-10">
+        <div className="mt-auto pt-3 relative z-10 flex items-center justify-between">
           <p className="text-[8px] font-mono text-slate-500 uppercase tracking-tighter leading-relaxed">
-            Data calibrated for 2026 scoring environments relative to league average.
+            Data calibrated for 2026 scoring environments.
           </p>
+          <a 
+            href="https://ballparkpal.com" 
+            target="_blank" 
+            rel="noreferrer"
+            className="text-[7px] font-mono text-slate-600 hover:text-emerald-400 uppercase tracking-widest flex items-center gap-1 transition-colors"
+          >
+            Sourced via Ballpark Pal
+          </a>
         </div>
       </div>
     );

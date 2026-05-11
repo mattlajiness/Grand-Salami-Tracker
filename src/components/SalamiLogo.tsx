@@ -7,7 +7,11 @@ export function SalamiLogo({ className = "w-8 h-8" }: { className?: string }) {
       className={className}
       fill="none" 
       xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-labelledby="logoTitle logoDesc"
     >
+      <title id="logoTitle">MLB Grand Salami Logo</title>
+      <desc id="logoDesc">A baseball styled icon with crossed salamis representing the MLB Grand Salami total runs wager.</desc>
       {/* Outer Glowing Circle (Baseball Boundary) */}
       <circle 
         cx="50" 

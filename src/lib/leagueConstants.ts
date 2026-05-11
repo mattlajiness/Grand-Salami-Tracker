@@ -84,17 +84,16 @@ export const DetailedVenueFactors: Record<string, DetailedParkFactor> = {
   "Chase Field": { hr: 1.08, extraBase: 1.11, single: 1.11, runs: 1.07 },
   "Chase Field (Closed)": { hr: 0.92, extraBase: 1.05, single: 1.00, runs: 1.01 },
   "Great American Ball Park": { hr: 1.12, extraBase: 0.95, single: 0.97, runs: 1.04 },
-  "Progressive Field": { hr: 1.04, extraBase: 1.00, single: 0.95, runs: 1.00 },
   "Kauffman Stadium": { hr: 1.18, extraBase: 1.07, single: 0.97, runs: 1.06 },
   "Citizens Bank Park": { hr: 1.10, extraBase: 0.94, single: 0.98, runs: 1.02 },
-  "Oriole Park at Camden Yards": { hr: 0.87, extraBase: 1.03, single: 1.06, runs: 0.99 },
-  "Dodger Stadium": { hr: 1.12, extraBase: 0.98, single: 0.93, runs: 0.98 },
+  "Oriole Park at Camden Yards": { hr: 0.76, extraBase: 0.89, single: 1.08, runs: 0.90 },
+  "Dodger Stadium": { hr: 1.14, extraBase: 0.97, single: 0.96, runs: 1.00 },
   "Guaranteed Rate Field": { hr: 0.97, extraBase: 0.87, single: 1.05, runs: 0.98 },
   "Oracle Park": { hr: 0.81, extraBase: 1.05, single: 1.06, runs: 0.96 },
   "American Family Field": { hr: 1.06, extraBase: 0.86, single: 0.92, runs: 0.95 },
-  "Rogers Centre": { hr: 1.02, extraBase: 0.95, single: 0.97, runs: 0.94 },
+  "Rogers Centre": { hr: 1.02, extraBase: 0.94, single: 0.97, runs: 0.95 },
   "LoanDepot Park": { hr: 0.85, extraBase: 1.01, single: 0.98, runs: 0.94 },
-  "Globe Life Field": { hr: 0.89, extraBase: 0.92, single: 0.98, runs: 0.92 },
+  "Globe Life Field": { hr: 0.90, extraBase: 0.93, single: 0.98, runs: 0.93 },
   "Petco Park": { hr: 0.99, extraBase: 0.81, single: 0.95, runs: 0.91 },
   "Fenway Park": { hr: 0.86, extraBase: 1.24, single: 1.09, runs: 1.09 },
   "Coors Field": { hr: 1.18, extraBase: 1.35, single: 1.13, runs: 1.31 },
@@ -108,12 +107,12 @@ export const DetailedVenueFactors: Record<string, DetailedParkFactor> = {
   "Nationals Park": { hr: 0.95, extraBase: 1.01, single: 1.04, runs: 1.00 },
   "T-Mobile Park": { hr: 1.01, extraBase: 0.86, single: 0.94, runs: 0.92 },
   "Busch Stadium": { hr: 0.69, extraBase: 0.93, single: 1.03, runs: 0.84 },
-  "Minute Maid Park": { hr: 1.06, extraBase: 0.89, single: 0.96, runs: 0.96 },
+  "Minute Maid Park": { hr: 1.05, extraBase: 0.89, single: 0.96, runs: 0.96 },
   "Wrigley Field": { hr: 0.99, extraBase: 0.90, single: 0.95, runs: 0.93 },
   "Citi Field": { hr: 0.95, extraBase: 0.90, single: 0.95, runs: 0.95 },
   "Oakland Coliseum": { hr: 0.85, extraBase: 0.90, single: 0.90, runs: 0.88 },
   "Truist Park": { hr: 1.05, extraBase: 0.95, single: 1.00, runs: 1.02 },
-  "loanDepot park": { hr: 0.85, extraBase: 1.01, single: 0.98, runs: 0.94 },
+  "Progressive Field": { hr: 0.59, extraBase: 1.01, single: 0.97, runs: 0.83 },
 };
 
 export function getDetailedParkFactor(venueName: string, weatherCondition?: string): DetailedParkFactor | null {
@@ -147,6 +146,7 @@ export function getDetailedParkFactor(venueName: string, weatherCondition?: stri
   if (normalized.includes('globe life')) return DetailedVenueFactors["Globe Life Field"];
   if (normalized.includes('petco')) return DetailedVenueFactors["Petco Park"];
   if (normalized.includes('fenway')) return DetailedVenueFactors["Fenway Park"];
+  if (normalized.includes('minute maid') || normalized.includes('daikin')) return DetailedVenueFactors["Minute Maid Park"];
   
   return null;
 }

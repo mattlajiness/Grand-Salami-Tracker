@@ -528,6 +528,16 @@ export default function App() {
             </div>
           )}
 
+          {/* Hidden SEO Text for Search Indexing */}
+          <div className="sr-only">
+            <h2>MLB Grand Salami Betting Tracker & Predictive Model</h2>
+            <p>
+              Track the daily MLB Grand Salami total runs line in real-time. Our advanced predictive model analyzes game pace, bullpen depth, 
+              and ballpark factors to provide automated pace tracking and score projections for every MLB slate. 
+              Compare live grand salami betting lines across major sportsbooks and identify high-value total run picks.
+            </p>
+          </div>
+
           <InfoSection />
 
           <WagerHistory 
@@ -548,6 +558,8 @@ export default function App() {
         <div className="flex flex-col items-center gap-4">
           <div className="flex items-center gap-6 text-[10px] font-mono font-black text-slate-500 uppercase tracking-[0.2em]">
             <a href="#how-it-works" className="hover:text-salami-red transition-colors">How it works</a>
+            <span className="w-1 h-1 rounded-full bg-slate-800" />
+            <a href="https://ballparkpal.com" target="_blank" rel="noreferrer" className="hover:text-emerald-400 transition-colors">Ballpark Pal</a>
             <span className="w-1 h-1 rounded-full bg-slate-800" />
             <a href="https://twitter.com/Salamipace" target="_blank" rel="noreferrer" className="hover:text-[#1DA1F2] transition-colors">Twitter</a>
             <span className="w-1 h-1 rounded-full bg-slate-800" />
