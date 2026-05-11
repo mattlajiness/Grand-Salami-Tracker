@@ -62,42 +62,54 @@ const getSpecialIntelligence = (game: MLBGame) => {
   const climate = getParkIntelligence(game);
   const temp = climate?.temp || 72;
   
-  const isRetractable = venue.includes('loandepot') || venue.includes('globe life') || venue.includes('minute maid') || venue.includes('american family') || venue.includes('rogers centre') || venue.includes('skydome') || venue.includes('chase field') || venue.includes('t-mobile') || venue.includes('safeco');
-  const isExplicitlyOpen = condition.includes('open') || condition.includes('outdoor') || ['clear', 'sunny', 'fair', 'partly', 'night'].some(k => condition.includes(k));
-  const isExplicitlyClosed = (condition.includes('closed') || condition.includes('indoor') || condition.includes('dome')) && !isExplicitlyOpen;
+  const isRetractable = venue.includes('loandepot') || venue.includes('globe life') || venue.includes('minute maid') || venue.includes('daikin') || venue.includes('american family') || venue.includes('rogers centre') || venue.includes('skydome') || venue.includes('chase field') || venue.includes('t-mobile') || venue.includes('safeco');
+  const isExplicitlyOpen = condition.includes('open') || condition.includes('outdoor');
+  const isExplicitlyClosed = (condition.includes('closed') || condition.includes('indoor') || condition.includes('dome'));
   
   // Tropicana is always a dome. 
   // Others are strict domes if explicitly closed or if they are retractable and not explicitly open.
-  const isStrictDome = venue.includes('tropicana') || (isRetractable && isExplicitlyClosed) || (isRetractable && !isExplicitlyOpen && (venue.includes('chase field') ? false : true));
+  const isStrictDome = venue.includes('tropicana') || (isRetractable && isExplicitlyClosed && !isExplicitlyOpen);
 
   const detailedFactor = getDetailedParkFactor(game.venue?.name || '', game.weather?.condition);
 
   // 0. Latest Park Intelligence (Priority 1)
   const intelligenceParks: Record<number, any> = {
-    111: { label: 'GREEN MONSTER', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: Activity, title: 'Fenway Park: Top-rated venue today with +11% scoring boost and +25% extra-base appeal.' },
-    118: { label: 'ROYAL DEPTH', color: 'bg-blue-500/10 text-blue-400 border-blue-500/10', icon: ShieldCheck, title: 'Kauffman Stadium: Significant -19% Home Run reduction and -9% overall runs.' },
-    113: { label: 'LAUNCH PAD', color: 'bg-slate-500/10 text-slate-400 border-slate-500/20', icon: Activity, title: 'Great American BP: Stable environment today (+1% runs, +3% HR).' },
-    143: { label: 'PHILLY POWER', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: Zap, title: 'Citizens Bank Park: +13% Home Run environment projected today (+8% overall runs).' },
-    119: { label: 'LA HR FACTORY', color: 'bg-red-500/10 text-red-400 border-red-500/10', icon: Zap, title: 'Dodger Stadium: Significant +22% Home Run boost projected for today.' },
-    137: { label: 'PITCHERS HAVEN', color: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20', icon: ShieldCheck, title: 'Oracle Park: Massive -22% Home Run reduction active today.' },
-    135: { label: 'PADRE SHIELD', color: 'bg-blue-900/20 text-blue-300 border-blue-800/30', icon: ShieldCheck, title: 'Petco Park: Drastic -9% scoring environment with -22% extra-base hits.' },
-    114: { label: 'CLE SHIELD', color: 'bg-blue-900/20 text-blue-300 border-blue-800/30', icon: ShieldCheck, title: 'Progressive Field: Drastic -25% Home Run reduction leads to -8% overall runs.' },
-    110: { label: 'BIRD LAND', color: 'bg-orange-500/10 text-orange-400 border-orange-500/10', icon: Activity, title: 'Oriole Park: +5% Scoring Environment with +9% extra-base hits and +7% singles.' },
-    145: { label: 'CHICAGO COLD', color: 'bg-blue-500/10 text-blue-400 border-blue-500/10', icon: ShieldCheck, title: 'Guaranteed Rate Field: -9% scoring environment with heavy -16% extra-base hit suppression.' },
-    158: { label: 'DAIRY CRUSH', color: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20', icon: ShieldCheck, title: 'American Family Field: -6% Run environment with heavy extra-base suppression (-14%).' },
-    141: { label: 'NORTHERN LID', color: 'bg-slate-500/10 text-slate-400 border-slate-500/20', icon: Activity, title: 'Rogers Centre: -6% scoring environment with -5% extra-base hits.' },
-    146: { label: 'MIAMI DEPOT', color: 'bg-slate-800/50 text-slate-500 border-slate-700/50', icon: ShieldCheck, title: 'LoanDepot Park: Heavy -15% Home Run suppression and -6% overall runs.' },
-    140: { label: 'TEXAS TURF', color: 'bg-slate-800/50 text-slate-500 border-slate-700/50', icon: ShieldCheck, title: 'Globe Life Field: -11% HR and -8% overall run production favors pitchers today.' },
-    109: { label: 'SNAKE PIT', color: 'bg-slate-700/30 text-slate-400 border-slate-700/50', icon: Activity, title: 'Chase Field: +12% extra-base carry flagged for today.' }
+    111: { label: 'GREEN MONSTER', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: Activity, title: 'Fenway Park: Top-rated venue today with +11% scoring boost. Sourced via BallparkPal.com' },
+    118: { label: 'ROYAL DEPTH', color: 'bg-blue-500/10 text-blue-400 border-blue-500/10', icon: ShieldCheck, title: 'Kauffman Stadium: Significant -19% Home Run reduction. Sourced via BallparkPal.com' },
+    113: { label: 'LAUNCH PAD', color: 'bg-slate-500/10 text-slate-400 border-slate-500/20', icon: Activity, title: 'Great American BP: Stable environment today (+1% runs). Sourced via BallparkPal.com' },
+    143: { label: 'PHILLY POWER', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: Zap, title: 'Citizens Bank Park: +13% Home Run environment projected today. Sourced via BallparkPal.com' },
+    119: { label: 'LA HR FACTORY', color: 'bg-red-500/10 text-red-400 border-red-500/10', icon: Zap, title: 'Dodger Stadium: Significant +22% Home Run boost projected. Sourced via BallparkPal.com' },
+    137: { label: 'PITCHERS HAVEN', color: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20', icon: ShieldCheck, title: 'Oracle Park: Massive -22% Home Run reduction. Sourced via BallparkPal.com' },
+    135: { label: 'PADRE SHIELD', color: 'bg-blue-900/20 text-blue-300 border-blue-800/30', icon: ShieldCheck, title: 'Petco Park: Drastic -9% scoring environment. Sourced via BallparkPal.com' },
+    114: { label: 'CLE SHIELD', color: 'bg-blue-900/20 text-blue-300 border-blue-800/30', icon: ShieldCheck, title: 'Progressive Field: Drastic -25% Home Run reduction. Sourced via BallparkPal.com' },
+    110: { label: 'BIRD LAND', color: 'bg-orange-500/10 text-orange-400 border-orange-500/10', icon: Activity, title: 'Oriole Park: +5% Scoring Environment. Sourced via BallparkPal.com' },
+    145: { label: 'CHICAGO COLD', color: 'bg-blue-500/10 text-blue-400 border-blue-500/10', icon: ShieldCheck, title: 'Guaranteed Rate Field: -9% scoring environment. Sourced via BallparkPal.com' },
+    158: { label: 'DAIRY CRUSH', color: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20', icon: ShieldCheck, title: 'American Family Field: -6% Run environment. Sourced via BallparkPal.com' },
+    141: { label: 'NORTHERN LID', color: 'bg-slate-500/10 text-slate-400 border-slate-500/20', icon: Activity, title: 'Rogers Centre: -6% scoring environment. Sourced via BallparkPal.com' },
+    146: { label: 'MIAMI DEPOT', color: 'bg-slate-800/50 text-slate-500 border-slate-700/50', icon: ShieldCheck, title: 'LoanDepot Park: Heavy -15% Home Run suppression. Sourced via BallparkPal.com' },
+    140: { label: 'TEXAS TURF', color: 'bg-slate-800/50 text-slate-500 border-slate-700/50', icon: ShieldCheck, title: 'Globe Life Field: -11% HR environment. Sourced via BallparkPal.com' },
+    109: { label: 'SNAKE PIT', color: 'bg-slate-700/30 text-slate-400 border-slate-700/50', icon: Activity, title: 'Chase Field: +12% extra-base carry flagged. Sourced via BallparkPal.com' }
   };
 
   const isChase = (game.venue?.name || '').toLowerCase().includes('chase field');
-  // Strict: only Humidor if closed AND NOT open. 
-  const isActuallyOpen = condition.includes('open') || condition.includes('outdoor');
-  const isChaseClosed = isChase && (condition.includes('closed') || condition.includes('indoor')) && !isActuallyOpen;
+  const isChaseClosed = isChase && isExplicitlyClosed && !isExplicitlyOpen;
 
   if (isChaseClosed) {
-    return [{ label: 'HUMIDOR CONTROL', color: 'bg-teal-500/10 text-teal-300 border-teal-500/20', icon: Droplets, title: 'Chase Field (Closed): Climate controlled and humidor storage negate high desert volatility.' }];
+    return [{ label: 'HUMIDOR CONTROL', color: 'bg-teal-500/10 text-teal-300 border-teal-500/20', icon: Droplets, title: 'Chase Field (Closed): Climate controlled and humidor storage negate high desert volatility. Sourced via BallparkPal.com' }];
+  }
+
+  // Roof Open intelligence for retractable parks
+  if (isRetractable && isExplicitlyOpen) {
+    const venueShort = (game.venue?.name || '').split(' ')[0].toUpperCase();
+    const runChange = detailedFactor ? Math.round((detailedFactor.runs - 1) * 100) : 0;
+    const hrChange = detailedFactor ? Math.round((detailedFactor.hr - 1) * 100) : 0;
+
+    return [{ 
+      label: `ROOF OPEN: ${venueShort}`, 
+      color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', 
+      icon: Activity, 
+      title: `${game.venue?.name}: Roof confirmed OPEN tonight. Scoring environment: ${runChange > 0 ? '+' : ''}${runChange}% Runs, ${hrChange > 0 ? '+' : ''}${hrChange}% HR compared to baseline. Sourced via BallparkPal.com` 
+    }];
   }
 
   const tid = Number(homeId);
@@ -147,7 +159,8 @@ const getSpecialIntelligence = (game: MLBGame) => {
 Runs: ${runChange > 0 ? '+' : ''}${runChange}%
 HR: ${hrChange > 0 ? '+' : ''}${hrChange}%
 2B/3B: ${ebChange > 0 ? '+' : ''}${ebChange}%
-1B: ${sChange > 0 ? '+' : ''}${sChange}%`;
+1B: ${sChange > 0 ? '+' : ''}${sChange}%
+Data Sourced via BallparkPal.com`;
 
     const mainBadge = { 
       label: `${venueShort} (${runChange > 0 ? '+' : ''}${runChange}%)`, 
@@ -635,7 +648,7 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
               Daily Scorecard
             </h2>
             <span className="text-[8px] font-mono text-slate-500 uppercase tracking-[0.2em] mt-0.5">
-              Live updates • Umpire & Daily Park Intelligence available in game details
+              Live updates • Umpire & <a href="https://ballparkpal.com" target="_blank" rel="noreferrer" className="text-emerald-500 hover:text-emerald-400">Ballpark Pal</a> Intelligence in game details
             </span>
           </div>
         </div>
@@ -1629,8 +1642,8 @@ function GameDetailView({ game }: { game: MLBGame }) {
            </div>
            <div className="flex flex-col min-w-0">
              <div className="flex items-center gap-2">
-                <span className="text-[7px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black whitespace-nowrap">Daily Park Intelligence</span>
-                <div className="h-px w-8 bg-slate-800" />
+                <span className="text-[8px] font-mono text-emerald-500 uppercase tracking-[0.2em] font-black whitespace-nowrap">Ballpark Pal Intelligence</span>
+                <div className="h-px w-8 bg-emerald-500/20" />
              </div>
              <span className="text-xs font-black text-white uppercase tracking-tight truncate">{game.venue?.name || 'Venue'}</span>
            </div>
@@ -1655,17 +1668,18 @@ function GameDetailView({ game }: { game: MLBGame }) {
           </div>
         </div>
 
-        <div className="mt-auto pt-3 relative z-10 flex items-center justify-between">
+        <div className="mt-auto pt-3 relative z-10 flex items-center justify-between border-t border-slate-800/40">
           <p className="text-[8px] font-mono text-slate-500 uppercase tracking-tighter leading-relaxed">
-            Data calibrated for 2026 scoring environments.
+            Data calibrated for 2026 environments.
           </p>
           <a 
             href="https://ballparkpal.com" 
             target="_blank" 
             rel="noreferrer"
-            className="text-[7px] font-mono text-slate-600 hover:text-emerald-400 uppercase tracking-widest flex items-center gap-1 transition-colors"
+            className="text-[8px] font-mono text-emerald-400 hover:text-emerald-300 font-black uppercase tracking-widest flex items-center gap-1.5 transition-colors group"
           >
-            Sourced via Ballpark Pal
+            <Activity className="w-2.5 h-2.5 transition-transform group-hover:scale-110" />
+            <span>Powered By Ballpark Pal</span>
           </a>
         </div>
       </div>

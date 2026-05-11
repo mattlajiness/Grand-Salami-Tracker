@@ -559,7 +559,11 @@ export default function App() {
           <div className="flex items-center gap-6 text-[10px] font-mono font-black text-slate-500 uppercase tracking-[0.2em]">
             <a href="#how-it-works" className="hover:text-salami-red transition-colors">How it works</a>
             <span className="w-1 h-1 rounded-full bg-slate-800" />
-            <a href="https://ballparkpal.com" target="_blank" rel="noreferrer" className="hover:text-emerald-400 transition-colors">Ballpark Pal</a>
+            <a href="https://ballparkpal.com" target="_blank" rel="noreferrer" className="text-emerald-500/80 hover:text-emerald-400 transition-colors flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/20" />
+              Ballpark Pal
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/20" />
+            </a>
             <span className="w-1 h-1 rounded-full bg-slate-800" />
             <a href="https://twitter.com/Salamipace" target="_blank" rel="noreferrer" className="hover:text-[#1DA1F2] transition-colors">Twitter</a>
             <span className="w-1 h-1 rounded-full bg-slate-800" />

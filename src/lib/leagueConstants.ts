@@ -81,7 +81,8 @@ export interface DetailedParkFactor {
 }
 
 export const DetailedVenueFactors: Record<string, DetailedParkFactor> = {
-  "Chase Field": { hr: 1.08, extraBase: 1.11, single: 1.11, runs: 1.07 },
+  "Chase Field": { hr: 0.92, extraBase: 1.05, single: 1.00, runs: 1.01 }, // Default to Closed
+  "Chase Field (Open)": { hr: 1.08, extraBase: 1.11, single: 1.11, runs: 1.07 },
   "Chase Field (Closed)": { hr: 0.92, extraBase: 1.05, single: 1.00, runs: 1.01 },
   "Great American Ball Park": { hr: 1.12, extraBase: 0.95, single: 0.97, runs: 1.04 },
   "Kauffman Stadium": { hr: 1.18, extraBase: 1.07, single: 0.97, runs: 1.06 },
@@ -90,10 +91,14 @@ export const DetailedVenueFactors: Record<string, DetailedParkFactor> = {
   "Dodger Stadium": { hr: 1.14, extraBase: 0.97, single: 0.96, runs: 1.00 },
   "Guaranteed Rate Field": { hr: 0.97, extraBase: 0.87, single: 1.05, runs: 0.98 },
   "Oracle Park": { hr: 0.81, extraBase: 1.05, single: 1.06, runs: 0.96 },
-  "American Family Field": { hr: 1.06, extraBase: 0.86, single: 0.92, runs: 0.95 },
-  "Rogers Centre": { hr: 1.02, extraBase: 0.94, single: 0.97, runs: 0.95 },
+  "American Family Field": { hr: 0.96, extraBase: 0.84, single: 0.92, runs: 0.92 },
+  "American Family Field (Open)": { hr: 1.08, extraBase: 0.88, single: 0.94, runs: 0.98 },
+  "Rogers Centre": { hr: 0.98, extraBase: 0.91, single: 0.95, runs: 0.92 },
+  "Rogers Centre (Open)": { hr: 1.05, extraBase: 0.96, single: 0.98, runs: 0.98 },
   "LoanDepot Park": { hr: 0.85, extraBase: 1.01, single: 0.98, runs: 0.94 },
+  "LoanDepot Park (Open)": { hr: 0.98, extraBase: 1.05, single: 1.02, runs: 1.02 },
   "Globe Life Field": { hr: 0.90, extraBase: 0.93, single: 0.98, runs: 0.93 },
+  "Globe Life Field (Open)": { hr: 1.02, extraBase: 0.98, single: 1.01, runs: 1.01 },
   "Petco Park": { hr: 0.99, extraBase: 0.81, single: 0.95, runs: 0.91 },
   "Fenway Park": { hr: 0.86, extraBase: 1.24, single: 1.09, runs: 1.09 },
   "Coors Field": { hr: 1.18, extraBase: 1.35, single: 1.13, runs: 1.31 },
@@ -105,9 +110,11 @@ export const DetailedVenueFactors: Record<string, DetailedParkFactor> = {
   "Comerica Park": { hr: 0.79, extraBase: 0.95, single: 1.06, runs: 0.91 },
   "Yankee Stadium": { hr: 1.00, extraBase: 0.81, single: 0.99, runs: 0.94 },
   "Nationals Park": { hr: 0.95, extraBase: 1.01, single: 1.04, runs: 1.00 },
-  "T-Mobile Park": { hr: 1.01, extraBase: 0.86, single: 0.94, runs: 0.92 },
+  "T-Mobile Park": { hr: 0.98, extraBase: 0.84, single: 0.93, runs: 0.90 },
+  "T-Mobile Park (Open)": { hr: 1.04, extraBase: 0.88, single: 0.96, runs: 0.95 },
   "Busch Stadium": { hr: 0.69, extraBase: 0.93, single: 1.03, runs: 0.84 },
   "Minute Maid Park": { hr: 1.05, extraBase: 0.89, single: 0.96, runs: 0.96 },
+  "Minute Maid Park (Open)": { hr: 1.12, extraBase: 0.94, single: 0.99, runs: 1.03 },
   "Wrigley Field": { hr: 0.99, extraBase: 0.90, single: 0.95, runs: 0.93 },
   "Citi Field": { hr: 0.95, extraBase: 0.90, single: 0.95, runs: 0.95 },
   "Oakland Coliseum": { hr: 0.85, extraBase: 0.90, single: 0.90, runs: 0.88 },
@@ -118,14 +125,26 @@ export const DetailedVenueFactors: Record<string, DetailedParkFactor> = {
 export function getDetailedParkFactor(venueName: string, weatherCondition?: string): DetailedParkFactor | null {
   const normalized = venueName.toLowerCase();
   const lowerCondition = (weatherCondition || '').toLowerCase();
-  const isOpen = lowerCondition.includes('open') || lowerCondition.includes('outdoor') || ['clear', 'sunny', 'fair', 'partly', 'night'].some(k => lowerCondition.includes(k));
-  const isClosed = (lowerCondition.includes('closed') || lowerCondition.includes('indoor') || lowerCondition.includes('dome')) && !isOpen;
+  
+  // Explicit Roof Detection
+  const roofOpen = lowerCondition.includes('open') || lowerCondition.includes('outdoor');
+  const roofClosed = lowerCondition.includes('closed') || lowerCondition.includes('indoor') || lowerCondition.includes('dome');
 
-  // Specialized retractable logic
-  if (normalized.includes('chase field')) {
-    const isStrictlyClosed = (lowerCondition.includes('closed') || lowerCondition.includes('indoor')) && !lowerCondition.includes('open');
-    return isStrictlyClosed ? DetailedVenueFactors["Chase Field (Closed)"] : DetailedVenueFactors["Chase Field"];
+  // Specialized retractable logic - Return the correct state factor
+  function getRetractableFactor(baseKey: string) {
+    if (roofOpen) return DetailedVenueFactors[`${baseKey} (Open)`] || DetailedVenueFactors[baseKey];
+    if (roofClosed) return DetailedVenueFactors[`${baseKey} (Closed)`] || DetailedVenueFactors[baseKey];
+    // Default to closed for some, open for others depending on historic norms
+    return DetailedVenueFactors[baseKey];
   }
+
+  if (normalized.includes('chase field')) return getRetractableFactor("Chase Field");
+  if (normalized.includes('american family')) return getRetractableFactor("American Family Field");
+  if (normalized.includes('rogers centre')) return getRetractableFactor("Rogers Centre");
+  if (normalized.includes('globe life')) return getRetractableFactor("Globe Life Field");
+  if (normalized.includes('minute maid') || normalized.includes('daikin')) return getRetractableFactor("Minute Maid Park");
+  if (normalized.includes('loandepot')) return getRetractableFactor("LoanDepot Park");
+  if (normalized.includes('t-mobile')) return getRetractableFactor("T-Mobile Park");
 
   // Try exact match first
   if (DetailedVenueFactors[venueName]) return DetailedVenueFactors[venueName];
@@ -134,19 +153,27 @@ export function getDetailedParkFactor(venueName: string, weatherCondition?: stri
   if (normalized.includes('guaranteed rate') || (normalized.includes('rate') && normalized.includes('field'))) return DetailedVenueFactors["Guaranteed Rate Field"];
   if (normalized.includes('dodger')) return DetailedVenueFactors["Dodger Stadium"];
   if (normalized.includes('camden') || normalized.includes('oriole')) return DetailedVenueFactors["Oriole Park at Camden Yards"];
-  if (normalized.includes('loandepot')) return DetailedVenueFactors["LoanDepot Park"];
   if (normalized.includes('oracle')) return DetailedVenueFactors["Oracle Park"];
-  if (normalized.includes('american family')) return DetailedVenueFactors["American Family Field"];
   if (normalized.includes('citizens bank')) return DetailedVenueFactors["Citizens Bank Park"];
   if (normalized.includes('great american')) return DetailedVenueFactors["Great American Ball Park"];
   if (normalized.includes('progressive')) return DetailedVenueFactors["Progressive Field"];
   if (normalized.includes('kauffman')) return DetailedVenueFactors["Kauffman Stadium"];
-  if (normalized.includes('chase')) return DetailedVenueFactors["Chase Field"];
-  if (normalized.includes('rogers')) return DetailedVenueFactors["Rogers Centre"];
-  if (normalized.includes('globe life')) return DetailedVenueFactors["Globe Life Field"];
   if (normalized.includes('petco')) return DetailedVenueFactors["Petco Park"];
   if (normalized.includes('fenway')) return DetailedVenueFactors["Fenway Park"];
-  if (normalized.includes('minute maid') || normalized.includes('daikin')) return DetailedVenueFactors["Minute Maid Park"];
+  if (normalized.includes('coors')) return DetailedVenueFactors["Coors Field"];
+  if (normalized.includes('sutter')) return DetailedVenueFactors["Sutter Health Park"];
+  if (normalized.includes('angel stadium')) return DetailedVenueFactors["Angel Stadium"];
+  if (normalized.includes('pnc park')) return DetailedVenueFactors["PNC Park"];
+  if (normalized.includes('tropicana')) return DetailedVenueFactors["Tropicana Field"];
+  if (normalized.includes('target field')) return DetailedVenueFactors["Target Field"];
+  if (normalized.includes('comerica')) return DetailedVenueFactors["Comerica Park"];
+  if (normalized.includes('yankee')) return DetailedVenueFactors["Yankee Stadium"];
+  if (normalized.includes('nationals')) return DetailedVenueFactors["Nationals Park"];
+  if (normalized.includes('busch')) return DetailedVenueFactors["Busch Stadium"];
+  if (normalized.includes('wrigley')) return DetailedVenueFactors["Wrigley Field"];
+  if (normalized.includes('citi field')) return DetailedVenueFactors["Citi Field"];
+  if (normalized.includes('oakland')) return DetailedVenueFactors["Oakland Coliseum"];
+  if (normalized.includes('truist')) return DetailedVenueFactors["Truist Park"];
   
   return null;
 }
