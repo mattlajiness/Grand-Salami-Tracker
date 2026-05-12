@@ -29,7 +29,7 @@ export const VenueParkFactors: Record<string, number> = {
   "Angel Stadium": 1.01,
   "Petco Park": 0.90,
   "Oracle Park": 0.92,
-  "T-Mobile Park": 0.92,
+  "T-Mobile Park": 0.90,
   "Chase Field": 1.01,
   "LoanDepot Park": 0.94,
   "Tropicana Field": 0.95,
