@@ -101,6 +101,12 @@ service cloud.firestore {
              (data.get('updatedAt', request.time) is timestamp);
     }
 
+    function isValidNHLGameLine(data) {
+      return data.gameId is number &&
+             data.total is number && data.total >= 0 && data.total < 100 &&
+             (data.get('updatedAt', request.time) is timestamp);
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
@@ -135,6 +141,11 @@ service cloud.firestore {
     match /gameLines/{gamePk} {
       allow read: if true;
       allow write: if isAdmin() && isValidGameLine(request.resource.data);
+    }
+
+    match /nhlGameLines/{gameId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidNHLGameLine(request.resource.data);
     }
 
     match /deliSettings/{date} {

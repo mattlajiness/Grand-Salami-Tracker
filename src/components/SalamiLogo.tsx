@@ -1,6 +1,9 @@
 import React from 'react';
 
-export function SalamiLogo({ className = "w-8 h-8" }: { className?: string }) {
+export function SalamiLogo({ className = "w-8 h-8", sport = 'MLB' }: { className?: string; sport?: 'MLB' | 'NHL' }) {
+  const isMLB = sport === 'MLB';
+  const themeColor = isMLB ? "#22c55e" : "#2563eb"; // Green for MLB, Blue for NHL
+  
   return (
     <svg 
       viewBox="0 0 100 100" 
@@ -10,40 +13,57 @@ export function SalamiLogo({ className = "w-8 h-8" }: { className?: string }) {
       role="img"
       aria-labelledby="logoTitle logoDesc"
     >
-      <title id="logoTitle">MLB Grand Salami Logo</title>
-      <desc id="logoDesc">A baseball styled icon with crossed salamis representing the MLB Grand Salami total runs wager.</desc>
-      {/* Outer Glowing Circle (Baseball Boundary) */}
+      <title id="logoTitle">{sport} Grand Salami Logo</title>
+      <desc id="logoDesc">{isMLB ? 'A baseball' : 'A hockey puck'} styled icon with crossed salamis representing the {sport} Grand Salami total {isMLB ? 'runs' : 'goals'} wager.</desc>
+      
+      {/* Outer Glowing Circle (Boundary) */}
       <circle 
         cx="50" 
         cy="50" 
         r="44" 
-        stroke="#22c55e" 
+        stroke={themeColor} 
         strokeWidth="2" 
         className="animate-pulse"
-        style={{ filter: 'drop-shadow(0 0 6px #22c55e)' }}
+        style={{ filter: `drop-shadow(0 0 6px ${themeColor})` }}
       />
 
-      {/* Neon Baseball Seams (Left) */}
-      <path 
-        d="M 30 15 Q 50 50 30 85" 
-        stroke="#22c55e" 
-        strokeWidth="2.5" 
-        strokeDasharray="4 4" 
-        strokeLinecap="round"
-        opacity="0.8"
-        style={{ filter: 'drop-shadow(0 0 2px #22c55e)' }}
-      />
-      
-      {/* Neon Baseball Seams (Right) */}
-      <path 
-        d="M 70 15 Q 50 50 70 85" 
-        stroke="#22c55e" 
-        strokeWidth="2.5" 
-        strokeDasharray="4 4" 
-        strokeLinecap="round"
-        opacity="0.8"
-        style={{ filter: 'drop-shadow(0 0 2px #22c55e)' }}
-      />
+      {isMLB ? (
+        <>
+          {/* Neon Baseball Seams (Left) */}
+          <path 
+            d="M 30 15 Q 50 50 30 85" 
+            stroke={themeColor} 
+            strokeWidth="2.5" 
+            strokeDasharray="4 4" 
+            strokeLinecap="round"
+            opacity="0.8"
+            style={{ filter: `drop-shadow(0 0 2px ${themeColor})` }}
+          />
+          
+          {/* Neon Baseball Seams (Right) */}
+          <path 
+            d="M 70 15 Q 50 50 70 85" 
+            stroke={themeColor} 
+            strokeWidth="2.5" 
+            strokeDasharray="4 4" 
+            strokeLinecap="round"
+            opacity="0.8"
+            style={{ filter: `drop-shadow(0 0 2px ${themeColor})` }}
+          />
+        </>
+      ) : (
+        <>
+          {/* Hockey Puck Lines/Texture */}
+          <rect x="25" y="47" width="50" height="6" rx="2" fill={themeColor} opacity="0.3" />
+          <path 
+            d="M 20 50 L 80 50" 
+            stroke={themeColor} 
+            strokeWidth="1" 
+            strokeDasharray="2 2"
+            opacity="0.5"
+          />
+        </>
+      )}
       
       {/* Two Crossed Salamis - Perfectly Centered */}
       <g transform="rotate(45 50 50)">

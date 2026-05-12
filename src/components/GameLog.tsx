@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 
 import { VenueParkFactors, getDetailedParkFactor, DetailedParkFactor } from '../lib/leagueConstants';
+import { BallparkPalFactor, findGameFactor } from '../services/ballparkPalService';
 
 const parseWind = (windStr: string = '', homeId?: number, venue: string = '') => {
   const normalized = windStr.toLowerCase();
@@ -54,7 +55,7 @@ const getWeatherIcon = (condition: string = '') => {
 
 
 
-const getSpecialIntelligence = (game: MLBGame) => {
+const getSpecialIntelligence = (game: MLBGame, parkFactors: BallparkPalFactor[] = []) => {
   const homeId = game.teams.home.team.id;
   const venue = (game.venue?.name || '').toLowerCase();
   const wind = parseWind(game.weather?.wind, homeId, venue);
@@ -62,7 +63,12 @@ const getSpecialIntelligence = (game: MLBGame) => {
   
   const climate = getParkIntelligence(game);
   const temp = climate?.temp || 72;
-  
+
+  // Live Ballpark Pal Data Integration
+  const awayAbbr = game.teams.away.team.abbreviation || '';
+  const homeAbbr = game.teams.home.team.abbreviation || '';
+  const livePalFactor = findGameFactor(parkFactors, awayAbbr, homeAbbr);
+
   const isRetractable = venue.includes('loandepot') || venue.includes('globe life') || venue.includes('minute maid') || venue.includes('daikin') || venue.includes('american family') || venue.includes('rogers centre') || venue.includes('skydome') || venue.includes('chase field') || venue.includes('t-mobile') || venue.includes('safeco');
   const isExplicitlyOpen = condition.includes('open') || condition.includes('outdoor');
   const isExplicitlyClosed = (condition.includes('closed') || condition.includes('indoor') || condition.includes('dome'));
@@ -73,7 +79,38 @@ const getSpecialIntelligence = (game: MLBGame) => {
 
   const detailedFactor = getDetailedParkFactor(game.venue?.name || '', game.weather?.condition);
 
-  // 0. Latest Park Intelligence (Priority 1)
+  // 0. Live Ballpark Pal Intelligence (Level 1 - Priority)
+  if (livePalFactor) {
+    const runChange = Math.round((livePalFactor.runs - 1) * 100);
+    const hrChange = Math.round((livePalFactor.hr - 1) * 100);
+    const hitsChange = Math.round((livePalFactor.hits - 1) * 100);
+    
+    const venueName = game.venue?.name || '';
+    const venueShort = venueName.includes('Great American') 
+      ? 'GREAT AMERICAN' 
+      : venueName.toLowerCase().includes('chase field')
+        ? 'CHASE FIELD'
+        : venueName.split(' ')[0].toUpperCase();
+
+    const palTitle = `${venueName}: Live Ballpark Pal Factor
+Runs: ${runChange > 0 ? '+' : ''}${runChange}%
+HR: ${hrChange > 0 ? '+' : ''}${hrChange}%
+Hits: ${hitsChange > 0 ? '+' : ''}${hitsChange}%
+${livePalFactor.edge ? `Edge vs Market: ${livePalFactor.edge > 0 ? '+' : ''}${livePalFactor.edge}` : ''}
+Sourced via BallparkPal.com`;
+
+    return [{
+      label: `${venueShort} (${runChange > 0 ? '+' : ''}${runChange}%)`,
+      color: livePalFactor.runs >= 1.10 ? 'bg-red-500/20 text-red-500 border-red-500/20' : 
+             livePalFactor.runs <= 0.90 ? 'bg-blue-600/20 text-blue-400 border-blue-600/30' :
+             livePalFactor.runs > 1 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10' : 
+             'bg-slate-500/10 text-slate-400 border-white/5',
+      icon: livePalFactor.runs >= 1.10 ? Zap : (livePalFactor.runs <= 0.90 ? ShieldCheck : Activity), 
+      title: palTitle
+    }];
+  }
+
+  // 0. Latest Park Intelligence (Priority 2 - Static Fallback)
   const intelligenceParks: Record<number, any> = {
     133: { label: 'SUTTER POWER', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: Zap, title: 'Sutter Health Park: +21% scoring environment with +31% Home Run appeal. Sourced via BallparkPal.com' },
     145: { label: 'RATE BOOST', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: Zap, title: 'Guaranteed Rate Field: +12% Run environment with +21% Home Run boost. Sourced via BallparkPal.com' },
@@ -272,6 +309,7 @@ interface GameLogProps {
   games: MLBGame[];
   gameLines: Record<number, number>;
   manualLines?: Record<number, number>;
+  parkFactors?: BallparkPalFactor[];
 }
 
 const getParkIntelligence = (game: MLBGame) => {
@@ -548,7 +586,7 @@ const getUmpireIntelligence = (umpireName: string) => {
   return { impulse, message: techReport.trim(), tendency };
 };
 
-export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
+export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }: GameLogProps) {
   const { user } = useAuth();
   const isAdmin = user?.email?.toLowerCase() === 'mattlajiness@gmail.com';
   
@@ -627,15 +665,14 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
     const isDelay = status.includes('delay') || statusCode === 'D' || statusCode === 'DR' || statusCode === 'DI';
     
     if (isDelay) {
-      const isRainy = rainKeywords.some(keyword => condition.includes(keyword));
+      const isRainy = rainKeywords.some(keyword => condition.includes(keyword)) || status.includes('rain') || status.includes('weather') || status.includes('t-storm');
       
       if (isRainy) {
         return `Raining (${game.status.detailedState})`;
       }
-      return `Delayed (${game.status.detailedState})`;
     }
     
-    // User requested to only show rain badges if raining causing a delay
+    // User requested to only show rain badges if rain is causing a delay
     return null;
   };
 
@@ -649,14 +686,13 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
             <h2 className="font-mono font-black text-white uppercase tracking-tighter text-xl">
               Daily Scorecard
             </h2>
-            <span className="text-[8px] font-mono text-slate-500 uppercase tracking-[0.2em] mt-0.5 flex items-center gap-2">
-              Live updates • Umpire & 
+            <span className="text-[8px] font-mono text-slate-500 uppercase tracking-[0.2em] mt-0.5 flex items-center flex-wrap gap-x-2 gap-y-1">
+              Live updates • Umpire Intelligence • 
               <a href="https://ballparkpal.com" target="_blank" rel="noreferrer" className="text-emerald-500 hover:text-emerald-400 inline-flex items-center gap-1.5 px-2 py-0.5 bg-emerald-500/5 rounded-full border border-emerald-500/10 group">
                 <BallparkPalLogo className="w-3.5 h-3.5 transition-transform group-hover:rotate-12" />
-                Ballpark Pal 
+                Ballpark Pal Details
                 <ExternalLink className="w-2 h-2 opacity-50 group-hover:opacity-100" />
               </a> 
-              Intelligence in game details
             </span>
           </div>
         </div>
@@ -784,7 +820,7 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                               const climate = getParkIntelligence(game);
                               
                               // 2. Intelligence Badges
-                              const intelBadges = getSpecialIntelligence(game);
+                              const intelBadges = getSpecialIntelligence(game, parkFactors);
                               intelBadges.forEach(intel => {
                                 badges.push(
                                   <button 
@@ -1318,7 +1354,7 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                                    const climate = getParkIntelligence(game);
  
                                    // 2. Intelligence Badges
-                                   const intelBadges = getSpecialIntelligence(game);
+                                   const intelBadges = getSpecialIntelligence(game, parkFactors);
                                    intelBadges.forEach(intel => {
                                      badges.push(
                                        <button 
@@ -1389,7 +1425,7 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
                               className="bg-slate-900/50"
                             >
                               <td colSpan={4} className="px-6 py-6 border-t border-slate-800">
-                                <GameDetailView game={game} />
+                                <GameDetailView game={game} parkFactors={parkFactors} />
                               </td>
                             </motion.tr>
                           )}
@@ -1429,7 +1465,7 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
   );
 }
 
-function GameDetailView({ game }: { game: MLBGame }) {
+function GameDetailView({ game, parkFactors = [] }: { game: MLBGame, parkFactors?: BallparkPalFactor[] }) {
   const linescore = game.linescore;
   if (!linescore) return (
     <div className="flex items-center justify-center p-8 text-slate-500 font-mono text-[10px] uppercase tracking-widest">
@@ -1560,7 +1596,7 @@ function GameDetailView({ game }: { game: MLBGame }) {
             </div>
             <div className="flex flex-col min-w-0">
               <div className="flex items-center gap-2">
-                 <span className="text-[7px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black whitespace-nowrap">Daily Atmospherics</span>
+                 <span className="text-[7px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black whitespace-nowrap">Ballpark Pal Dynamics</span>
                  <div className="h-px w-8 bg-slate-800" />
               </div>
               <span className="text-xs font-black text-white uppercase tracking-tight truncate">Atmospheric Analysis</span>
@@ -1627,7 +1663,20 @@ function GameDetailView({ game }: { game: MLBGame }) {
   })();
 
   const ParkFactorsModule = (() => {
-    const factors = getDetailedParkFactor(game.venue?.name || '', game.weather?.condition);
+    const awayAbbr = game.teams.away.team.abbreviation || '';
+    const homeAbbr = game.teams.home.team.abbreviation || '';
+    const livePalFactor = findGameFactor(parkFactors, awayAbbr, homeAbbr);
+
+    const staticFactors = getDetailedParkFactor(game.venue?.name || '', game.weather?.condition);
+    
+    // Prioritize Live Ballpark Pal Factors
+    const factors = livePalFactor ? {
+      runs: livePalFactor.runs,
+      hr: livePalFactor.hr,
+      extraBase: livePalFactor.hits, // Hits used as proxy for XB if not detailed
+      single: livePalFactor.hits
+    } : staticFactors;
+
     if (!factors) return null;
 
     const formatVal = (val: number) => {
@@ -1877,9 +1926,12 @@ function GameDetailView({ game }: { game: MLBGame }) {
         </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
         <div className="flex flex-col h-full">
            {UmpireIntelligenceModule}
+        </div>
+        <div className="flex flex-col h-full">
+           {WeatherIntelligenceModule}
         </div>
         {ParkFactorsModule && (
           <div className="flex flex-col h-full">

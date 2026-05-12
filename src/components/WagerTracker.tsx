@@ -27,6 +27,7 @@ interface WagerTrackerProps {
   onOpenHistory?: () => void;
   todayStr?: string;
   currentStreak?: { type: 'WIN' | 'LOSS' | 'PUSH'; count: number } | null;
+  sport?: 'MLB' | 'NHL';
 }
 
 export function WagerTracker({ 
@@ -44,8 +45,15 @@ export function WagerTracker({
   projectedTotal,
   onOpenHistory,
   todayStr,
-  currentStreak
+  currentStreak,
+  sport = 'MLB'
 }: WagerTrackerProps) {
+  const isMLB = sport === 'MLB';
+  const unitName = isMLB ? 'runs' : 'goals';
+  const shortUnit = isMLB ? 'R/G' : 'G/G';
+  const timeUnit = isMLB ? 'innings' : 'periods';
+  const gameUnit = isMLB ? 'innings' : 'periods';
+  const gameStandard = isMLB ? 9 : 3;
   const { user, profile, updateProfile } = useAuth();
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSynced, setLastSynced] = useState<Date | null>(null);
@@ -59,10 +67,10 @@ export function WagerTracker({
   // Save to LocalStorage ONLY (for non-logged in persistence between sessions)
   useEffect(() => {
     if (!user && betLine !== '') {
-      localStorage.setItem('salami_bet_line', betLine.toString());
-      localStorage.setItem('salami_bet_type', betType);
+      localStorage.setItem(`${sport}_salami_bet_line`, betLine.toString());
+      localStorage.setItem(`${sport}_salami_bet_type`, betType);
     }
-  }, [betLine, betType, user]);
+  }, [betLine, betType, user, sport]);
 
   const handleSave = async () => {
     if (betLine === '') {
@@ -72,14 +80,15 @@ export function WagerTracker({
 
     setIsSyncing(true);
     try {
-      trackEvent('manual_save_wager', { line: betLine, side: betType });
+      trackEvent('manual_save_wager', { line: betLine, side: betType, sport });
       if (user) {
-        const wagerDoc = doc(db, 'users', user.uid, 'wagers', today);
+        const wagerDoc = doc(db, 'users', user.uid, 'wagers', `${sport}_${today}`);
         await setDoc(wagerDoc, {
           userId: user.uid,
           line: betLine,
           side: betType.toUpperCase(),
           date: today,
+          sport,
           createdAt: Timestamp.now()
         });
         setLastSynced(new Date());
@@ -107,7 +116,7 @@ export function WagerTracker({
     if (user) {
       setIsSyncing(true);
       try {
-        const wagerDoc = doc(db, 'users', user.uid, 'wagers', today);
+        const wagerDoc = doc(db, 'users', user.uid, 'wagers', `${sport}_${today}`);
         await deleteDoc(wagerDoc);
         setLastSynced(null);
         toast.info('WAGER REMOVED FROM CLOUD 🗑️');
@@ -117,8 +126,8 @@ export function WagerTracker({
         setIsSyncing(false);
       }
     } else {
-      localStorage.removeItem('salami_bet_line');
-      localStorage.removeItem('salami_bet_type');
+      localStorage.removeItem(`${sport}_salami_bet_line`);
+      localStorage.removeItem(`${sport}_salami_bet_type`);
       toast.info('WAGER CLEARED');
     }
   };
@@ -132,12 +141,12 @@ export function WagerTracker({
   const isStabilizing = playedInnings > 0 && playedInnings < 3;
 
   const remainingInnings = totalExpectedInnings - playedInnings;
-  const currentPace = playedInnings > 0 ? (currentTotal / playedInnings) * 9 : 0;
+  const currentPace = playedInnings > 0 ? (currentTotal / playedInnings) * gameStandard : 0;
   
-  const linePace = betLine !== '' ? (parseFloat(betLine.toString()) / totalExpectedInnings) * 9 : 0;
+  const linePace = (betLine !== '' && totalExpectedInnings > 0) ? (parseFloat(betLine.toString()) / totalExpectedInnings) * gameStandard : 0;
   
   const requiredPace = (betLine !== '' && remainingInnings > 0) 
-    ? ((parseFloat(betLine.toString()) - currentTotal) / remainingInnings) * 9
+    ? ((parseFloat(betLine.toString()) - currentTotal) / remainingInnings) * gameStandard
     : 0;
 
   const getStatus = () => {
@@ -616,7 +625,7 @@ export function WagerTracker({
                         )}>
                           {currentPace.toFixed(2)}
                         </span>
-                        <span className="text-[7px] font-mono text-slate-500 uppercase">R/G</span>
+                        <span className="text-[7px] font-mono text-slate-500 uppercase">{shortUnit}</span>
                       </div>
                     </div>
 
@@ -631,7 +640,7 @@ export function WagerTracker({
                         <span className="text-sm font-mono font-black text-white">
                           {linePace.toFixed(2)}
                         </span>
-                        <span className="text-[7px] font-mono text-slate-500 uppercase">R/G</span>
+                        <span className="text-[7px] font-mono text-slate-500 uppercase">{shortUnit}</span>
                       </div>
                     </div>
                   </div>
@@ -657,15 +666,15 @@ export function WagerTracker({
                     <div className="flex items-center justify-between">
                       <p className="text-[9px] text-slate-500 font-medium leading-tight max-w-[70%]">
                         {betType === 'over' 
-                          ? `Need to average ${requiredPace.toFixed(2)} runs per game for the rest of the day to hit the line.`
-                          : `Must stay below ${requiredPace.toFixed(2)} runs per game for the rest of the day to stay under.`
+                          ? `Need to average ${requiredPace.toFixed(2)} ${unitName} per game for the rest of the day to hit the line.`
+                          : `Must stay below ${requiredPace.toFixed(2)} ${unitName} per game for the rest of the day to stay under.`
                         }
                       </p>
                       <div className="text-right">
                         <span className="text-lg font-mono font-black text-white">
                           {Math.max(0, requiredPace).toFixed(2)}
                         </span>
-                        <span className="text-[7px] font-mono text-slate-500 uppercase block">R/G</span>
+                        <span className="text-[7px] font-mono text-slate-500 uppercase block">{shortUnit}</span>
                       </div>
                     </div>
                   </div>

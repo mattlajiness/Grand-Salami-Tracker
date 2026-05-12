@@ -91,8 +91,10 @@ export function BallparkPalLogo({ className = "w-6 h-6" }: { className?: string 
 
       {/* Cap */}
       <g>
-        <path d="M 35 18 Q 50 -2 65 18" fill="#2563eb" stroke="#1e3a8a" strokeWidth="1" />
+        <path d="M 35 18 Q 50 -2 65 18" fill="#1e40af" stroke="#1e3a8a" strokeWidth="1" />
         <path d="M 30 20 L 50 15 L 60 25 L 30 28 Z" fill="#1e293b" stroke="#000" strokeWidth="1" />
+        {/* Monogram on cap */}
+        <text x="50" y="14" fontSize="8" fontWeight="bold" fill="white" textAnchor="middle" fontFamily="Arial">BP</text>
       </g>
     </svg>
   );

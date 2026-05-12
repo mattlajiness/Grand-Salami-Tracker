@@ -1,7 +1,12 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { fetchMLBGames, MLBGame } from './services/mlbService';
+import { fetchNHLGames, NHLGame } from './services/nhlService';
+import { fetchBallparkPalFactors, BallparkPalFactor } from './services/ballparkPalService';
 import { calculateLiveThreat, calculateSmartProjection } from './lib/projectionEngine';
 import { GrandSalamiHeader } from './components/GrandSalamiHeader';
+import { NHLGrandSalamiHeader } from './components/NHLGrandSalamiHeader';
+import { NHLGameLog } from './components/NHLGameLog';
+import { cn } from './lib/utils';
 import { calculateFatigueStats, calculateBullpenScore } from './lib/fatigueEngine';
 import { getParkFactor, getTeamOffensePower } from './lib/leagueConstants';
 import { GameLog } from './components/GameLog';
@@ -25,7 +30,10 @@ import { AnimatePresence, motion } from 'motion/react';
 
 export default function App() {
   const { user, loading: authLoading } = useAuth();
+  const [activeSport, setActiveSport] = useState<'MLB' | 'NHL'>('MLB');
   const [games, setGames] = useState<MLBGame[]>([]);
+  const [nhlGames, setNhlGames] = useState<NHLGame[]>([]);
+  const [parkFactors, setParkFactors] = useState<BallparkPalFactor[]>([]);
   const [historicalGames, setHistoricalGames] = useState<MLBGame[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
@@ -33,6 +41,7 @@ export default function App() {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [gameLines, setGameLines] = useState<Record<number, number>>({});
+  const [nhlGameLines, setNhlGameLines] = useState<Record<number, number>>({});
   const [betLine, setBetLine] = useState<number | ''>('');
   const [betType, setBetType] = useState<'over' | 'under'>('over');
   const [isWagerLoading, setIsWagerLoading] = useState(false);
@@ -55,6 +64,25 @@ export default function App() {
       } catch (e) {
         // Keep the app working despite the logged error
         console.warn("Failed to stream game lines - verifying connectivity...");
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const q = collection(db, 'nhlGameLines');
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const lines: Record<number, number> = {};
+      snapshot.forEach(doc => {
+        lines[parseInt(doc.id)] = doc.data().total;
+      });
+      setNhlGameLines(lines);
+    }, (error) => {
+      try {
+        handleFirestoreError(error, OperationType.LIST, 'nhlGameLines');
+      } catch (e) {
+        console.warn("Failed to stream NHL game lines");
       }
     });
 
@@ -85,9 +113,15 @@ export default function App() {
     
     try {
       const today = format(new Date(), 'yyyy-MM-dd');
-      const mlbData = await fetchMLBGames(today);
+      const [mlbData, nhlData, palData] = await Promise.all([
+        fetchMLBGames(today),
+        fetchNHLGames(today),
+        fetchBallparkPalFactors()
+      ]);
       
       setGames(mlbData || []);
+      setNhlGames(nhlData || []);
+      setParkFactors(palData || []);
       setLastUpdated(new Date());
     } catch (error) {
       console.error('Error in loadLiveData:', error);
@@ -114,20 +148,60 @@ export default function App() {
   const [todayStr] = useState(() => format(new Date(), 'yyyy-MM-dd'));
 
   const currentTotal = useMemo(() => {
-    if (!Array.isArray(games)) return 0;
-    return games.reduce((acc, game) => {
-      // Strictly filter to ensure we aren't counting games from other days due to API data shifts
-      if (game.officialDate && game.officialDate !== todayStr) return acc;
+    if (activeSport === 'MLB') {
+      if (!Array.isArray(games)) return 0;
+      return games.reduce((acc, game) => {
+        if (game.officialDate && game.officialDate !== todayStr) return acc;
+        const isPostponed = (game.status?.detailedState || '').toLowerCase().includes('postponed') || 
+                           (game.status?.detailedState || '').toLowerCase().includes('canceled');
+        if (isPostponed) return acc;
+        const awayScore = game?.teams?.away?.score || 0;
+        const homeScore = game?.teams?.home?.score || 0;
+        return acc + awayScore + homeScore;
+      }, 0);
+    } else {
+      if (!Array.isArray(nhlGames)) return 0;
+      return nhlGames.reduce((acc, game) => {
+        const awayScore = game.awayTeam?.score || 0;
+        const homeScore = game.homeTeam?.score || 0;
+        return acc + awayScore + homeScore;
+      }, 0);
+    }
+  }, [games, nhlGames, activeSport, todayStr]);
 
-      const isPostponed = (game.status?.detailedState || '').toLowerCase().includes('postponed') || 
-                         (game.status?.detailedState || '').toLowerCase().includes('canceled');
-      if (isPostponed) return acc;
+  const nhlStats = useMemo(() => {
+    if (activeSport !== 'NHL' || !Array.isArray(nhlGames)) return null;
+    const final = nhlGames.filter(g => g.gameState === 'FINAL' || g.gameState === 'OFF').length;
+    const live = nhlGames.filter(g => g.gameState === 'LIVE' || g.gameState === 'CRIT').length;
+    
+    let playedPeriods = 0;
+    nhlGames.forEach(game => {
+      if (game.gameState === 'FINAL' || game.gameState === 'OFF') {
+        playedPeriods += 3;
+      } else if (game.gameState === 'LIVE' || game.gameState === 'CRIT') {
+        const period = game.periodDescriptor?.number || 1;
+        playedPeriods += (period - 1);
+        // Add clock progress if available
+        if (game.clock?.timeRemaining) {
+          const [min, sec] = game.clock.timeRemaining.split(':').map(Number);
+          if (!isNaN(min)) {
+            const remainingSec = (min * 60) + (sec || 0);
+            const totalSec = 20 * 60; // 20 min periods
+            playedPeriods += (totalSec - remainingSec) / totalSec;
+          }
+        }
+      }
+    });
 
-      const awayScore = game?.teams?.away?.score || 0;
-      const homeScore = game?.teams?.home?.score || 0;
-      return acc + awayScore + homeScore;
-    }, 0);
-  }, [games]);
+    return {
+      finalCount: final,
+      liveCount: live,
+      gameCount: nhlGames.length,
+      playedPeriods,
+      totalExpectedPeriods: nhlGames.length * 3,
+      isFinished: final === nhlGames.length && nhlGames.length > 0
+    };
+  }, [nhlGames, activeSport]);
 
   const stats = useMemo(() => {
     if (!Array.isArray(games) || games.length === 0) {
@@ -289,15 +363,15 @@ export default function App() {
       if (user) {
         setIsWagerLoading(true);
         try {
-          // Get today's wager for tracker state
-          const todayWagerDoc = doc(db, 'users', user.uid, 'wagers', today);
+          // Get today's wager for tracker state - scoped by sport
+          const todayWagerDoc = doc(db, 'users', user.uid, 'wagers', `${activeSport}_${today}`);
           const snap = await getDoc(todayWagerDoc);
           if (snap.exists()) {
             const data = snap.data();
             setBetLine(data.line);
             setBetType(data.side.toLowerCase() as 'over' | 'under');
           } else {
-            setBetLine(''); // Reset if no wager today
+            setBetLine(''); // Reset if no wager today for this sport
           }
 
           // Get all wagers for streak calculation
@@ -312,14 +386,15 @@ export default function App() {
           setIsWagerLoading(false);
         }
       } else {
-        const savedLine = localStorage.getItem('salami_bet_line');
-        const savedType = localStorage.getItem('salami_bet_type');
+        const savedLine = localStorage.getItem(`${activeSport}_salami_bet_line`);
+        const savedType = localStorage.getItem(`${activeSport}_salami_bet_type`);
         if (savedLine) setBetLine(parseFloat(savedLine));
+        else setBetLine('');
         if (savedType) setBetType(savedType as 'over' | 'under');
       }
     };
     loadWagers();
-  }, [user]);
+  }, [user, activeSport]);
 
   const currentStreak = useMemo(() => {
     if (userWagers.length === 0) return null;
@@ -351,21 +426,28 @@ export default function App() {
   }, [userWagers, historicalTotals]);
 
   const projectedTotal = useMemo(() => {
-    // Requirement for stabilization: at least 1 full inning cumulative across the slate
-    if (stats.playedInnings >= 1.0) {
-      const fatigueScore = calculateBullpenScore(stats.fatigue);
-      
-      return calculateSmartProjection(
-        currentTotal, 
-        stats.playedInnings, 
-        stats.totalExpectedInnings, 
-        stats.liveThreats,
-        fatigueScore,
-        betLine
-      );
+    if (activeSport === 'MLB') {
+      // Requirement for stabilization: at least 1 full inning cumulative across the slate
+      if (stats.playedInnings >= 1.0) {
+        const fatigueScore = calculateBullpenScore(stats.fatigue);
+        
+        return calculateSmartProjection(
+          currentTotal, 
+          stats.playedInnings, 
+          stats.totalExpectedInnings, 
+          stats.liveThreats,
+          fatigueScore,
+          betLine
+        );
+      }
+    } else if (activeSport === 'NHL') {
+      if (nhlStats && nhlStats.playedPeriods >= 0.5) {
+        // Simple linear projection for NHL
+        return Math.round((currentTotal / nhlStats.playedPeriods) * nhlStats.totalExpectedPeriods);
+      }
     }
     return null;
-  }, [currentTotal, stats.playedInnings, stats.totalExpectedInnings, stats.liveThreats, stats.fatigue, betLine]);
+  }, [currentTotal, stats.playedInnings, stats.totalExpectedInnings, stats.liveThreats, stats.fatigue, betLine, activeSport, nhlStats]);
 
   const isAdmin = user?.email?.toLowerCase() === 'mattlajiness@gmail.com';
 
@@ -394,6 +476,53 @@ export default function App() {
       <Toaster position="top-center" richColors theme="dark" />
       
       <main className="max-w-7xl mx-auto px-4 pt-8">
+        {/* Sport Tab Switcher */}
+        <div className="flex items-center gap-4 mb-8">
+          <button 
+            onClick={() => setActiveSport('MLB')}
+            className={cn(
+              "flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all border-2 relative overflow-hidden group",
+              activeSport === 'MLB' 
+                ? "bg-slate-900 border-salami-red text-white shadow-[0_0_20px_rgba(225,29,72,0.1)]" 
+                : "bg-slate-950 border-slate-900 text-slate-500 hover:text-slate-400"
+            )}
+          >
+            <div className="relative z-10 flex items-center justify-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-salami-red animate-pulse" />
+              MLB Salami
+            </div>
+            {activeSport === 'MLB' && (
+              <motion.div 
+                layoutId="activeTab"
+                className="absolute inset-0 bg-gradient-to-r from-salami-red/10 to-transparent opacity-50"
+              />
+            )}
+          </button>
+          <button 
+            onClick={() => setActiveSport('NHL')}
+            className={cn(
+              "flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all border-2 relative group",
+              activeSport === 'NHL' 
+                ? "bg-slate-900 border-blue-500 text-white shadow-[0_0_20px_rgba(37,99,235,0.1)]" 
+                : "bg-slate-950 border-slate-900 text-slate-500 hover:text-slate-400"
+            )}
+          >
+            <div className="relative z-10 flex flex-col items-center gap-0.5">
+              <span>NHL Salami</span>
+              <span className="text-[7px] font-mono text-blue-400 opacity-80 tracking-widest leading-none">Coming Soon</span>
+            </div>
+            {activeSport === 'NHL' && (
+              <motion.div 
+                layoutId="activeTab"
+                className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-transparent opacity-50"
+              />
+            )}
+            <div className="absolute top-2 right-3">
+              <div className="px-1.5 py-0.5 bg-blue-500/20 border border-blue-500/30 rounded text-[6px] text-blue-400 font-black animate-pulse">BETA</div>
+            </div>
+          </button>
+        </div>
+
         <div className="space-y-6">
           {stats.hasRainRisk && (
             <motion.div 
@@ -416,52 +545,78 @@ export default function App() {
             </motion.div>
           )}
 
-          <GrandSalamiHeader 
-            currentTotal={currentTotal}
-            gameCount={games.length}
-            finalCount={stats.finalCount}
-            liveCount={stats.liveCount}
-            onRefresh={() => loadLiveData(true)}
-            isRefreshing={isRefreshing}
-            lastUpdated={lastUpdated}
-            games={games}
-            betLine={betLine}
-            betType={betType}
-            projectedTotal={projectedTotal}
-            isFinished={stats.isFinished}
-            weatherSummary={stats.weatherSummary}
-          />
+          {activeSport === 'MLB' ? (
+            <GrandSalamiHeader 
+              currentTotal={currentTotal}
+              gameCount={games.length}
+              finalCount={stats.finalCount}
+              liveCount={stats.liveCount}
+              onRefresh={() => loadLiveData(true)}
+              isRefreshing={isRefreshing}
+              lastUpdated={lastUpdated}
+              games={games}
+              betLine={betLine}
+              betType={betType}
+              projectedTotal={projectedTotal}
+              isFinished={stats.isFinished}
+              weatherSummary={stats.weatherSummary}
+            />
+          ) : nhlStats && (
+            <NHLGrandSalamiHeader 
+              currentTotal={currentTotal}
+              gameCount={nhlStats.gameCount}
+              finalCount={nhlStats.finalCount}
+              liveCount={nhlStats.liveCount}
+              onRefresh={() => loadLiveData(true)}
+              isRefreshing={isRefreshing}
+              lastUpdated={lastUpdated}
+              games={nhlGames}
+              betLine={betLine}
+              betType={betType}
+              projectedTotal={null}
+              isFinished={nhlStats.isFinished}
+            />
+          )}
 
-          {games.length === 0 && !isRefreshing && !isInitialLoad ? (
+          {((activeSport === 'MLB' && games.length === 0) || (activeSport === 'NHL' && nhlGames.length === 0)) && !isRefreshing && !isInitialLoad ? (
             <div className="dashboard-card p-12 text-center bg-slate-900 border-slate-800">
               <div className="w-20 h-20 bg-slate-950 rounded-full flex items-center justify-center mx-auto mb-6 border border-slate-800 shadow-inner">
                 <Calendar className="w-10 h-10 text-slate-700" />
               </div>
               <h3 className="text-white font-black text-2xl mb-3 tracking-tighter uppercase">No Games Found</h3>
               <p className="text-slate-500 font-mono text-[10px] uppercase tracking-[0.2em] max-w-md mx-auto leading-relaxed">
-                We couldn't find any MLB games scheduled for <span className="text-white bg-slate-800 px-2 py-0.5 rounded">{format(new Date(), 'MMMM do, yyyy').toUpperCase()}</span>.
+                We couldn't find any {activeSport} games scheduled for <span className="text-white bg-slate-800 px-2 py-0.5 rounded">{format(new Date(), 'MMMM do, yyyy').toUpperCase()}</span>.
               </p>
               <div className="mt-8 flex flex-col items-center gap-4">
                 <button 
-                  onClick={loadLiveData}
+                  onClick={() => loadLiveData(true)}
                   className="px-8 py-3 bg-salami-red hover:bg-red-700 text-white rounded-xl font-black text-[11px] uppercase tracking-[0.3em] transition-all active:scale-95 shadow-lg shadow-red-900/20"
                 >
                   Force Sync Now
                 </button>
                 <div className="flex items-center gap-2 text-[9px] font-mono text-slate-600 uppercase tracking-widest">
                   <Activity className="w-3 h-3" />
-                  Requesting MLB Stats API...
+                  Requesting {activeSport} Stats API...
                 </div>
               </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
               <div className="order-2 lg:order-1 lg:col-span-3">
-                <GameLog 
-                  games={games} 
-                  gameLines={gameLines} 
-                  manualLines={gameLines} 
-                />
+                {activeSport === 'MLB' ? (
+                  <GameLog 
+                    games={games} 
+                    gameLines={gameLines} 
+                    manualLines={gameLines} 
+                    parkFactors={parkFactors}
+                  />
+                ) : (
+                  <NHLGameLog 
+                    games={nhlGames}
+                    gameLines={nhlGameLines}
+                    manualLines={nhlGameLines}
+                  />
+                )}
               </div>
               
               <div className="order-1 lg:order-2 lg:col-span-1 space-y-6">
@@ -472,35 +627,53 @@ export default function App() {
                 )}
 
                 <WagerTracker 
+                  sport={activeSport}
                   currentTotal={currentTotal}
-                  playedInnings={stats.playedInnings}
-                  totalExpectedInnings={stats.totalExpectedInnings}
-                  isFinished={stats.isFinished}
-                  gameCount={stats.gameCount}
-                  finalCount={stats.finalCount}
-                  liveThreats={stats.liveThreats}
+                  playedInnings={activeSport === 'MLB' ? stats.playedInnings : (nhlStats?.playedPeriods || 0)}
+                  totalExpectedInnings={activeSport === 'MLB' ? stats.totalExpectedInnings : (nhlStats?.totalExpectedPeriods || 0)}
+                  isFinished={activeSport === 'MLB' ? stats.isFinished : (nhlStats?.isFinished || false)}
+                  gameCount={activeSport === 'MLB' ? stats.gameCount : (nhlStats?.gameCount || 0)}
+                  finalCount={activeSport === 'MLB' ? stats.finalCount : (nhlStats?.finalCount || 0)}
+                  liveThreats={activeSport === 'MLB' ? stats.liveThreats : 0}
                   betLine={betLine}
                   setBetLine={setBetLine}
                   betType={betType}
                   setBetType={setBetType}
-                  projectedTotal={projectedTotal}
+                  projectedTotal={activeSport === 'MLB' ? projectedTotal : null}
                   todayStr={todayStr}
                   onOpenHistory={() => setIsHistoryModalOpen(true)}
                   currentStreak={currentStreak}
                 />
 
-                <DailyApex games={games} />
+                {activeSport === 'MLB' && <DailyApex games={games} />}
 
-                <div className="hidden lg:block space-y-6">
-                  <BullpenFatigueReport 
-                    historicalGames={historicalGames} 
-                    todayGames={games} 
-                    isLoading={historyLoading} 
-                  />
-                </div>
+                {activeSport === 'MLB' && (
+                  <div className="hidden lg:block space-y-6">
+                    <BullpenFatigueReport 
+                      historicalGames={historicalGames} 
+                      todayGames={games} 
+                      isLoading={historyLoading} 
+                    />
+                  </div>
+                )}
 
                 {/* Desktop Run Trends */}
-                <div className="hidden lg:block">
+                {activeSport === 'MLB' && (
+                  <div className="hidden lg:block">
+                    <RunTrends 
+                      historicalGames={historicalGames}
+                      currentTotal={currentTotal}
+                      games={games}
+                      gameLines={gameLines}
+                      manualLines={gameLines}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Mobile Run Trends & PreGameAudit - Placed under the GameLog (Scoreboard) */}
+              {activeSport === 'MLB' && (
+                <div className="order-3 lg:hidden space-y-6">
                   <RunTrends 
                     historicalGames={historicalGames}
                     currentTotal={currentTotal}
@@ -508,24 +681,13 @@ export default function App() {
                     gameLines={gameLines}
                     manualLines={gameLines}
                   />
+                  <BullpenFatigueReport 
+                    historicalGames={historicalGames} 
+                    todayGames={games} 
+                    isLoading={historyLoading}
+                  />
                 </div>
-              </div>
-
-              {/* Mobile Run Trends & PreGameAudit - Placed under the GameLog (Scoreboard) */}
-              <div className="order-3 lg:hidden space-y-6">
-                <RunTrends 
-                  historicalGames={historicalGames}
-                  currentTotal={currentTotal}
-                  games={games}
-                  gameLines={gameLines}
-                  manualLines={gameLines}
-                />
-                <BullpenFatigueReport 
-                  historicalGames={historicalGames} 
-                  todayGames={games} 
-                  isLoading={historyLoading}
-                />
-              </div>
+              )}
             </div>
           )}
 
