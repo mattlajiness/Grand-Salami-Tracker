@@ -20,7 +20,7 @@ import { UserAdminPanel } from './components/UserAdminPanel';
 import { WagerHistory } from './components/WagerHistory';
 import { FeedbackSection } from './components/FeedbackSection';
 import { BallparkPalLogo } from './components/BallparkPalLogo';
-import { Calendar, Share2, Droplets, Activity, ExternalLink } from 'lucide-react';
+import { Calendar, Share2, Droplets, Activity, ExternalLink, Smartphone, LogIn } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { useAuth } from './contexts/AuthContext';
 import { db, handleFirestoreError, OperationType } from './firebase';
@@ -742,6 +742,41 @@ export default function App() {
           </p>
         </div>
       </footer>
+
+      {/* Mobile Iframe Alert - Sticky Bottom Overlay */}
+      <AnimatePresence>
+        {!user && window.self !== window.top && (
+          <motion.div 
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            className="fixed bottom-6 left-4 right-4 z-[100] md:hidden"
+          >
+            <div className="bg-slate-900/95 backdrop-blur-md border border-slate-700/50 rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
+                  <Smartphone className="w-5 h-5 text-blue-400" />
+                </div>
+                <div>
+                  <h4 className="text-[10px] font-black text-white uppercase tracking-widest leading-none mb-1">Mobile Access</h4>
+                  <p className="text-[9px] font-mono text-slate-400 uppercase tracking-tighter leading-tight">
+                    Login restricted in preview. Open in browser to sync wagers.
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => {
+                  window.open(window.location.href, '_blank');
+                }}
+                className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 rounded-xl text-[10px] font-black uppercase tracking-widest text-white whitespace-nowrap shadow-lg shadow-blue-900/40 active:scale-95 transition-all"
+              >
+                <span>Launch App</span>
+                <ExternalLink className="w-3 h-3" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

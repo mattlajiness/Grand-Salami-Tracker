@@ -126,28 +126,6 @@ export function GrandSalamiHeader({
 
   return (
     <div className="space-y-4">
-      {/* Mobile Iframe Alert - Proactive Escape */}
-      {!user && window.self !== window.top && (
-        <motion.div 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-blue-600/10 border border-blue-500/30 rounded-xl p-3 flex items-center justify-between gap-4 sm:hidden"
-        >
-          <div className="flex items-center gap-3">
-            <UserPlus className="w-4 h-4 text-blue-400" />
-            <p className="text-[10px] font-mono text-slate-300 font-bold uppercase tracking-tight leading-tight">
-              Trouble joining on mobile? 
-            </p>
-          </div>
-          <button 
-            onClick={() => window.open(window.location.href, '_blank')}
-            className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 rounded-lg text-[9px] font-black uppercase tracking-widest text-white whitespace-nowrap"
-          >
-            Open in Browser
-          </button>
-        </motion.div>
-      )}
-
       <div className="dashboard-card p-4 sm:p-6 mb-6 border-none shadow-2xl transition-colors duration-300 bg-slate-900 text-white">
       <div className="stitching-top opacity-50" />
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-salami-red to-transparent" />

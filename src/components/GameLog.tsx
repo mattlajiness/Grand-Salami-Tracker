@@ -1494,7 +1494,7 @@ function GameDetailView({ game, parkFactors = [] }: { game: MLBGame, parkFactors
       <div className="bg-slate-900/40 rounded-xl border border-slate-800/80 p-3 sm:p-4 shadow-xl shadow-black/20 overflow-hidden relative group h-full flex flex-col">
         <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/5 to-transparent -mr-16 -mt-16 rounded-full blur-3xl group-hover:from-blue-500/10 transition-all duration-700" />
         
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 relative z-10">
+        <div className="flex flex-col gap-3 relative z-10">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-slate-950 flex items-center justify-center border border-slate-800 shadow-inner shrink-0">
               <Scale className={cn(
@@ -1506,18 +1506,18 @@ function GameDetailView({ game, parkFactors = [] }: { game: MLBGame, parkFactors
             </div>
             <div className="flex flex-col min-w-0">
               <div className="flex items-center gap-2">
-                 <span className="text-[7px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black whitespace-nowrap">Umpire Intelligence</span>
+                 <span className="text-[7px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black">Umpire Intelligence</span>
                  <div className="h-px w-8 bg-slate-800" />
               </div>
               <span className="text-xs font-black text-white uppercase tracking-tight truncate">{homePlateUmpire.fullName}</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-4 sm:gap-6 self-end sm:self-auto">
-            <div className="flex flex-col items-end">
+          <div className="flex items-center gap-4 sm:gap-6">
+            <div className="flex flex-col items-start">
               <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest mb-1">Crew Bias</span>
               <div className={cn(
-                "px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shadow-sm border whitespace-nowrap",
+                "px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shadow-sm border",
                 impulse === 'positive' ? "bg-red-500/10 text-red-500 border-red-500/20" :
                 impulse === 'negative' ? "bg-blue-500/10 text-blue-400 border-blue-500/20" :
                 "bg-slate-800 text-slate-400 border-slate-700/50"
@@ -1526,7 +1526,7 @@ function GameDetailView({ game, parkFactors = [] }: { game: MLBGame, parkFactors
               </div>
             </div>
             
-            <div className="flex flex-col items-end">
+            <div className="flex flex-col items-start">
               <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest mb-1">Zone</span>
               <div className={cn(
                 "text-[9px] font-black uppercase tracking-widest",
@@ -1585,7 +1585,7 @@ function GameDetailView({ game, parkFactors = [] }: { game: MLBGame, parkFactors
       <div className="bg-slate-900/40 rounded-xl border border-slate-800/80 p-3 sm:p-4 shadow-xl shadow-black/20 overflow-hidden relative group h-full flex flex-col">
         <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-amber-500/5 to-transparent -mr-16 -mt-16 rounded-full blur-3xl" />
         
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 relative z-10">
+        <div className="flex flex-col gap-3 relative z-10">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-slate-950 flex items-center justify-center border border-slate-800 shadow-inner shrink-0">
               {(() => {
@@ -1596,7 +1596,7 @@ function GameDetailView({ game, parkFactors = [] }: { game: MLBGame, parkFactors
             </div>
             <div className="flex flex-col min-w-0">
               <div className="flex items-center gap-2">
-                 <span className="text-[7px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black whitespace-nowrap">Ballpark Pal Dynamics</span>
+                 <span className="text-[7px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black">Ballpark Pal Dynamics</span>
                  <div className="h-px w-8 bg-slate-800" />
               </div>
               <span className="text-xs font-black text-white uppercase tracking-tight truncate">Atmospheric Analysis</span>
@@ -1604,10 +1604,10 @@ function GameDetailView({ game, parkFactors = [] }: { game: MLBGame, parkFactors
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="flex flex-col items-end">
+            <div className="flex flex-col items-start">
               <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest mb-1">{intelligence.isHumidor ? "Daily Pulse" : (intelligence.isDome ? "Environment" : "Scoring Bias")}</span>
               <div className={cn(
-                "px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shadow-sm border whitespace-nowrap",
+                "px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shadow-sm border",
                 intelligence.isHumidor ? "bg-teal-500/10 text-teal-300 border-teal-500/20" :
                 intelligence.isDome ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" :
                 intelligence.impulse === 'positive' ? "bg-red-500/10 text-red-500 border-red-500/20" :
@@ -1926,7 +1926,7 @@ function GameDetailView({ game, parkFactors = [] }: { game: MLBGame, parkFactors
         </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 pt-4">
         <div className="flex flex-col h-full">
            {UmpireIntelligenceModule}
         </div>
