@@ -2,9 +2,10 @@ import { useState, Fragment, useEffect, useMemo } from 'react';
 import { MLBGame } from '../services/mlbService';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
-import { Activity, RefreshCw, ChevronDown, ChevronUp, User, Info, Wind, Thermometer, Cloud, Sun, CloudRain, CloudLightning, MapPin, AlertTriangle, Droplets, Zap, ShieldCheck, Target, Edit2, Save, Scale, Flame } from 'lucide-react';
+import { Activity, RefreshCw, ChevronDown, ChevronUp, User, Info, Wind, Thermometer, Cloud, Sun, CloudRain, CloudLightning, MapPin, AlertTriangle, Droplets, Zap, ShieldCheck, Target, Edit2, Save, Scale, Flame, ExternalLink } from 'lucide-react';
 import { calculateLiveThreat } from '../lib/projectionEngine';
 import { getUmpireTendency, getGenericTendency } from '../lib/umpireEngine';
+import { BallparkPalLogo } from './BallparkPalLogo';
 import { useAuth } from '../contexts/AuthContext';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { Timestamp, collection, doc, setDoc, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
@@ -648,8 +649,14 @@ export function GameLog({ games, gameLines, manualLines = {} }: GameLogProps) {
             <h2 className="font-mono font-black text-white uppercase tracking-tighter text-xl">
               Daily Scorecard
             </h2>
-            <span className="text-[8px] font-mono text-slate-500 uppercase tracking-[0.2em] mt-0.5">
-              Live updates • Umpire & <a href="https://ballparkpal.com" target="_blank" rel="noreferrer" className="text-emerald-500 hover:text-emerald-400">Ballpark Pal</a> Intelligence in game details
+            <span className="text-[8px] font-mono text-slate-500 uppercase tracking-[0.2em] mt-0.5 flex items-center gap-2">
+              Live updates • Umpire & 
+              <a href="https://ballparkpal.com" target="_blank" rel="noreferrer" className="text-emerald-500 hover:text-emerald-400 inline-flex items-center gap-1.5 px-2 py-0.5 bg-emerald-500/5 rounded-full border border-emerald-500/10 group">
+                <BallparkPalLogo className="w-3.5 h-3.5 transition-transform group-hover:rotate-12" />
+                Ballpark Pal 
+                <ExternalLink className="w-2 h-2 opacity-50 group-hover:opacity-100" />
+              </a> 
+              Intelligence in game details
             </span>
           </div>
         </div>
@@ -1677,10 +1684,11 @@ function GameDetailView({ game }: { game: MLBGame }) {
             href="https://ballparkpal.com" 
             target="_blank" 
             rel="noreferrer"
-            className="text-[8px] font-mono text-emerald-400 hover:text-emerald-300 font-black uppercase tracking-widest flex items-center gap-1.5 transition-colors group"
+            className="text-[8px] font-mono text-emerald-400 hover:text-emerald-300 font-black uppercase tracking-widest flex items-center gap-2 transition-colors group px-3 py-1 bg-emerald-500/5 rounded-full border border-emerald-500/10"
           >
-            <Activity className="w-2.5 h-2.5 transition-transform group-hover:scale-110" />
+            <BallparkPalLogo className="w-5 h-5 transition-transform group-hover:scale-110" />
             <span>Powered By Ballpark Pal</span>
+            <ExternalLink className="w-2 h-2 opacity-50 group-hover:opacity-100" />
           </a>
         </div>
       </div>

@@ -14,7 +14,8 @@ import { LogoExport } from './components/LogoExport';
 import { UserAdminPanel } from './components/UserAdminPanel';
 import { WagerHistory } from './components/WagerHistory';
 import { FeedbackSection } from './components/FeedbackSection';
-import { Calendar, Share2, Droplets, Activity } from 'lucide-react';
+import { BallparkPalLogo } from './components/BallparkPalLogo';
+import { Calendar, Share2, Droplets, Activity, ExternalLink } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { useAuth } from './contexts/AuthContext';
 import { db, handleFirestoreError, OperationType } from './firebase';
@@ -559,10 +560,10 @@ export default function App() {
           <div className="flex items-center gap-6 text-[10px] font-mono font-black text-slate-500 uppercase tracking-[0.2em]">
             <a href="#how-it-works" className="hover:text-salami-red transition-colors">How it works</a>
             <span className="w-1 h-1 rounded-full bg-slate-800" />
-            <a href="https://ballparkpal.com" target="_blank" rel="noreferrer" className="text-emerald-500/80 hover:text-emerald-400 transition-colors flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/20" />
+            <a href="https://ballparkpal.com" target="_blank" rel="noreferrer" className="text-emerald-500/80 hover:text-emerald-400 transition-colors flex items-center gap-1.5 border border-emerald-500/10 rounded-full px-2 py-0.5 bg-emerald-500/5 group">
+              <BallparkPalLogo className="w-4 h-4 transition-transform group-hover:scale-110" />
               Ballpark Pal
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/20" />
+              <ExternalLink className="w-2.5 h-2.5 opacity-50" />
             </a>
             <span className="w-1 h-1 rounded-full bg-slate-800" />
             <a href="https://twitter.com/Salamipace" target="_blank" rel="noreferrer" className="hover:text-[#1DA1F2] transition-colors">Twitter</a>
