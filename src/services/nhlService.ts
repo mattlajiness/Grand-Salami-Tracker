@@ -30,6 +30,18 @@ export interface NHLGame {
     inIntermission: boolean;
   };
   boxscore?: any;
+  // Starting Goalie info from landing
+  awayGoalie?: NHLGoalie;
+  homeGoalie?: NHLGoalie;
+}
+
+export interface NHLGoalie {
+  playerId: number;
+  firstInitial: string;
+  lastName: string;
+  savePct?: string;
+  gaa?: string;
+  record?: string;
 }
 
 export interface NHLScoreResponse {
@@ -52,5 +64,19 @@ export async function fetchNHLGames(date?: string): Promise<NHLGame[]> {
   } catch (error) {
     console.error('Error fetching NHL games:', error);
     return [];
+  }
+}
+
+export async function fetchNHLGameDetails(gameId: number): Promise<any> {
+  const url = `/api/nhl/game/${gameId}`;
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`NHL Game Details Proxy Error: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error(`Error fetching NHL game details for ${gameId}:`, error);
+    return null;
   }
 }

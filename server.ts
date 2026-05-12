@@ -73,6 +73,25 @@ async function startServer() {
     }
   });
 
+  // NHL Game Details Proxy
+  app.get("/api/nhl/game/:gameId", async (req, res) => {
+    try {
+      const { gameId } = req.params;
+      const url = `https://api-web.nhle.com/v1/gamecenter/${gameId}/landing`;
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        return res.status(response.status).json({ error: "Failed to fetch NHL game details" });
+      }
+
+      const data = await response.json();
+      res.json(data);
+    } catch (error) {
+      console.error("NHL Game Details Proxy Error:", error);
+      res.status(500).json({ error: "Internal Server Error" });
+    }
+  });
+
   // API routes go here
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
