@@ -1,5 +1,5 @@
 {
-  "name": "MLB Park Factors & Betting Tracker",
-  "description": "Live MLB park factors for today's slate alongside real-time Grand Salami betting totals, weather alerts, and bullpen fatigue analysis.",
+  "name": "MLB Grand Salami Tracker",
+  "description": "Live MLB Grand Salami betting totals and real-time run projections powered by Ballpark Pal intelligence, weather alerts, and bullpen fatigue analysis.",
   "requestFramePermissions": []
 }

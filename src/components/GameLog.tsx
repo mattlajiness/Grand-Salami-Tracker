@@ -74,21 +74,22 @@ const getSpecialIntelligence = (game: MLBGame) => {
 
   // 0. Latest Park Intelligence (Priority 1)
   const intelligenceParks: Record<number, any> = {
-    111: { label: 'GREEN MONSTER', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: Activity, title: 'Fenway Park: Top-rated venue today with +11% scoring boost. Sourced via BallparkPal.com' },
-    118: { label: 'ROYAL DEPTH', color: 'bg-blue-500/10 text-blue-400 border-blue-500/10', icon: ShieldCheck, title: 'Kauffman Stadium: Significant -19% Home Run reduction. Sourced via BallparkPal.com' },
-    113: { label: 'LAUNCH PAD', color: 'bg-slate-500/10 text-slate-400 border-slate-500/20', icon: Activity, title: 'Great American BP: Stable environment today (+1% runs). Sourced via BallparkPal.com' },
-    143: { label: 'PHILLY POWER', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: Zap, title: 'Citizens Bank Park: +13% Home Run environment projected today. Sourced via BallparkPal.com' },
-    119: { label: 'LA HR FACTORY', color: 'bg-red-500/10 text-red-400 border-red-500/10', icon: Zap, title: 'Dodger Stadium: Significant +22% Home Run boost projected. Sourced via BallparkPal.com' },
-    137: { label: 'PITCHERS HAVEN', color: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20', icon: ShieldCheck, title: 'Oracle Park: Massive -22% Home Run reduction. Sourced via BallparkPal.com' },
-    135: { label: 'PADRE SHIELD', color: 'bg-blue-900/20 text-blue-300 border-blue-800/30', icon: ShieldCheck, title: 'Petco Park: Drastic -9% scoring environment. Sourced via BallparkPal.com' },
-    114: { label: 'CLE SHIELD', color: 'bg-blue-900/20 text-blue-300 border-blue-800/30', icon: ShieldCheck, title: 'Progressive Field: Drastic -25% Home Run reduction. Sourced via BallparkPal.com' },
-    110: { label: 'BIRD LAND', color: 'bg-orange-500/10 text-orange-400 border-orange-500/10', icon: Activity, title: 'Oriole Park: +5% Scoring Environment. Sourced via BallparkPal.com' },
-    145: { label: 'CHICAGO COLD', color: 'bg-blue-500/10 text-blue-400 border-blue-500/10', icon: ShieldCheck, title: 'Guaranteed Rate Field: -9% scoring environment. Sourced via BallparkPal.com' },
-    158: { label: 'DAIRY CRUSH', color: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20', icon: ShieldCheck, title: 'American Family Field: -6% Run environment. Sourced via BallparkPal.com' },
-    141: { label: 'NORTHERN LID', color: 'bg-slate-500/10 text-slate-400 border-slate-500/20', icon: Activity, title: 'Rogers Centre: -6% scoring environment. Sourced via BallparkPal.com' },
-    146: { label: 'MIAMI DEPOT', color: 'bg-slate-800/50 text-slate-500 border-slate-700/50', icon: ShieldCheck, title: 'LoanDepot Park: Heavy -15% Home Run suppression. Sourced via BallparkPal.com' },
-    140: { label: 'TEXAS TURF', color: 'bg-slate-800/50 text-slate-500 border-slate-700/50', icon: ShieldCheck, title: 'Globe Life Field: -11% HR environment. Sourced via BallparkPal.com' },
-    109: { label: 'SNAKE PIT', color: 'bg-slate-700/30 text-slate-400 border-slate-700/50', icon: Activity, title: 'Chase Field: +12% extra-base carry flagged. Sourced via BallparkPal.com' }
+    133: { label: 'SUTTER POWER', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: Zap, title: 'Sutter Health Park: Top-rated venue today with +21% scoring boost and +31% Home Run appeal. Sourced via BallparkPal.com' },
+    111: { label: 'MONSTER SHIELD', color: 'bg-red-500/10 text-red-400 border-red-500/10', icon: ShieldCheck, title: 'Fenway Park: Neutral scoring environment but heavy -25% Home Run suppression active. Sourced via BallparkPal.com' },
+    145: { label: 'RATE BOOST', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: Activity, title: 'Guaranteed Rate Field: Significant +12% scoring environment with +21% Home Run boost. Sourced via BallparkPal.com' },
+    113: { label: 'LAUNCH PAD', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: Activity, title: 'Great American BP: Strong +5% scoring environment with +12% HR boost. Sourced via BallparkPal.com' },
+    142: { label: 'TARGET CARRY', color: 'bg-blue-500/10 text-blue-400 border-blue-500/10', icon: Activity, title: 'Target Field: +5% run environment with high single-base carry (+6%). Sourced via BallparkPal.com' },
+    114: { label: 'CLE SHIELD', color: 'bg-slate-500/10 text-slate-400 border-slate-500/20', icon: ShieldCheck, title: 'Progressive Field: Stable -1% scoring environment with -7% HR suppression. Sourced via BallparkPal.com' },
+    117: { label: 'DAIKIN DOME', color: 'bg-blue-900/20 text-blue-300 border-blue-800/30', icon: ShieldCheck, title: 'Daikin Park: -4% scoring environment with heavy extra-base suppression (-11%). Sourced via BallparkPal.com' },
+    158: { label: 'DAIRY SHIELD', color: 'bg-blue-900/20 text-blue-300 border-blue-800/30', icon: ShieldCheck, title: 'American Family Field: -5% run environment with -13% extra-base appeal. Sourced via BallparkPal.com' },
+    110: { label: 'BIRD LAND', color: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20', icon: ShieldCheck, title: 'Oriole Park: -5% scoring environment with -17% Home Run suppression. Sourced via BallparkPal.com' },
+    134: { label: 'PNC HAVEN', color: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20', icon: ShieldCheck, title: 'PNC Park: Drastic -22% Home Run reduction despite stable run flow. Sourced via BallparkPal.com' },
+    119: { label: 'LA COOL', color: 'bg-slate-800/50 text-slate-500 border-slate-700/50', icon: ShieldCheck, title: 'Dodger Stadium: -6% Run environment with suppression across all hit types. Sourced via BallparkPal.com' },
+    141: { label: 'NORTHERN LID', color: 'bg-slate-800/50 text-slate-500 border-slate-700/50', icon: ShieldCheck, title: 'Rogers Centre: -6% scoring environment with stable HR conditions. Sourced via BallparkPal.com' },
+    140: { label: 'TEXAS TURF', color: 'bg-slate-800/50 text-slate-500 border-slate-700/50', icon: ShieldCheck, title: 'Globe Life Field: -7% overall scoring production projected today. Sourced via BallparkPal.com' },
+    144: { label: 'TRUIST TRAP', color: 'bg-red-900/20 text-red-400 border-red-900/20', icon: ShieldCheck, title: 'Truist Park: Significant -11% scoring environment with -16% HR suppression. Sourced via BallparkPal.com' },
+    121: { label: 'CITI COLD', color: 'bg-blue-900/30 text-blue-400 border-blue-800/40', icon: ShieldCheck, title: 'Citi Field: Massive -15% scoring environment with extreme -29% 2B/3B suppression. Sourced via BallparkPal.com' },
+    109: { label: 'SNAKE PIT', color: 'bg-slate-700/30 text-slate-400 border-slate-700/50', icon: Activity, title: 'Chase Field: Climate controlled state active. Sourced via BallparkPal.com' }
   };
 
   const isChase = (game.venue?.name || '').toLowerCase().includes('chase field');
