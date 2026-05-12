@@ -4,10 +4,18 @@ import { useAuth } from '../contexts/AuthContext';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { trackEvent } from '../lib/analytics';
+import { cn } from '../lib/utils';
 
-export function InfoSection() {
+export function InfoSection({ sport = 'MLB' }: { sport?: 'MLB' | 'NHL' }) {
   const { user, signIn } = useAuth();
   const [isSigningIn, setIsSigningIn] = useState(false);
+  
+  const isMLB = sport === 'MLB';
+  const themeColor = isMLB ? 'salami-red' : 'blue-500';
+  const accentColor = isMLB ? 'text-salami-red' : 'text-blue-400';
+  const bgAccent = isMLB ? 'bg-red-900/20' : 'bg-blue-900/20';
+  const borderAccent = isMLB ? 'border-red-900/30' : 'border-blue-900/30';
+  const unit = isMLB ? 'runs' : 'goals';
 
   const handleSignUp = async () => {
     if (user || isSigningIn) return;
@@ -136,13 +144,13 @@ export function InfoSection() {
         {/* What is a Grand Salami? */}
         <div className="dashboard-card p-6 bg-slate-900/50 border-slate-800 shadow-lg">
           <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-xl bg-red-900/20 flex items-center justify-center shrink-0 border border-red-900/30">
-              <Info className="w-5 h-5 text-salami-red" />
+            <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border", bgAccent, borderAccent)}>
+              <Info className={cn("w-5 h-5", accentColor)} />
             </div>
             <div>
-              <h2 className="font-black text-white uppercase tracking-tighter text-lg mb-2">MLB Grand Salami Tracker</h2>
+              <h2 className="font-black text-white uppercase tracking-tighter text-lg mb-2">{sport} Grand Salami Tracker</h2>
               <p className="text-sm text-slate-400 leading-relaxed">
-                The <span className="text-salami-red font-bold">Grand Salami</span> is a unique wager on the <span className="font-bold text-slate-200">combined runs scored across every game on today's slate</span>. Track the total in real-time.
+                The <span className={cn(accentColor, "font-bold")}>Grand Salami</span> is a unique wager on the <span className="font-bold text-slate-200">combined {unit} scored across every game on today's slate</span>. Track the total in real-time.
               </p>
             </div>
           </div>
@@ -158,7 +166,7 @@ export function InfoSection() {
               <h2 className="font-black text-white uppercase tracking-tighter text-lg mb-2">Smart Projection Engine</h2>
               <p className="text-sm text-slate-400 leading-relaxed">
                 Our tracker uses a <span className="font-bold text-slate-200">Smart Projection Engine</span> that goes beyond simple math. 
-                It monitors <span className="text-blue-400 font-bold">Live Threats</span> in real-time to anticipate runs before they happen.
+                It monitors <span className="text-blue-400 font-bold">{isMLB ? 'Live Threats' : 'High-Danger Chances'}</span> in real-time to anticipate {unit} before they happen.
               </p>
             </div>
           </div>
@@ -166,23 +174,23 @@ export function InfoSection() {
 
         {/* Winible / Storefront */}
         <div className="dashboard-card p-6 bg-slate-900/50 border-slate-700/50 shadow-lg relative group overflow-hidden">
-          <div className="absolute inset-0 bg-red-600/5 group-hover:bg-red-600/10 transition-colors" />
+          <div className={cn("absolute inset-0 group-hover:opacity-10 transition-opacity", isMLB ? 'bg-red-600/5' : 'bg-blue-600/5')} />
           <div className="flex items-start gap-4 relative z-10">
-            <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0 border border-white/10 group-hover:border-salami-red/50 transition-colors">
-              <Zap className="w-5 h-5 text-salami-red" />
+            <div className={cn("w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0 border transition-colors", isMLB ? 'group-hover:border-salami-red/50' : 'group-hover:border-blue-500/50')}>
+              <Zap className={cn("w-5 h-5", accentColor)} />
             </div>
             <div className="flex-1">
-              <h2 className="font-black text-white uppercase tracking-tighter text-lg mb-2">Grand Salami Betting Strategy</h2>
+              <h2 className="font-black text-white uppercase tracking-tighter text-lg mb-2">Grand Salami Strategy</h2>
               <p className="text-sm text-slate-400 leading-relaxed mb-4">
-                Get <span className="text-white font-bold">Free Picks</span> and <span className="text-salami-red font-bold">Salami Slate Daily Updates</span> via our official Winible storefront.
+                Get <span className="text-white font-bold">Free Picks</span> and <span className={cn(accentColor, "font-bold")}>Salami Slate Daily Updates</span> via our official Winible storefront.
               </p>
               <a 
                 href="https://www.winible.com/grandsalamibet" 
                 target="_blank" 
                 rel="noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-salami-red hover:bg-red-600 rounded-lg text-[10px] font-black uppercase tracking-widest text-white transition-all shadow-lg shadow-red-900/20"
+                className={cn("inline-flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest text-white transition-all shadow-lg", isMLB ? 'bg-salami-red hover:bg-red-600 shadow-red-900/20' : 'bg-blue-600 hover:bg-blue-500 shadow-blue-900/20')}
               >
-                <span>Daily Grand Salami Picks and Insights</span>
+                <span>Daily {sport} Salami Picks</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </a>
             </div>
@@ -193,44 +201,54 @@ export function InfoSection() {
       {/* Pro Tips / Strategy */}
       <div className="dashboard-card p-8 bg-slate-900 border-none shadow-2xl relative overflow-hidden transition-colors duration-300">
         <div className="stitching-top opacity-30" />
-        <div className="absolute top-0 right-0 w-64 h-64 bg-salami-red/5 rounded-full -mr-32 -mt-32 blur-3xl" />
+        <div className={cn("absolute top-0 right-0 w-64 h-64 rounded-full -mr-32 -mt-32 blur-3xl opacity-10", isMLB ? 'bg-salami-red' : 'bg-blue-500')} />
         
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-6">
-            <Target className="w-6 h-6 text-salami-red" />
+            <Target className={cn("w-6 h-6", accentColor)} />
             <h3 className="font-black uppercase tracking-tighter text-2xl text-white">Bettor's Strategy Guide</h3>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-salami-red font-mono text-[10px] font-black uppercase tracking-widest">
-                <Zap className="w-3 h-3" /> Early Volatility
+              <div className={cn("flex items-center gap-2 font-mono text-[10px] font-black uppercase tracking-widest", accentColor)}>
+                <Zap className="w-3 h-3" /> {isMLB ? 'Early Volatility' : 'Period Variance'}
               </div>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Projections are highly volatile in the first 20% of the slate. A single high-scoring 1st inning can skew the math. Wait for 30%+ completion for a stable trend.
+                {isMLB 
+                  ? "Projections are highly volatile in the first 20% of the slate. A single high-scoring 1st inning can skew the math. Wait for 30%+ completion for a stable trend."
+                  : "Early goals in the 1st period can inflate projections significantly. Watch for teams with strong 2nd period scoring rates before jumping on a mid-game total."
+                }
               </p>
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-salami-red font-mono text-[10px] font-black uppercase tracking-widest">
-                <Zap className="w-3 h-3" /> Weather & Parks
+              <div className={cn("flex items-center gap-2 font-mono text-[10px] font-black uppercase tracking-widest", accentColor)}>
+                <Zap className="w-3 h-3" /> {isMLB ? 'Weather & Parks' : 'Goalie Matchups'}
               </div>
               <p className="text-xs text-slate-400 leading-relaxed">
-                The Grand Salami is heavily influenced by "Coors Field" games or high-wind days. One outlier game can carry the entire Over or sink the Under.
+                {isMLB
+                  ? "The Grand Salami is heavily influenced by 'Coors Field' games or high-wind days. One outlier game can carry the entire Over or sink the Under."
+                  : "NHL totals swing wildly based on backup goalies or high-octane offenses like Edmonton or Florida. Verify starting goalies before locking in your slate total."
+                }
               </p>
             </div>
 
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-blue-400 font-mono text-[10px] font-black uppercase tracking-widest">
-                <CloudRain className="w-3 h-3" /> Rain & Voids
+                <CloudRain className="w-3 h-3" /> {isMLB ? 'Rain & Voids' : 'Overtime & Rules'}
               </div>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Rain doesn't just lower scoring; it can void your entire bet. If a game is canceled or doesn't reach the required innings, most books void the Grand Salami. Watch the <span className="text-blue-400">Rain Risk</span> badges.
+                {isMLB
+                  ? "Rain doesn't just lower scoring; it can void your entire bet. If a game is canceled or doesn't reach the required innings, most books void the Grand Salami."
+                  : "Most sportsbooks include OT and Shootout goals in the Grand Salami total (Shootout counts as 1 goal). Verify your book's rules on 'voided' games if a game is abandoned."
+                }
               </p>
             </div>
           </div>
         </div>
       </div>
+
     </div>
   );
 }

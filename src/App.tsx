@@ -701,7 +701,7 @@ export default function App() {
             </p>
           </div>
 
-          <InfoSection />
+          <InfoSection sport={activeSport} />
 
           <WagerHistory 
             historicalGames={historicalGames} 
