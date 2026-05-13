@@ -20,7 +20,7 @@ import { UserAdminPanel } from './components/UserAdminPanel';
 import { WagerHistory } from './components/WagerHistory';
 import { FeedbackSection } from './components/FeedbackSection';
 import { BallparkPalLogo } from './components/BallparkPalLogo';
-import { Calendar, Share2, Droplets, Activity, ExternalLink, Smartphone, LogIn } from 'lucide-react';
+import { Calendar, Share2, Droplets, Activity, ExternalLink, Smartphone, LogIn, AlertTriangle, XCircle, RefreshCw } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { useAuth } from './contexts/AuthContext';
 import { db, handleFirestoreError, OperationType } from './firebase';
@@ -774,9 +774,9 @@ export default function App() {
             <span className="w-1 h-1 rounded-full bg-slate-800" />
             <a href="https://twitter.com/Salamipace" target="_blank" rel="noreferrer" className="hover:text-[#1DA1F2] transition-colors">Twitter</a>
             <span className="w-1 h-1 rounded-full bg-slate-800" />
-            <a href="https://ais-pre-vccr6fawtybbglnmzdudam-387114323884.us-east1.run.app" target="_blank" rel="noreferrer" className="hover:text-salami-red transition-colors">Shared v1.2.2</a>
+            <a href="https://ais-pre-vccr6fawtybbglnmzdudam-387114323884.us-east1.run.app" target="_blank" rel="noreferrer" className="hover:text-salami-red transition-colors">Shared v1.3.0</a>
             <span className="w-1 h-1 rounded-full bg-slate-800" />
-            <span className="text-slate-700">v1.2.2</span>
+            <span className="text-slate-700">v1.3.0</span>
           </div>
           <p className="text-[10px] text-slate-600 font-mono tracking-widest">
             DATA PROVIDED BY MLB STATS API • UPDATES EVERY 60S

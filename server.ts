@@ -1,6 +1,7 @@
 import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import { TwitterApi } from "twitter-api-v2";
@@ -118,7 +119,12 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), "dist");
+    // In production, server.cjs is IN dist/, so distPath is either current dir or process.cwd()/dist
+    let distPath = path.join(process.cwd(), "dist");
+    if (!fs.existsSync(distPath)) {
+      distPath = _dirname; // Fallback to current directory of server.cjs
+    }
+    
     app.use(express.static(distPath));
     app.get("*", (req, res) => {
       res.sendFile(path.join(distPath, "index.html"));
