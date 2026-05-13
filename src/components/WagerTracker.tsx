@@ -99,7 +99,7 @@ export function WagerTracker({
         localStorage.setItem('salami_bet_line', betLine.toString());
         localStorage.setItem('salami_bet_type', betType);
         toast.success('WAGER SAVED LOCALLY 💾', {
-          description: 'Login to sync across devices!'
+          description: 'Sign in to build your Salami Streak and sync across devices!'
         });
       }
     } catch (error) {
@@ -716,9 +716,17 @@ export function WagerTracker({
 
           {betLine === '' && (
             <div className="p-8 text-center border-2 border-dashed border-slate-800 rounded-xl">
-              <p className="text-xs text-slate-600 font-mono uppercase tracking-widest">
+              <p className="text-xs text-slate-600 font-mono uppercase tracking-widest mb-3">
                 Enter your wager details above to track your bet live
               </p>
+              {!user && (
+                <div className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-900 border border-slate-800 rounded-lg opacity-60">
+                  <History className="w-3.5 h-3.5 text-blue-500" />
+                  <span className="text-[9px] font-mono font-black text-slate-400 uppercase tracking-widest">
+                    Sign in to track your Salami Streak history
+                  </span>
+                </div>
+              )}
             </div>
           )}
         </div>

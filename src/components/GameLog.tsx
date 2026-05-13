@@ -75,7 +75,9 @@ const getSpecialIntelligence = (game: MLBGame, parkFactors: BallparkPalFactor[] 
   
   // Tropicana is always a dome. 
   // Others are strict domes if explicitly closed or if they are retractable and not explicitly open.
-  const isStrictDome = venue.includes('tropicana') || (isRetractable && isExplicitlyClosed && !isExplicitlyOpen);
+  // Exception: Chase Field & Minute Maid/Daikin don't default to strict dome when status is unknown to allow for environmental updates.
+  const venueIsFlexibleRetractable = venue.includes('chase field') || venue.includes('minute maid') || venue.includes('daikin');
+  const isStrictDome = venue.includes('tropicana') || (isRetractable && isExplicitlyClosed) || (isRetractable && !isExplicitlyOpen && !venueIsFlexibleRetractable);
 
   const detailedFactor = getDetailedParkFactor(game.venue?.name || '', game.weather?.condition);
 
@@ -131,10 +133,21 @@ Sourced via BallparkPal.com`;
   };
 
   const isChase = (game.venue?.name || '').toLowerCase().includes('chase field');
+  const isAstros = (game.venue?.name || '').toLowerCase().includes('minute maid') || (game.venue?.name || '').toLowerCase().includes('daikin');
   const isChaseClosed = isChase && isExplicitlyClosed && !isExplicitlyOpen;
+  const isAstrosClosed = isAstros && isExplicitlyClosed && !isExplicitlyOpen;
 
   if (isChaseClosed) {
     return [{ label: 'HUMIDOR CONTROL', color: 'bg-teal-500/10 text-teal-300 border-teal-500/20', icon: Droplets, title: 'Chase Field (Closed): Climate controlled and humidor storage negate high desert volatility. Sourced via BallparkPal.com' }];
+  }
+
+  if (isAstros && !isAstrosClosed && wind.direction === 'OUT' && wind.speed >= 5) {
+    return [{ 
+      label: 'ASTROS VENT', 
+      color: 'bg-red-500/20 text-red-500 border-red-500/30', 
+      icon: Wind, 
+      title: `Minute Maid Wind Boost: ${isExplicitlyOpen ? 'Confirmed' : 'Potential'} tailwind boost to Left Field power alley (${wind.speed}mph OUT). Sourced via BallparkPal.com` 
+    }];
   }
 
   // Roof Open intelligence for retractable parks
@@ -285,7 +298,8 @@ const getEnvironmentalWarning = (game: MLBGame) => {
   const isExplicitlyOpen = condition.includes('open') || condition.includes('outdoor') || ['clear', 'sunny', 'fair', 'partly'].some(k => condition.includes(k));
   const isExplicitlyClosed = condition.includes('closed') || condition.includes('indoor') || condition.includes('dome');
   const isRetractable = venue.includes('loandepot') || venue.includes('globe life') || venue.includes('minute maid') || venue.includes('american family') || venue.includes('rogers centre') || venue.includes('skydome') || venue.includes('chase field') || venue.includes('t-mobile') || venue.includes('safeco');
-  const isStrictDome = venue.includes('tropicana') || (isRetractable && isExplicitlyClosed) || (isRetractable && !isExplicitlyOpen && (venue.includes('chase field') ? false : true));
+  const venueIsFlexibleRetractable = venue.includes('chase field') || venue.includes('minute maid') || venue.includes('daikin');
+  const isStrictDome = venue.includes('tropicana') || (isRetractable && isExplicitlyClosed) || (isRetractable && !isExplicitlyOpen && !venueIsFlexibleRetractable);
   
   if (isStrictDome) return null;
   
@@ -337,7 +351,8 @@ const getParkIntelligence = (game: MLBGame) => {
   const isExplicitlyOpen = condition.includes('open') || condition.includes('outdoor') || ['clear', 'sunny', 'fair', 'partly', 'night'].some(k => condition.includes(k));
   const isExplicitlyClosed = (condition.includes('closed') || condition.includes('indoor') || condition.includes('dome')) && !isExplicitlyOpen;
   const isRetractable = venue.includes('loandepot') || venue.includes('globe life') || venue.includes('minute maid') || venue.includes('american family') || venue.includes('rogers centre') || venue.includes('skydome') || venue.includes('chase field') || venue.includes('t-mobile') || venue.includes('safeco');
-  const isStrictDome = venue.includes('tropicana') || (isRetractable && isExplicitlyClosed) || (isRetractable && !isExplicitlyOpen && (venue.includes('chase field') ? false : true));
+  const venueIsFlexibleRetractable = venue.includes('chase field') || venue.includes('minute maid') || venue.includes('daikin');
+  const isStrictDome = venue.includes('tropicana') || (isRetractable && isExplicitlyClosed) || (isRetractable && !isExplicitlyOpen && !venueIsFlexibleRetractable);
   const isRetractableSeattle = venue.includes('t-mobile');
 
   if (isStrictDome) {
@@ -371,6 +386,7 @@ const getParkIntelligence = (game: MLBGame) => {
     113: { impulse: 'neutral', tech: "Great American BP (Launch Pad): Stable environment today with only marginal +1% runs and +3% HR activity. " },
     143: { impulse: 'positive', tech: "Citizens Bank Park (Philly Power): Significant power environment with +13% HR boost and +8% overall runs. " },
     119: { impulse: 'positive', tech: "Dodger Stadium (LA HR Factory): Elite +22% Home Run boost projected for today's atmospheric profile. " },
+    117: { impulse: 'neutral', tech: "Minute Maid Park: Retractable roof state actively monitored. Primary offensive driver is the 'Crawford Boxes' pull-side geometry (+5% HR). " },
     137: { impulse: 'negative', tech: "Oracle Park (Pitchers Haven): A massive -22% Home Run reduction makes this a premier defensive venue today (-1% runs). " },
     135: { impulse: 'negative', tech: "Petco Park (Padre Shield): Drastic -9% scoring environment with -22% extra-base hit suppression. " },
     114: { impulse: 'negative', tech: "Progressive Field (CLE Shield): Extreme -25% Home Run reduction active today (-8% overall runs). " },
@@ -455,6 +471,10 @@ const getParkIntelligence = (game: MLBGame) => {
     hasSpecificClimateIntel = true;
     impulse = 'positive';
     techReport += "Philly Wind Tunnel (+0.44 Potential): The outbound wind vector is notoriously active at this venue. ";
+  } else if ((homeId === 117 || venue.includes('minute maid') || venue.includes('daikin')) && isOut && !isStrictDome) {
+    hasSpecificClimateIntel = true;
+    impulse = 'positive';
+    techReport += `Astros Wind Boost: With the ${isExplicitlyOpen ? 'roof OPEN' : 'potential for the roof to open'}, the ${windSpeed}mph tailwind provides a significant power boost to the short porch in Left Field. `;
   }
   
   // 1. Temperature Analysis (Physics of Air Density)
@@ -928,7 +948,7 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                                       e.stopPropagation();
                                       handleSaveLine(game.gamePk);
                                     }}
-                                    className="p-1 hover:bg-slate-800 rounded text-green-500"
+                                    className="p-1 hover:bg-slate-800 rounded text-green-500 cursor-pointer"
                                   >
                                     <Save className="w-3 h-3" />
                                   </button>
@@ -938,13 +958,14 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                                   <span 
                                     className={cn(
                                       "text-[10px] font-mono font-black text-slate-300",
-                                      isAdmin && "hover:text-salami-red cursor-pointer"
+                                      isAdmin && "hover:text-salami-red cursor-pointer underline decoration-dotted decoration-slate-700 underline-offset-4"
                                     )}
                                     onClick={(e) => {
                                       if (isAdmin) {
                                         e.stopPropagation();
                                         setEditingLineId(game.gamePk);
-                                        setTempLine((manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine)?.toString() || '');
+                                        const currentVal = manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine ?? 9.5;
+                                        setTempLine(currentVal.toString());
                                       }
                                     }}
                                   >
@@ -955,9 +976,10 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         setEditingLineId(game.gamePk);
-                                        setTempLine((manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine)?.toString() || '');
+                                        const currentVal = manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine ?? 9.5;
+                                        setTempLine(currentVal.toString());
                                       }}
-                                      className="p-1 hover:bg-slate-800 rounded text-slate-400"
+                                      className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-500 hover:text-white transition-colors cursor-pointer"
                                     >
                                       <Edit2 className="w-2.5 h-2.5" />
                                     </button>
@@ -1218,8 +1240,11 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                                       autoFocus
                                     />
                                     <button
-                                      onClick={() => handleSaveLine(game.gamePk)}
-                                      className="p-2 md:p-1 hover:bg-slate-800 rounded text-green-500"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleSaveLine(game.gamePk);
+                                      }}
+                                      className="p-2 md:p-1 hover:bg-slate-800 rounded text-green-500 cursor-pointer"
                                     >
                                       <Save className="w-3 h-3" />
                                     </button>
@@ -1230,13 +1255,14 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                                       <span 
                                         className={cn(
                                           "text-sm font-mono font-black text-white",
-                                          isAdmin && "hover:text-salami-red cursor-pointer"
+                                          isAdmin && "hover:text-salami-red cursor-pointer underline decoration-dotted decoration-slate-700 underline-offset-4"
                                         )}
                                         onClick={(e) => {
                                           if (isAdmin) {
                                             e.stopPropagation();
                                             setEditingLineId(game.gamePk);
-                                            setTempLine((manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine)?.toString() || '');
+                                            const currentVal = manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine ?? 9.5;
+                                            setTempLine(currentVal.toString());
                                           }
                                         }}
                                       >
@@ -1247,9 +1273,10 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             setEditingLineId(game.gamePk);
-                                            setTempLine((manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine)?.toString() || '');
+                                            const currentVal = manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine ?? 9.5;
+                                            setTempLine(currentVal.toString());
                                           }}
-                                          className="p-2 md:p-1 hover:bg-slate-800 rounded text-slate-400 opacity-100 md:opacity-0 md:group-hover/line:opacity-100 transition-opacity"
+                                          className="p-2 md:p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-all cursor-pointer"
                                         >
                                           <Edit2 className="w-3 h-3" />
                                         </button>

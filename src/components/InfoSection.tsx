@@ -97,9 +97,9 @@ export function InfoSection({ sport = 'MLB' }: { sport?: 'MLB' | 'NHL' }) {
                 <History className="w-5 h-5 text-green-400" />
               </div>
               <div>
-                <h4 className="text-sm font-black text-white uppercase tracking-widest mb-1">Historical Data</h4>
+                <h4 className="text-sm font-black text-white uppercase tracking-widest mb-1">Salami Streak History</h4>
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  Access deep historical trends for different slate sizes to help you spot value in the daily lines.
+                  Join the official Grand Salami Streak. Registered users get their history tracked automatically to build and preserve long-term winning streaks.
                 </p>
               </div>
             </div>
@@ -108,8 +108,8 @@ export function InfoSection({ sport = 'MLB' }: { sport?: 'MLB' | 'NHL' }) {
           {!user && (
             <div className="mt-10 pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-6">
               <div>
-                <h4 className="text-lg font-black text-white uppercase tracking-tighter">Ready to track your edge?</h4>
-                <p className="text-xs text-slate-500 font-mono mt-1 uppercase">Join 1,000+ bettors monitoring the pace today.</p>
+                <h4 className="text-lg font-black text-white uppercase tracking-tighter">Ready to start your streak?</h4>
+                <p className="text-xs text-slate-500 font-mono mt-1 uppercase">Join 1,000+ bettors building their Grand Salami history today.</p>
               </div>
               <button
                 onClick={handleSignUp}

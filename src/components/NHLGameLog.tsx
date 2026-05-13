@@ -220,8 +220,11 @@ export function NHLGameLog({ games, gameLines, manualLines = {} }: NHLGameLogPro
                                       autoFocus
                                     />
                                     <button
-                                      onClick={() => handleSaveLine(game.id)}
-                                      className="p-1 hover:bg-slate-800 rounded text-green-500"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleSaveLine(game.id);
+                                      }}
+                                      className="p-1 hover:bg-slate-800 rounded text-green-500 cursor-pointer"
                                     >
                                       <Save className="w-3 h-3" />
                                     </button>
@@ -232,19 +235,30 @@ export function NHLGameLog({ games, gameLines, manualLines = {} }: NHLGameLogPro
                                       <span 
                                         className={cn(
                                           "text-sm font-mono font-black text-white",
-                                          isAdmin && "hover:text-blue-500 cursor-pointer"
+                                          isAdmin && "hover:text-blue-500 cursor-pointer underline decoration-dotted decoration-slate-700 underline-offset-4"
                                         )}
                                         onClick={(e) => {
                                           if (isAdmin) {
                                             e.stopPropagation();
                                             setEditingLineId(game.id);
-                                            setTempLine((manualLines[game.id] ?? gameLines[game.id])?.toString() || '6.5');
+                                            setTempLine((manualLines[game.id] ?? gameLines[game.id] ?? 6.5).toString());
                                           }
                                         }}
                                       >
                                         {(manualLines[game.id] ?? gameLines[game.id]) !== undefined ? (manualLines[game.id] ?? gameLines[game.id]).toFixed(1) : '6.5'}
                                       </span>
-                                      {isAdmin && <Edit2 className="w-3 h-3 text-slate-600 opacity-0 group-hover/line:opacity-100 transition-opacity" />}
+                                      {isAdmin && (
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setEditingLineId(game.id);
+                                            setTempLine((manualLines[game.id] ?? gameLines[game.id] ?? 6.5).toString());
+                                          }}
+                                          className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-500 hover:text-white transition-colors cursor-pointer"
+                                        >
+                                          <Edit2 className="w-3 h-3" />
+                                        </button>
+                                      )}
                                     </div>
                                     <span className="text-[7px] font-mono text-slate-500 font-bold uppercase tracking-widest mt-0.5">O/U Line</span>
                                   </div>
