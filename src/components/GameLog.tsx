@@ -64,6 +64,8 @@ const getSpecialIntelligence = (game: MLBGame, parkFactors: BallparkPalFactor[] 
   const climate = getParkIntelligence(game);
   const temp = climate?.temp || 72;
 
+  const badges: any[] = [];
+
   // Live Ballpark Pal Data Integration
   const awayAbbr = game.teams.away.team.abbreviation || '';
   const homeAbbr = game.teams.home.team.abbreviation || '';
@@ -73,15 +75,12 @@ const getSpecialIntelligence = (game: MLBGame, parkFactors: BallparkPalFactor[] 
   const isExplicitlyOpen = condition.includes('open') || condition.includes('outdoor');
   const isExplicitlyClosed = (condition.includes('closed') || condition.includes('indoor') || condition.includes('dome'));
   
-  // Tropicana is always a dome. 
-  // Others are strict domes if explicitly closed or if they are retractable and not explicitly open.
-  // Exception: Chase Field & Minute Maid/Daikin don't default to strict dome when status is unknown to allow for environmental updates.
   const venueIsFlexibleRetractable = venue.includes('chase field') || venue.includes('minute maid') || venue.includes('daikin');
   const isStrictDome = venue.includes('tropicana') || (isRetractable && isExplicitlyClosed) || (isRetractable && !isExplicitlyOpen && !venueIsFlexibleRetractable);
 
   const detailedFactor = getDetailedParkFactor(game.venue?.name || '', game.weather?.condition);
 
-  // 0. Live Ballpark Pal Intelligence (Level 1 - Priority)
+  // 0. Live Ballpark Pal Intelligence (Priority Factor)
   if (livePalFactor) {
     const runChange = Math.round((livePalFactor.runs - 1) * 100);
     const hrChange = Math.round((livePalFactor.hr - 1) * 100);
@@ -98,10 +97,9 @@ const getSpecialIntelligence = (game: MLBGame, parkFactors: BallparkPalFactor[] 
 Runs: ${runChange > 0 ? '+' : ''}${runChange}%
 HR: ${hrChange > 0 ? '+' : ''}${hrChange}%
 Hits: ${hitsChange > 0 ? '+' : ''}${hitsChange}%
-${livePalFactor.edge ? `Edge vs Market: ${livePalFactor.edge > 0 ? '+' : ''}${livePalFactor.edge}` : ''}
-Sourced via BallparkPal.com`;
+Data Sourced via Ballpark Pal daily weather/park factor data`;
 
-    return [{
+    badges.push({
       label: `${venueShort} (${runChange > 0 ? '+' : ''}${runChange}%)`,
       color: livePalFactor.runs >= 1.10 ? 'bg-red-500/20 text-red-500 border-red-500/20' : 
              livePalFactor.runs <= 0.90 ? 'bg-blue-600/20 text-blue-400 border-blue-600/30' :
@@ -109,10 +107,10 @@ Sourced via BallparkPal.com`;
              'bg-slate-500/10 text-slate-400 border-white/5',
       icon: livePalFactor.runs >= 1.10 ? Zap : (livePalFactor.runs <= 0.90 ? ShieldCheck : Activity), 
       title: palTitle
-    }];
+    });
   }
 
-  // 0. Latest Park Intelligence (Priority 2 - Static Fallback)
+  // 0. Static Intelligence Fallback (Primary Park identity)
   const intelligenceParks: Record<number, any> = {
     133: { label: 'SUTTER POWER', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: Zap, title: 'Sutter Health Park: +21% scoring environment with +31% Home Run appeal. Sourced via BallparkPal.com' },
     145: { label: 'RATE BOOST', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: Zap, title: 'Guaranteed Rate Field: +12% Run environment with +21% Home Run boost. Sourced via BallparkPal.com' },
@@ -138,154 +136,83 @@ Sourced via BallparkPal.com`;
   const isAstrosClosed = isAstros && isExplicitlyClosed && !isExplicitlyOpen;
 
   if (isChaseClosed) {
-    return [{ label: 'HUMIDOR CONTROL', color: 'bg-teal-500/10 text-teal-300 border-teal-500/20', icon: Droplets, title: 'Chase Field (Closed): Climate controlled and humidor storage negate high desert volatility. Sourced via BallparkPal.com' }];
+    badges.push({ label: 'HUMIDOR CONTROL', color: 'bg-teal-500/10 text-teal-300 border-teal-500/20', icon: Droplets, title: 'Chase Field (Closed): Climate controlled and humidor storage negate high desert volatility. Sourced via BallparkPal.com' });
   }
 
   if (isAstros && !isAstrosClosed && wind.direction === 'OUT' && wind.speed >= 5) {
-    return [{ 
+    badges.push({ 
       label: 'ASTROS VENT', 
       color: 'bg-red-500/20 text-red-500 border-red-500/30', 
       icon: Wind, 
-      title: `Minute Maid Wind Boost: ${isExplicitlyOpen ? 'Confirmed' : 'Potential'} tailwind boost to Left Field power alley (${wind.speed}mph OUT). Sourced via BallparkPal.com` 
-    }];
+      title: `Minute Maid Wind Boost: ${isExplicitlyOpen ? 'Confirmed' : 'Potential'} tailwind boost to Left Field power alley (${wind.speed}mph OUT). Sourced via Ballpark Pal Daily Update` 
+    });
   }
 
-  // Roof Open intelligence for retractable parks
-  if (isRetractable && isExplicitlyOpen) {
-    const venueShort = (game.venue?.name || '').split(' ')[0].toUpperCase();
-    const runChange = detailedFactor ? Math.round((detailedFactor.runs - 1) * 100) : 0;
-    const hrChange = detailedFactor ? Math.round((detailedFactor.hr - 1) * 100) : 0;
-
-    return [{ 
-      label: `ROOF OPEN: ${venueShort}`, 
-      color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', 
-      icon: Activity, 
-      title: `${game.venue?.name}: Roof confirmed OPEN tonight. Scoring environment: ${runChange > 0 ? '+' : ''}${runChange}% Runs, ${hrChange > 0 ? '+' : ''}${hrChange}% HR compared to baseline. Sourced via BallparkPal.com` 
-    }];
+  if (badges.length === 0) {
+    const tid = Number(homeId);
+    if (intelligenceParks[tid]) {
+      badges.push(intelligenceParks[tid]);
+    } else if (isStrictDome && (venue.includes('tropicana') || isRetractable)) {
+      badges.push({ 
+        label: 'DOME CONTROL', 
+        color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20', 
+        icon: ShieldCheck, 
+        title: `${game.venue?.name}: Atmospheric conditions are precisely regulated; outside weather is negated.` 
+      });
+    } else if (isRetractable && isExplicitlyOpen) {
+       const venueShort = (game.venue?.name || '').split(' ')[0].toUpperCase();
+       badges.push({ 
+         label: `${venueShort} ROOF OPEN`, 
+         color: 'bg-amber-500/10 text-amber-400 border-amber-500/20', 
+         icon: Sun, 
+         title: `${game.venue?.name}: Roof is reported OPEN. Outdoor atmospheric conditions and wind are active.` 
+       });
+    } else if (detailedFactor) {
+      const runVal = detailedFactor.runs;
+      const runChange = Math.round((runVal - 1) * 100);
+      const venueName = game.venue?.name || '';
+      const venueShort = venueName.includes('Great American') 
+        ? 'GREAT AMERICAN' 
+        : venueName.toLowerCase().includes('chase field')
+          ? 'CHASE FIELD'
+          : venueName.split(' ')[0].toUpperCase();
+          
+      badges.push({ 
+        label: `${venueShort} (${runChange > 0 ? '+' : ''}${runChange}%)`, 
+        color: runVal >= 1.10 ? 'bg-red-500/20 text-red-500 border-red-500/20' : 
+               runVal <= 0.90 ? 'bg-blue-600/20 text-blue-400 border-blue-600/30' :
+               runVal > 1 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10' : 
+               'bg-slate-500/10 text-slate-400 border-white/5', 
+        icon: runVal >= 1.10 ? Zap : (runVal <= 0.90 ? ShieldCheck : Activity), 
+        title: `${game.venue?.name}: Daily environment factor. Sourced via Ballpark Pal Daily Update`
+      });
+    }
   }
 
-  const tid = Number(homeId);
-  if (intelligenceParks[tid]) {
-    // If it's Chase and it's OPEN, we return the Desert Heat one from the object above
-    return [intelligenceParks[tid]];
-  }
+  // Final fallbacks if still empty
+  if (badges.length === 0) {
+    const isWrigley = homeId === 112 || venue.includes('wrigley');
+    const isCoors = homeId === 115 || venue.includes('coors');
 
-  // 1. Primary Park Identity & Logic (Only one main park badge)
-  
-  // If retractable and explicitly OPEN
-  if (isRetractable && isExplicitlyOpen) {
-    const venueShort = (game.venue?.name || '').split(' ')[0].toUpperCase();
-    return [{ 
-      label: `${venueShort} ROOF OPEN`, 
-      color: 'bg-amber-500/10 text-amber-400 border-amber-500/20', 
-      icon: Sun, 
-      title: `${game.venue?.name}: Roof is reported OPEN. Outdoor atmospheric conditions and wind are active.` 
-    }];
-  }
-
-  if (isStrictDome && (venue.includes('tropicana') || isRetractable)) {
-    return [{ 
-      label: 'DOME CONTROL', 
-      color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20', 
-      icon: ShieldCheck, 
-      title: `${game.venue?.name}: Atmospheric conditions are precisely regulated; outside weather is negated.` 
-    }];
-  } 
-
-  if (detailedFactor) {
-    const { hr, extraBase, single, runs: runVal } = detailedFactor;
-    const runChange = Math.round((runVal - 1) * 100);
-    const hrChange = Math.round((hr - 1) * 100);
-    const ebChange = Math.round((extraBase - 1) * 100);
-    const sChange = Math.round((single - 1) * 100);
-    
-    const venueName = game.venue?.name || '';
-    const venueShort = venueName.includes('Great American') 
-      ? 'GREAT AMERICAN' 
-      : venueName.toLowerCase().includes('chase field')
-        ? 'CHASE FIELD'
-        : venueName.split(' ')[0].toUpperCase();
-      
-    // Create detailed hover text
-    const detailedTitle = `${game.venue?.name}: Daily Environment
-Runs: ${runChange > 0 ? '+' : ''}${runChange}%
-HR: ${hrChange > 0 ? '+' : ''}${hrChange}%
-2B/3B: ${ebChange > 0 ? '+' : ''}${ebChange}%
-1B: ${sChange > 0 ? '+' : ''}${sChange}%
-Data Sourced via Ballpark Pal Daily Update`;
-
-    const mainBadge = { 
-      label: `${venueShort} (${runChange > 0 ? '+' : ''}${runChange}%)`, 
-      color: runVal >= 1.10 ? 'bg-red-500/20 text-red-500 border-red-500/20' : 
-             runVal <= 0.90 ? 'bg-blue-600/20 text-blue-400 border-blue-600/30' :
-             runVal > 1 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10' : 
-             'bg-slate-500/10 text-slate-400 border-white/5', 
-      icon: runVal >= 1.10 ? Zap : (runVal <= 0.90 ? ShieldCheck : Activity), 
-      title: detailedTitle
-    };
-
-    return [mainBadge];
-  }
-
-  // Backup for specific parks that might have unique complex logic not fully captured by factor alone
-  const isWrigley = homeId === 112 || venue.includes('wrigley');
-  const isCoors = homeId === 115 || venue.includes('coors');
-
-  if (isWrigley) {
-    if (wind.direction === 'OUT' && wind.speed >= 3) {
-      return [{ label: 'WRIGLEY BOOST (+2.27)', color: 'bg-red-600/20 text-red-500 border-red-500/30', icon: Wind, title: 'Wrigley Field Potential: Significant wind blowing out favors offensive clusters (+2.27 Runs).' }];
-    } else if (wind.direction === 'IN' || temp < 55 || (wind.direction === 'CROSS' && temp < 60)) {
-      return [{ label: 'WRIGLEY GRAVEYARD (-35% HR)', color: 'bg-blue-700/30 text-blue-300 border-blue-500/40', icon: ShieldCheck, title: `Extreme Suppression (-10% Runs): ${wind.direction === 'IN' ? 'Headwind' : 'Cold air'} deadening fly balls tonight (-35% HR).` }];
+    if (isWrigley) {
+      if (wind.direction === 'OUT' && wind.speed >= 3) {
+        badges.push({ label: 'WRIGLEY BOOST', color: 'bg-red-600/20 text-red-500 border-red-500/30', icon: Wind, title: 'Wrigley Field Potential: Significant wind blowing out favors offensive clusters (+2.27 Runs).' });
+      } else if (wind.direction === 'IN' || temp < 55) {
+        badges.push({ label: 'WRIGLEY SHIELD', color: 'bg-blue-700/30 text-blue-300 border-blue-500/40', icon: ShieldCheck, title: `Extreme Suppression (-10% Runs): ${wind.direction === 'IN' ? 'Headwind' : 'Cold air'} deadening fly balls tonight.` });
+      }
+    } else if (isCoors) {
+      badges.push({ label: 'ALTITUDE FACTOR', color: 'bg-orange-500/10 text-orange-400 border-orange-500/20', icon: Activity, title: 'Coors Field (+2.94 Runs): 5,280ft elevation consistently boosts fly ball carry.' });
     } else {
-      return [{ label: 'WRIGLEY NEUTRAL', color: 'bg-slate-500/10 text-slate-400 border-white/5', icon: ShieldCheck, title: 'Wrigley playing near neutral baseline tonight.' }];
-    }
-  } else if (isCoors) {
-    if (temp > 70) {
-      return [{ label: 'COORS BOOST (+2.94)', color: 'bg-red-500/20 text-red-500 border-red-500/20', icon: Zap, title: 'Coors Field (+2.94 Runs): Extreme Altitude + Heat creates the most offensive environment in baseball.' }];
-    } else {
-      return [{ label: 'ALTITUDE FACTOR (+2.94)', color: 'bg-orange-500/10 text-orange-400 border-orange-500/20', icon: Activity, title: 'Coors Field (+2.94 Runs): 5,280ft elevation consistently boosts fly ball carry by 5-10%.' }];
-    }
-  }
-
-  // Fallback Atmospheric Pulse
-  const pressureLabel = temp > 72 ? 'Low Pressure' : (temp < 68 ? 'High Pressure' : 'Normal');
-  const airDescription = temp > 72 ? 'Expanded' : (temp < 68 ? 'Compressed' : 'Stable');
-  
-  if (temp > 75) {
-    return [{ 
-      label: 'THIN AIR PULSE', 
-      color: 'bg-orange-500/10 text-orange-400 border-orange-500/20', 
-      icon: Activity, 
-      title: `${pressureLabel}: ${temp}°F temperature is reducing air density, boosting ball travel.` 
-    }];
-  } else if (temp < 65) {
-    return [{ 
-      label: 'DENSE AIR LID', 
-      color: 'bg-blue-500/10 text-blue-400 border-blue-500/20', 
-      icon: ShieldCheck, 
-      title: `${pressureLabel}: ${temp}°F air is ${airDescription}, creating higher atmospheric resistance.` 
-    }];
-  }
-
-  // Global Weather Factors
-  if (!isStrictDome) {
-    if (wind.direction === 'OUT' && wind.speed >= 10) {
-      return [{ label: 'TAILWIND', color: 'bg-red-500/10 text-red-400 border-red-500/20', icon: Wind, title: `${wind.speed}mph tailwind boosting flight` }];
-    } else if (wind.direction === 'IN' && wind.speed >= 10) {
-      return [{ label: 'HEADWIND', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20', icon: Wind, title: `${wind.speed}mph headwind stifling fly balls` }];
-    }
-
-    if (condition.includes('humid') || condition.includes('damp')) {
-      return [{ label: 'HUMID AIR', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10', icon: Droplets, title: 'Moisture in the air reduces density, aiding carry slightly.' }];
+      badges.push({ 
+        label: 'STABLE ATMOSPHERE', 
+        color: 'bg-slate-500/10 text-slate-400 border-white/5', 
+        icon: Activity, 
+        title: 'Current readings show a stable atmospheric baseline. Sourced via Ballpark Pal daily weather data.' 
+      });
     }
   }
 
-  return [{ 
-    label: 'STABLE ATMOSPHERE', 
-    color: 'bg-slate-500/10 text-slate-400 border-white/5', 
-    icon: Activity, 
-    title: 'Current readings show a stable atmospheric baseline. Sourced via Ballpark Pal daily weather data.' 
-  }];
+  return badges;
 };
 
 const getEnvironmentalWarning = (game: MLBGame) => {
