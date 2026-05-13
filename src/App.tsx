@@ -116,7 +116,7 @@ export default function App() {
       const [mlbData, nhlData, palData] = await Promise.all([
         fetchMLBGames(today),
         fetchNHLGames(today),
-        fetchBallparkPalFactors()
+        fetchBallparkPalFactors(today)
       ]);
       
       setGames(mlbData || []);

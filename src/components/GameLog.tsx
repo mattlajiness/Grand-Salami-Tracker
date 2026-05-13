@@ -69,7 +69,9 @@ const getSpecialIntelligence = (game: MLBGame, parkFactors: BallparkPalFactor[] 
   // Live Ballpark Pal Data Integration
   const awayAbbr = game.teams.away.team.abbreviation || '';
   const homeAbbr = game.teams.home.team.abbreviation || '';
-  const livePalFactor = findGameFactor(parkFactors, awayAbbr, homeAbbr);
+  const awayName = game.teams.away.team.name || '';
+  const homeName = game.teams.home.team.name || '';
+  const livePalFactor = findGameFactor(parkFactors, awayAbbr, homeAbbr, awayName, homeName);
 
   const isRetractable = venue.includes('loandepot') || venue.includes('globe life') || venue.includes('minute maid') || venue.includes('daikin') || venue.includes('american family') || venue.includes('rogers centre') || venue.includes('skydome') || venue.includes('chase field') || venue.includes('t-mobile') || venue.includes('safeco');
   const isExplicitlyOpen = condition.includes('open') || condition.includes('outdoor');
@@ -100,7 +102,7 @@ Hits: ${hitsChange > 0 ? '+' : ''}${hitsChange}%
 Live environmental analysis sourced via Ballpark Pal daily updates`;
 
     badges.push({
-      label: `LIVE: ${venueShort} (${runChange > 0 ? '+' : ''}${runChange}%)`,
+      label: `${venueShort} (${runChange > 0 ? '+' : ''}${runChange}%)`,
       color: livePalFactor.runs >= 1.10 ? 'bg-red-500/20 text-red-500 border-red-500/20' : 
              livePalFactor.runs <= 0.90 ? 'bg-blue-600/20 text-blue-400 border-blue-600/30' :
              livePalFactor.runs > 1 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10' : 

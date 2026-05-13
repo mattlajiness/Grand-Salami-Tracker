@@ -1,3 +1,5 @@
+import { format } from 'date-fns';
+
 /**
  * Ballpark Pal API Service
  * Sourced via BallparkPal.com
@@ -14,21 +16,25 @@ export interface BallparkPalFactor {
   edge?: number;
 }
 
-let factorsCache: {
+let factorsCache: Record<string, {
   data: BallparkPalFactor[];
   timestamp: number;
-} | null = null;
+}> = {};
 
 const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
-export async function fetchBallparkPalFactors(): Promise<BallparkPalFactor[]> {
+export async function fetchBallparkPalFactors(date?: string): Promise<BallparkPalFactor[]> {
   const now = Date.now();
-  if (factorsCache && (now - factorsCache.timestamp < CACHE_TTL)) {
-    return factorsCache.data;
+  const cacheKey = date || format(new Date(), 'yyyy-MM-dd');
+  
+  const cached = factorsCache[cacheKey];
+  if (cached && (now - cached.timestamp < CACHE_TTL)) {
+    return cached.data;
   }
 
   try {
-    const response = await fetch('/api/ballpark-pal/park-factors');
+    const url = date ? `/api/ballpark-pal/park-factors?date=${date}` : '/api/ballpark-pal/park-factors';
+    const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`Ballpark Pal API Error: ${response.status}`);
     }
@@ -63,7 +69,7 @@ export async function fetchBallparkPalFactors(): Promise<BallparkPalFactor[]> {
       };
     });
 
-    factorsCache = {
+    factorsCache[cacheKey] = {
       data: normalizedData,
       timestamp: now
     };
@@ -71,15 +77,41 @@ export async function fetchBallparkPalFactors(): Promise<BallparkPalFactor[]> {
     return normalizedData;
   } catch (error) {
     console.error('Error fetching Ballpark Pal factors:', error);
-    return factorsCache?.data || [];
+    return factorsCache[cacheKey]?.data || [];
   }
 }
 
-export function findGameFactor(factors: BallparkPalFactor[], awayAbbr: string, homeAbbr: string): BallparkPalFactor | null {
+export function findGameFactor(factors: BallparkPalFactor[], awayAbbr: string, homeAbbr: string, awayName: string = '', homeName: string = ''): BallparkPalFactor | null {
   if (!factors || factors.length === 0) return null;
+  
+  const aAbbr = (awayAbbr || '').toUpperCase();
+  const hAbbr = (homeAbbr || '').toUpperCase();
+  const aName = (awayName || '').toUpperCase();
+  const hName = (homeName || '').toUpperCase();
 
+  // Try matching by abbreviation first (if available)
+  if (aAbbr && hAbbr) {
+    const matched = factors.find(f => {
+      const gameStr = f.game.toUpperCase();
+      // Ballpark Pal often uses 2 or 3 letter abbreviations
+      return (gameStr.includes(aAbbr) && gameStr.includes(hAbbr));
+    });
+    if (matched) return matched;
+  }
+
+  // Fallback to matching by names if abbreviations fail or are missing
   return factors.find(f => {
     const gameStr = f.game.toUpperCase();
-    return (gameStr.includes(awayAbbr.toUpperCase()) && gameStr.includes(homeAbbr.toUpperCase()));
+    const parts = gameStr.split('@').map(p => p.trim());
+    if (parts.length !== 2) return false;
+    
+    const palAway = parts[0];
+    const palHome = parts[1];
+
+    // Check if team names are contained in the Pal game string
+    const matchAway = (aAbbr && palAway.includes(aAbbr)) || (aName && aName.includes(palAway)) || (palAway && aName.includes(palAway));
+    const matchHome = (hAbbr && palHome.includes(hAbbr)) || (hName && hName.includes(palHome)) || (palHome && hName.includes(palHome));
+
+    return matchAway && matchHome;
   }) || null;
 }
