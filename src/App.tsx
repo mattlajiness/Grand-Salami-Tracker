@@ -125,10 +125,9 @@ export default function App() {
       const palResult = results[2].status === 'fulfilled' ? results[2].value : [];
 
       if (results[2].status === 'rejected') {
+        setPalConfigured(false);
         const errorMsg = results[2].reason?.message || '';
-        if (errorMsg.includes('500')) {
-          setPalConfigured(false);
-        }
+        console.warn('Ballpark Pal Data Unavailable:', errorMsg);
       } else {
         setPalConfigured(true);
       }
@@ -774,9 +773,16 @@ export default function App() {
             <span className="w-1 h-1 rounded-full bg-slate-800" />
             <a href="https://twitter.com/Salamipace" target="_blank" rel="noreferrer" className="hover:text-[#1DA1F2] transition-colors">Twitter</a>
             <span className="w-1 h-1 rounded-full bg-slate-800" />
-            <a href="https://ais-pre-vccr6fawtybbglnmzdudam-387114323884.us-east1.run.app" target="_blank" rel="noreferrer" className="hover:text-salami-red transition-colors">Shared v1.3.0</a>
+            <a href="https://ais-pre-vccr6fawtybbglnmzdudam-387114323884.us-east1.run.app" target="_blank" rel="noreferrer" className="hover:text-salami-red transition-colors">Shared v1.3.1</a>
             <span className="w-1 h-1 rounded-full bg-slate-800" />
-            <span className="text-slate-700">v1.3.0</span>
+            <span className="text-slate-700">v1.3.1</span>
+            <span className="w-1 h-1 rounded-full bg-slate-800" />
+            <div className="flex items-center gap-1.5">
+              <div className={`w-1 h-1 rounded-full ${parkFactors.length > 0 ? 'bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)]' : (palConfigured ? 'bg-slate-700' : 'bg-red-500')}`} />
+              <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest">
+                PAL API {(parkFactors.length > 0 && palConfigured) ? 'ON' : (palConfigured ? 'WAIT' : 'OFF')}
+              </span>
+            </div>
           </div>
           <p className="text-[10px] text-slate-600 font-mono tracking-widest">
             DATA PROVIDED BY MLB STATS API • UPDATES EVERY 60S
