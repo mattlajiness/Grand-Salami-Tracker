@@ -19,7 +19,7 @@ let factorsCache: {
   timestamp: number;
 } | null = null;
 
-const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
 export async function fetchBallparkPalFactors(): Promise<BallparkPalFactor[]> {
   const now = Date.now();

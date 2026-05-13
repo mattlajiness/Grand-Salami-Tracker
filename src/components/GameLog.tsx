@@ -93,14 +93,14 @@ const getSpecialIntelligence = (game: MLBGame, parkFactors: BallparkPalFactor[] 
         ? 'CHASE FIELD'
         : venueName.split(' ')[0].toUpperCase();
 
-    const palTitle = `${venueName}: Live Ballpark Pal Factor
+    const palTitle = `${venueName}: Live Ballpark Pal Factor (Updated ${format(new Date(), 'MMM d')})
 Runs: ${runChange > 0 ? '+' : ''}${runChange}%
 HR: ${hrChange > 0 ? '+' : ''}${hrChange}%
 Hits: ${hitsChange > 0 ? '+' : ''}${hitsChange}%
-Data Sourced via Ballpark Pal daily weather/park factor data`;
+Live environmental analysis sourced via Ballpark Pal daily updates`;
 
     badges.push({
-      label: `${venueShort} (${runChange > 0 ? '+' : ''}${runChange}%)`,
+      label: `LIVE: ${venueShort} (${runChange > 0 ? '+' : ''}${runChange}%)`,
       color: livePalFactor.runs >= 1.10 ? 'bg-red-500/20 text-red-500 border-red-500/20' : 
              livePalFactor.runs <= 0.90 ? 'bg-blue-600/20 text-blue-400 border-blue-600/30' :
              livePalFactor.runs > 1 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10' : 

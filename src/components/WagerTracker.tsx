@@ -812,16 +812,26 @@ export function WagerTracker({
           </AnimatePresence>
 
           {betLine === '' && (
-            <div className="p-8 text-center border-2 border-dashed border-slate-800 rounded-xl">
-              <p className="text-xs text-slate-600 font-mono uppercase tracking-widest mb-3">
-                Enter your wager details above to track your bet live
+            <div className="p-8 text-center border-2 border-dashed border-slate-800 rounded-xl bg-slate-900/20 group hover:border-slate-700 transition-all">
+              <div className="w-12 h-12 bg-slate-950 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-800 group-hover:scale-110 transition-transform">
+                <Flame className="w-6 h-6 text-salami-red animate-pulse" />
+              </div>
+              <h4 className="text-[11px] font-black text-white uppercase tracking-widest mb-1">Begin Your Salami Streak</h4>
+              <p className="text-[10px] text-slate-500 font-mono uppercase tracking-widest mb-4 px-4">
+                Enter your wager above to track today's progress with real-time projections.
               </p>
               {!user && (
-                <div className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-900 border border-slate-800 rounded-lg opacity-60">
-                  <History className="w-3.5 h-3.5 text-blue-500" />
-                  <span className="text-[9px] font-mono font-black text-slate-400 uppercase tracking-widest">
-                    Sign in to track your Salami Streak history
-                  </span>
+                <div className="pt-4 border-t border-slate-800/50">
+                  <p className="text-[9px] font-mono text-slate-400 uppercase tracking-tighter mb-3">
+                    Sign in to track your <span className="text-blue-400 font-black italic">Historical Salami Streak</span> and get notified as soon as wagers settle.
+                  </p>
+                  <button 
+                    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600/10 border border-blue-500/20 rounded-lg text-[9px] font-black text-blue-400 uppercase tracking-widest hover:bg-blue-600/20 transition-all"
+                  >
+                    <History className="w-3.5 h-3.5" />
+                    Join the History Tracker
+                  </button>
                 </div>
               )}
             </div>
