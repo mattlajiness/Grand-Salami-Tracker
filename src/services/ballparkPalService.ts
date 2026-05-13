@@ -43,36 +43,53 @@ export async function fetchBallparkPalFactors(date?: string): Promise<BallparkPa
     }
 
     const data = await response.json();
-    console.log('Ballpark Pal raw data:', data);
+    console.log('[BallparkPal] Raw Data:', data);
+    
+    if (data.error) {
+      console.warn('[BallparkPal] Server reported error:', data.error, data.details || '');
+      throw new Error(data.error);
+    }
     
     // Support new API v1 format: { meta: {}, data: { items: [...] } }
     let rawItems: any[] = [];
     if (data.data?.items && Array.isArray(data.data.items)) {
       rawItems = data.data.items;
+    } else if (Array.isArray(data.items)) {
+      rawItems = data.items;
     } else if (Array.isArray(data)) {
       rawItems = data;
     } else if (typeof data === 'object' && data !== null) {
       // Check for various possible keys
-      const entries = data.park_factors || data.data || (Array.isArray(data.items) ? data.items : null) || Object.values(data).find(v => Array.isArray(v));
+      const entries = data.park_factors || data.data || Object.values(data).find(v => Array.isArray(v));
       if (Array.isArray(entries)) {
         rawItems = entries;
       }
     }
     
-    console.log(`Processing ${rawItems.length} items from Ballpark Pal`);
+    console.log(`[BallparkPal] Normalizing ${rawItems.length} items`);
 
     // Map new API fields to our interface
     const normalizedData: BallparkPalFactor[] = rawItems.map(item => {
       // If it's already in the correct format, return as is
       if (item.game && item.runs !== undefined) return item;
 
-      // Handle new API v1 format
+      // Handle new API v1 format (teamAway, teamHome, runsPercent, etc.)
+      const game = item.teamAway && item.teamHome ? `${item.teamAway} @ ${item.teamHome}` : (item.game || 'Unknown');
+      
+      // Calculate multipliers from percentages (e.g., 10% -> 1.10)
+      const runs = item.runsPercent !== undefined ? (1 + (parseFloat(item.runsPercent) / 100)) : (item.runs || 1.0);
+      const hr = item.homeRunsPercent !== undefined ? (1 + (parseFloat(item.homeRunsPercent) / 100)) : (item.hr || 1.0);
+      const hits = item.singlesPercent !== undefined ? (1 + (parseFloat(item.singlesPercent) / 100)) : (item.hits || 1.0);
+
       return {
-        game: `${item.teamAway} @ ${item.teamHome}`,
-        runs: 1 + (item.runsPercent / 100),
-        hr: 1 + (item.homeRunsPercent / 100),
-        hits: 1 + (item.singlesPercent / 100),
-        edge: item.runsAmount // Using runsAmount as edge/impact
+        game,
+        runs,
+        hr,
+        hits,
+        temp: item.temp,
+        wind: item.wind,
+        condition: item.condition,
+        edge: item.runsAmount || item.edge
       };
     });
 

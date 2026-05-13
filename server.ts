@@ -31,34 +31,47 @@ async function startServer() {
   // Ballpark Pal Proxy
   app.get("/api/ballpark-pal/park-factors", async (req, res) => {
     try {
-      const apiKey = process.env.BALLPARK_PAL_API_KEY;
+      // Check multiple common variations of the key name
+      const apiKey = process.env.BALLPARK_PAL_API_KEY || 
+                     process.env.BALLPARKPAL_API_KEY || 
+                     process.env.BALLPARK_PAL_KEY;
+                     
       if (!apiKey) {
-        console.warn("BALLPARK_PAL_API_KEY missing from environment");
-        return res.status(500).json({ error: "BALLPARK_PAL_API_KEY not configured" });
+        console.warn("[BallparkPal] API KEY missing. Checked: BALLPARK_PAL_API_KEY, BALLPARKPAL_API_KEY, BALLPARK_PAL_KEY");
+        return res.status(500).json({ 
+          error: "API Key not configured", 
+          details: "Please add BALLPARK_PAL_API_KEY to your environment variables." 
+        });
       }
 
       const date = req.query.date || new Date().toISOString().split('T')[0];
       const url = `https://ballparkpal.com/api/v1/parkfactors?date=${date}`;
-      console.log(`[BallparkPal] Fetching date: ${date}`);
+      console.log(`[BallparkPal] Fetching factors for ${date}`);
 
       const response = await fetch(url, {
+        method: 'GET',
         headers: {
-          'X-API-KEY': apiKey
+          'X-API-KEY': apiKey,
+          'Accept': 'application/json'
         }
       });
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("[BallparkPal] Status:", response.status, errorText);
-        return res.status(response.status).json({ error: "Failed to fetch from Ballpark Pal" });
+        console.error(`[BallparkPal] API Error: ${response.status} - ${errorText}`);
+        return res.status(response.status).json({ 
+          error: "Ballpark Pal API returned an error",
+          status: response.status
+        });
       }
 
       const data = await response.json();
-      console.log(`[BallparkPal] Success. Received ${Array.isArray(data?.data?.items) ? data.data.items.length : (data.items ? data.items.length : 'unknown')} items`);
+      const itemCount = data.data?.items?.length || (Array.isArray(data) ? data.length : 0);
+      console.log(`[BallparkPal] Success: Received ${itemCount} items`);
       res.json(data);
     } catch (error) {
-      console.error("[BallparkPal] Proxy Error:", error);
-      res.status(500).json({ error: "Internal Server Error" });
+      console.error("[BallparkPal] Proxy Exception:", error);
+      res.status(500).json({ error: "Internal Server Proxy Error" });
     }
   });
 
