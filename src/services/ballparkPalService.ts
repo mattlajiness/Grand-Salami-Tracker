@@ -18,18 +18,21 @@ export interface BallparkPalFactor {
 
 // MANUALLY UPDATE THESE VALUES DAILY FROM BALLPARKPAL.COM
 const MANUAL_FACTORS: BallparkPalFactor[] = [
-  { game: "NYY @ TB", runs: 0.98, hr: 0.95, hits: 0.99, edge: -0.1, temp: 72, wind: "Indoors", condition: "Dome" },
-  { game: "TB @ NYY", runs: 1.12, hr: 1.25, hits: 1.05, edge: 1.1, temp: 72, wind: "12mph Right", condition: "Overcast" },
-  { game: "TOR @ BAL", runs: 1.02, hr: 1.05, hits: 1.01, edge: 0.2, temp: 68, wind: "5mph Out", condition: "Clear" },
-  { game: "MIA @ DET", runs: 0.96, hr: 0.88, hits: 0.98, edge: -0.4, temp: 65, wind: "10mph In", condition: "Cool" },
-  { game: "TEX @ OAK", runs: 1.05, hr: 1.10, hits: 1.02, edge: 0.5, temp: 70, wind: "8mph Out", condition: "Clear" },
-  { game: "KC @ DET", runs: 1.05, hr: 0.98, hits: 1.02, edge: 0.4, temp: 68, wind: "8mph Out", condition: "Clear" },
-  { game: "SEA @ HOU", runs: 0.95, hr: 0.92, hits: 0.98, edge: -0.5, temp: 74, wind: "Indoors", condition: "Roof Closed" },
-  { game: "LAD @ SF", runs: 0.88, hr: 0.75, hits: 0.92, edge: -1.2, temp: 58, wind: "15mph In", condition: "Chilled" },
-  { game: "CHC @ ATL", runs: 1.08, hr: 1.15, hits: 1.04, edge: 0.8, temp: 82, wind: "5mph Left", condition: "Humid" },
-  { game: "PHI @ NYM", runs: 1.02, hr: 1.05, hits: 1.01, edge: 0.2, temp: 65, wind: "10mph In", condition: "Clear" },
-  { game: "PIT @ MIL", runs: 1.04, hr: 1.12, hits: 1.02, edge: 0.3, temp: 70, wind: "Indoors", condition: "Roof Open" },
-  { game: "WAS @ BAL", runs: 0.98, hr: 0.95, hits: 0.99, edge: -0.1, temp: 68, wind: "7mph Out", condition: "Clear" }
+  { game: "STL @ OAK", runs: 1.17, hr: 1.30, hits: 1.00 },
+  { game: "NYY @ BAL", runs: 1.11, hr: 0.97, hits: 1.13 },
+  { game: "PHI @ BOS", runs: 1.05, hr: 0.86, hits: 1.03 },
+  { game: "WAS @ CIN", runs: 1.05, hr: 1.09, hits: 0.97 },
+  { game: "DET @ NYM", runs: 1.00, hr: 1.07, hits: 1.00 },
+  { game: "COL @ PIT", runs: 1.00, hr: 0.90, hits: 1.03 },
+  { game: "LAA @ CLE", runs: 0.98, hr: 0.92, hits: 1.03 },
+  { game: "CHC @ ATL", runs: 0.97, hr: 0.94, hits: 1.02 },
+  { game: "SEA @ HOU", runs: 0.96, hr: 1.05, hits: 0.96 },
+  { game: "SD @ MIL", runs: 0.95, hr: 1.06, hits: 0.92 },
+  { game: "MIA @ MIN", runs: 0.95, hr: 0.88, hits: 1.04 },
+  { game: "TB @ TOR", runs: 0.95, hr: 1.02, hits: 0.97 },
+  { game: "SF @ LAD", runs: 0.93, hr: 1.04, hits: 0.96 },
+  { game: "KC @ CHW", runs: 0.93, hr: 0.93, hits: 1.03 },
+  { game: "ARI @ TEX", runs: 0.93, hr: 0.90, hits: 0.98 }
 ];
 
 export async function fetchBallparkPalFactors(date?: string): Promise<BallparkPalFactor[]> {
@@ -54,6 +57,8 @@ const TEAM_MAPPINGS: Record<string, string[]> = {
   'WSH': ['WAS', 'WSH'],
   'LAD': ['LA', 'LAD'],
   'LA': ['LAD', 'LA'],
+  'OAK': ['ATH', 'OAK'],
+  'ATH': ['OAK', 'ATH'],
   'NYY': ['NYY'],
   'NYM': ['NYM']
 };

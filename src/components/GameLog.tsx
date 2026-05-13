@@ -105,10 +105,10 @@ const getSpecialIntelligence = (game: MLBGame, parkFactors: BallparkPalFactor[] 
 Runs: ${runChange > 0 ? '+' : ''}${runChange}%
 HR: ${hrChange > 0 ? '+' : ''}${hrChange}%
 Hits: ${hitsChange > 0 ? '+' : ''}${hitsChange}%
-Live environmental analysis sourced via Ballpark Pal daily updates`;
+Live environmental analysis sourced via daily updates`;
 
     badges.push({
-      label: `PAL: ${venueShort} (${runChange > 0 ? '+' : ''}${runChange}%)`,
+      label: `${venueShort} (${runChange > 0 ? '+' : ''}${runChange}%)`,
       color: livePalFactor.runs >= 1.10 ? 'bg-red-500/20 text-red-500 border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.1)]' : 
              livePalFactor.runs <= 0.90 ? 'bg-blue-600/20 text-blue-400 border-blue-600/30' :
              livePalFactor.runs > 1 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10' : 
@@ -192,7 +192,7 @@ Live environmental analysis sourced via Ballpark Pal daily updates`;
                runVal > 1 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10' : 
                'bg-slate-500/10 text-slate-400 border-white/5', 
         icon: runVal >= 1.10 ? Zap : (runVal <= 0.90 ? ShieldCheck : Activity), 
-        title: `${game.venue?.name}: Daily environment factor. Sourced via Ballpark Pal Daily Update`
+        title: `${game.venue?.name}: Daily environment factor. Sourced via daily updates.`
       });
     }
   }
@@ -1558,7 +1558,7 @@ function GameDetailView({ game, parkFactors = [] }: { game: MLBGame, parkFactors
             </div>
             <div className="flex flex-col min-w-0">
               <div className="flex items-center gap-2">
-                 <span className="text-[7px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black">Ballpark Pal Dynamics</span>
+                 <span className="text-[7px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black">Ballpark Dynamics</span>
                  <div className="h-px w-8 bg-slate-800" />
               </div>
               <span className="text-xs font-black text-white uppercase tracking-tight truncate">Atmospheric Analysis</span>
@@ -1661,7 +1661,7 @@ function GameDetailView({ game, parkFactors = [] }: { game: MLBGame, parkFactors
            </div>
            <div className="flex flex-col min-w-0">
              <div className="flex items-center gap-2">
-                <span className="text-[8px] font-mono text-emerald-500 uppercase tracking-[0.2em] font-black whitespace-nowrap">Ballpark Pal Intelligence</span>
+                <span className="text-[8px] font-mono text-emerald-500 uppercase tracking-[0.2em] font-black whitespace-nowrap">Ballpark Intelligence</span>
                 <div className="h-px w-8 bg-emerald-500/20" />
              </div>
              <span className="text-xs font-black text-white uppercase tracking-tight truncate">{game.venue?.name || 'Venue'}</span>
@@ -1698,7 +1698,7 @@ function GameDetailView({ game, parkFactors = [] }: { game: MLBGame, parkFactors
             className="text-[8px] font-mono text-emerald-400 hover:text-emerald-300 font-black uppercase tracking-widest flex items-center gap-2 transition-colors group px-3 py-1 bg-emerald-500/5 rounded-full border border-emerald-500/10"
           >
             <BallparkPalLogo className="w-5 h-5 transition-transform group-hover:scale-110" />
-            <span>Powered By Ballpark Pal</span>
+            <span>Live Ballpark Data</span>
             <ExternalLink className="w-2 h-2 opacity-50 group-hover:opacity-100" />
           </a>
         </div>

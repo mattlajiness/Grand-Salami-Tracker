@@ -747,7 +747,7 @@ export default function App() {
             <span className="w-1 h-1 rounded-full bg-slate-800" />
             <a href="https://ballparkpal.com" target="_blank" rel="noreferrer" className="text-emerald-500/80 hover:text-emerald-400 transition-colors flex items-center gap-1.5 border border-emerald-500/10 rounded-full px-2 py-0.5 bg-emerald-500/5 group">
               <BallparkPalLogo className="w-4 h-4 transition-transform group-hover:scale-110" />
-              Ballpark Pal
+              Ballpark Data
               <ExternalLink className="w-2.5 h-2.5 opacity-50" />
             </a>
             <span className="w-1 h-1 rounded-full bg-slate-800" />
