@@ -2,7 +2,7 @@ import React from 'react';
 
 export function SalamiLogo({ className = "w-8 h-8", sport = 'MLB' }: { className?: string; sport?: 'MLB' | 'NHL' }) {
   const isMLB = sport === 'MLB';
-  const themeColor = isMLB ? "#22c55e" : "#2563eb"; // Green for MLB, Blue for NHL
+  const themeColor = isMLB ? "#22c55e" : "#3b82f6"; // Green for MLB, Blue for NHL
   
   return (
     <svg 
@@ -14,94 +14,56 @@ export function SalamiLogo({ className = "w-8 h-8", sport = 'MLB' }: { className
       aria-labelledby="logoTitle logoDesc"
     >
       <title id="logoTitle">{sport} Grand Salami Logo</title>
-      <desc id="logoDesc">{isMLB ? 'A baseball' : 'A hockey puck'} styled icon with crossed salamis representing the {sport} Grand Salami total {isMLB ? 'runs' : 'goals'} wager.</desc>
+      <desc id="logoDesc">A high-tech neon {sport} Grand Salami tracker logo with a salami-shaped progress bar and predictive chart.</desc>
       
-      {/* Outer Glowing Circle (Boundary) */}
+      <defs>
+        <filter id="neon-glow-icon" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="2" result="blur" />
+          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+      </defs>
+
+      {/* Main Neon Circle */}
       <circle 
         cx="50" 
         cy="50" 
         r="44" 
         stroke={themeColor} 
         strokeWidth="2" 
-        className="animate-pulse"
-        style={{ filter: `drop-shadow(0 0 6px ${themeColor})` }}
+        opacity="0.8"
+        style={{ filter: `drop-shadow(0 0 4px ${themeColor})` }}
       />
 
-      {isMLB ? (
-        <>
-          {/* Neon Baseball Seams (Left) */}
-          <path 
-            d="M 30 15 Q 50 50 30 85" 
-            stroke={themeColor} 
-            strokeWidth="2.5" 
-            strokeDasharray="4 4" 
-            strokeLinecap="round"
-            opacity="0.8"
-            style={{ filter: `drop-shadow(0 0 2px ${themeColor})` }}
-          />
-          
-          {/* Neon Baseball Seams (Right) */}
-          <path 
-            d="M 70 15 Q 50 50 70 85" 
-            stroke={themeColor} 
-            strokeWidth="2.5" 
-            strokeDasharray="4 4" 
-            strokeLinecap="round"
-            opacity="0.8"
-            style={{ filter: `drop-shadow(0 0 2px ${themeColor})` }}
-          />
-        </>
-      ) : (
-        <>
-          {/* Hockey Puck Lines/Texture */}
-          <rect x="25" y="47" width="50" height="6" rx="2" fill={themeColor} opacity="0.3" />
-          <path 
-            d="M 20 50 L 80 50" 
-            stroke={themeColor} 
-            strokeWidth="1" 
-            strokeDasharray="2 2"
-            opacity="0.5"
-          />
-        </>
-      )}
-      
-      {/* Two Crossed Salamis - Perfectly Centered */}
-      <g transform="rotate(45 50 50)">
-        {/* Salami 1 */}
-        <rect x="25" y="44" width="50" height="12" rx="6" fill="#b91c1c" fillOpacity="0.8" stroke="white" strokeWidth="2.5" />
-        {/* Salami Cross-Section */}
-        <circle cx="72" cy="50" r="5" fill="#ef4444" stroke="white" strokeWidth="2" />
+      {/* Salami Shape Group - Adjusted translation to center perfectly at (50, 50) */}
+      <g transform="translate(15, 29) scale(0.14)">
+        {/* Salami Outline */}
+        <path d="M100,50 L400,50 C450,50 480,100 480,150 C480,200 450,250 400,250 L100,250 C50,250 20,200 20,150 C20,100 50,50 100,50 Z" fill="none" stroke="white" strokeWidth="15" strokeLinecap="round" />
+        {/* End Detail */}
+        <path d="M20,150 L-10,130 L-10,170 Z" fill="none" stroke="white" strokeWidth="15" />
         
-        {/* Enhanced Marbling */}
-        <circle cx="32" cy="48" r="1.2" fill="white" opacity="0.6" />
-        <circle cx="40" cy="52" r="1.5" fill="white" opacity="0.7" />
-        <circle cx="48" cy="47" r="0.8" fill="white" opacity="0.4" />
-        <circle cx="55" cy="53" r="1.1" fill="white" opacity="0.5" />
-        <circle cx="62" cy="49" r="0.9" fill="white" opacity="0.6" />
-        
-        {/* Cap Marbling */}
-        <circle cx="70" cy="48" r="1" fill="white" opacity="0.9" />
-        <circle cx="73" cy="52" r="0.8" fill="white" opacity="0.7" />
-        <circle cx="71" cy="51" r="0.5" fill="white" opacity="0.5" />
-      </g>
+        {/* Bar Chart inside Salami - Centered */}
+        <rect x="115" y="180" width="30" height="50" fill={themeColor} rx="4" />
+        <rect x="175" y="140" width="30" height="90" fill={themeColor} rx="4" />
+        <rect x="235" y="120" width="30" height="110" fill={themeColor} rx="4" />
+        <rect x="295" y="80" width="30" height="150" fill={themeColor} rx="4" />
+        <rect x="355" y="60" width="30" height="170" fill={themeColor} rx="4" />
 
-      <g transform="rotate(-45 50 50)">
-        {/* Salami 2 */}
-        <rect x="25" y="44" width="50" height="12" rx="6" fill="#b91c1c" fillOpacity="0.8" stroke="white" strokeWidth="2.5" />
-        {/* Salami Cross-Section */}
-        <circle cx="72" cy="50" r="5" fill="#ef4444" stroke="white" strokeWidth="2" />
-        
-        {/* Enhanced Marbling */}
-        <circle cx="30" cy="51" r="0.9" fill="white" opacity="0.5" />
-        <circle cx="38" cy="47" r="1.3" fill="white" opacity="0.6" />
-        <circle cx="46" cy="53" r="1" fill="white" opacity="0.4" />
-        <circle cx="53" cy="48" r="0.7" fill="white" opacity="0.5" />
-        <circle cx="60" cy="52" r="1.2" fill="white" opacity="0.7" />
-        
-        {/* Cap Marbling */}
-        <circle cx="74" cy="48" r="1" fill="white" opacity="0.9" />
-        <circle cx="71" cy="52" r="0.8" fill="white" opacity="0.7" />
-        <circle cx="72" cy="49" r="0.5" fill="white" opacity="0.5" />
+        {/* Trend Line / Arrow - Shifted to match bars */}
+        <path 
+          d="M105,220 L205,160 L285,190 L415,80" 
+          fill="none" 
+          stroke={themeColor} 
+          strokeWidth="18" 
+          strokeLinecap="round" 
+          strokeLinejoin="round" 
+          filter="url(#neon-glow-icon)" 
+        />
+        <path d="M395,80 L420,75 L415,110" fill={themeColor} filter="url(#neon-glow-icon)" />
+
+        {/* Slices detail on the right */}
+        <circle cx="430" cy="120" r="10" fill="white" opacity="0.6" />
+        <circle cx="450" cy="150" r="8" fill="white" opacity="0.6" />
+        <circle cx="430" cy="180" r="12" fill="white" opacity="0.6" />
       </g>
     </svg>
   );

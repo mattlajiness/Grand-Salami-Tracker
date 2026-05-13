@@ -29,7 +29,7 @@ export function InfoSection({ sport = 'MLB' }: { sport?: 'MLB' | 'NHL' }) {
     try {
       await signIn();
       trackEvent('signup_success');
-      toast.success('Welcome to Salami Pace!', { id: toastId });
+      toast.success('Welcome to Salami Tracker!', { id: toastId });
     } catch (error: any) {
       console.error('Sign up error:', error);
       trackEvent('signup_error', { error: String(error), code: error?.code });
@@ -118,7 +118,7 @@ export function InfoSection({ sport = 'MLB' }: { sport?: 'MLB' | 'NHL' }) {
               >
                 <div className="flex flex-col items-start">
                   <span className="text-[10px] font-black uppercase tracking-widest leading-none opacity-70">Get Started</span>
-                  <span className="text-sm font-black uppercase tracking-tighter">Join Salami Pace Free</span>
+                  <span className="text-sm font-black uppercase tracking-tighter">Join Salami Tracker Free</span>
                 </div>
                 {isSigningIn ? (
                   <RefreshCw className="w-5 h-5 animate-spin" />
