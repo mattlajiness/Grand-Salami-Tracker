@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { doc, setDoc, getDoc, deleteDoc, Timestamp } from 'firebase/firestore';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { trackEvent } from '../lib/analytics';
 import { calculateSmartProjection, getConfidenceScore } from '../lib/projectionEngine';
 import confetti from 'canvas-confetti';
@@ -28,6 +28,8 @@ interface WagerTrackerProps {
   todayStr?: string;
   currentStreak?: { type: 'WIN' | 'LOSS' | 'PUSH'; count: number } | null;
   sport?: 'MLB' | 'NHL';
+  historicalTotals?: Record<string, number>;
+  userWagers?: any[];
 }
 
 export function WagerTracker({ 
@@ -46,7 +48,9 @@ export function WagerTracker({
   onOpenHistory,
   todayStr,
   currentStreak,
-  sport = 'MLB'
+  sport = 'MLB',
+  historicalTotals = {},
+  userWagers = []
 }: WagerTrackerProps) {
   const isMLB = sport === 'MLB';
   const unitName = isMLB ? 'runs' : 'goals';
@@ -62,6 +66,12 @@ export function WagerTracker({
 
   const lastNotifiedStatus = useRef<string | null>(null);
   const [showResultModal, setShowResultModal] = useState<boolean>(false);
+  const [historicalResult, setHistoricalResult] = useState<{
+    line: number;
+    total: number;
+    status: 'WON' | 'LOST' | 'PUSH';
+    date: string;
+  } | null>(null);
   const today = todayStr || format(new Date(), 'yyyy-MM-dd');
 
   // Save to LocalStorage ONLY (for non-logged in persistence between sessions)
@@ -69,8 +79,9 @@ export function WagerTracker({
     if (!user && betLine !== '') {
       localStorage.setItem(`${sport}_salami_bet_line`, betLine.toString());
       localStorage.setItem(`${sport}_salami_bet_type`, betType);
+      localStorage.setItem(`${sport}_salami_bet_date`, today);
     }
-  }, [betLine, betType, user, sport]);
+  }, [betLine, betType, user, sport, today]);
 
   const handleSave = async () => {
     if (betLine === '') {
@@ -128,6 +139,7 @@ export function WagerTracker({
     } else {
       localStorage.removeItem(`${sport}_salami_bet_line`);
       localStorage.removeItem(`${sport}_salami_bet_type`);
+      localStorage.removeItem(`${sport}_salami_bet_date`);
       toast.info('WAGER CLEARED');
     }
   };
@@ -271,6 +283,79 @@ export function WagerTracker({
     } 
   }, [status, notificationsEnabled, currentTotal, betLine, projectedTotal, betType, isFinished, today]);
 
+  // Historical Settlement Check (Handles "Next Day" notifications)
+  useEffect(() => {
+    if (!notificationsEnabled || !historicalTotals || Object.keys(historicalTotals).length === 0) return;
+
+    const checkSettlement = (wager: { line: number, side: string, date: string }) => {
+      if (wager.date === today) return;
+      
+      const finalTotal = historicalTotals[wager.date];
+      if (finalTotal === undefined) return;
+
+      const side = wager.side.toUpperCase();
+      const isPush = finalTotal === wager.line;
+      const isWin = !isPush && (side === 'OVER' ? finalTotal > wager.line : finalTotal < wager.line);
+      const resStatus = isWin ? 'WON' : isPush ? 'PUSH' : 'LOST';
+
+      const notificationKey = `notified_settlement_${sport}_${wager.date}_${wager.line}_${side}_${resStatus}`;
+      if (!localStorage.getItem(notificationKey)) {
+        setHistoricalResult({
+          line: wager.line,
+          total: finalTotal,
+          status: resStatus,
+          date: wager.date
+        });
+        
+        // Trigger celebration if it was a win
+        if (resStatus === 'WON') {
+          playSound('win');
+          triggerWinCelebration();
+        } else if (resStatus === 'LOST') {
+          playSound('loss');
+        } else {
+          playSound('win');
+        }
+
+        setShowResultModal(true);
+        localStorage.setItem(notificationKey, 'true');
+        
+        const title = resStatus === 'WON' ? 'PAST WAGER WON! 🏆' : resStatus === 'PUSH' ? 'PAST WAGER PUSHED 🤝' : 'PAST WAGER LOST ❌';
+        const body = `Your wager for ${wager.date} settled at ${finalTotal} (Line: ${wager.line})`;
+        
+        toast(title, {
+          description: body,
+          duration: 20000,
+        });
+        sendBrowserNotification(title, body);
+      }
+    };
+
+    if (user && userWagers.length > 0) {
+      // Find the most recent wager that isn't today
+      const pastWagers = userWagers.filter(w => w.date !== today);
+      if (pastWagers.length > 0) {
+        checkSettlement({
+          line: pastWagers[0].line,
+          side: pastWagers[0].side,
+          date: pastWagers[0].date
+        });
+      }
+    } else if (!user) {
+      const savedLine = localStorage.getItem(`${sport}_salami_bet_line`);
+      const savedType = localStorage.getItem(`${sport}_salami_bet_type`);
+      const savedDate = localStorage.getItem(`${sport}_salami_bet_date`);
+      
+      if (savedLine && savedType && savedDate) {
+        checkSettlement({
+          line: parseFloat(savedLine),
+          side: savedType,
+          date: savedDate
+        });
+      }
+    }
+  }, [historicalTotals, userWagers, user, today, sport, notificationsEnabled]);
+
   // Proactive Permission Check
   useEffect(() => {
     if (notificationsEnabled && betLine !== '' && "Notification" in window) {
@@ -343,7 +428,10 @@ export function WagerTracker({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm"
-            onClick={() => setShowResultModal(false)}
+            onClick={() => {
+              setShowResultModal(false);
+              setHistoricalResult(null);
+            }}
           >
             <motion.div 
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -351,7 +439,7 @@ export function WagerTracker({
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
               className={cn(
                 "max-w-md w-full dashboard-card p-8 text-center relative overflow-hidden",
-                status === 'WON' ? "border-green-500/50" : status === 'PUSH' ? "border-blue-500/50" : "border-red-500/50"
+                (historicalResult?.status || status) === 'WON' ? "border-green-500/50" : (historicalResult?.status || status) === 'PUSH' ? "border-blue-500/50" : "border-red-500/50"
               )}
               onClick={e => e.stopPropagation()}
             >
@@ -359,19 +447,25 @@ export function WagerTracker({
               
               <div className={cn(
                 "w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6",
-                status === 'WON' ? "bg-green-500/20 text-green-500" : status === 'PUSH' ? "bg-blue-500/20 text-blue-500" : "bg-red-500/20 text-red-500"
+                (historicalResult?.status || status) === 'WON' ? "bg-green-500/20 text-green-500" : (historicalResult?.status || status) === 'PUSH' ? "bg-blue-500/20 text-blue-500" : "bg-red-500/20 text-red-500"
               )}>
-                {status === 'WON' ? <Trophy className="w-10 h-10" /> : status === 'PUSH' ? <RefreshCw className="w-10 h-10" /> : <Frown className="w-10 h-10" />}
+                {(historicalResult?.status || status) === 'WON' ? <Trophy className="w-10 h-10" /> : (historicalResult?.status || status) === 'PUSH' ? <RefreshCw className="w-10 h-10" /> : <Frown className="w-10 h-10" />}
               </div>
 
               <h2 className="text-3xl font-black text-white uppercase tracking-tighter mb-2">
-                {status === 'WON' ? 'Wager Won!' : status === 'PUSH' ? 'Wager Pushed' : 'Wager Lost'}
+                {(historicalResult?.status || status) === 'WON' ? 'Wager Won!' : (historicalResult?.status || status) === 'PUSH' ? 'Wager Pushed' : 'Wager Lost'}
               </h2>
               
+              {historicalResult && (
+                <p className="text-[10px] font-mono font-black text-blue-400 uppercase tracking-widest mb-2">
+                  Settlement for {format(parseISO(historicalResult.date), 'EEEE, MMM d')}
+                </p>
+              )}
+              
               <p className="text-slate-400 font-mono text-xs uppercase tracking-widest mb-8">
-                {status === 'WON' 
+                {(historicalResult?.status || status) === 'WON' 
                   ? "The slate finished in your favor. Great call!" 
-                  : status === 'PUSH'
+                  : (historicalResult?.status || status) === 'PUSH'
                   ? "Final score matched the line exactly. No win, no loss."
                   : "The slate didn't go your way this time."
                 }
@@ -381,20 +475,23 @@ export function WagerTracker({
                 <div className="grid grid-cols-2 gap-4">
                   <div className="text-left">
                     <span className="text-[10px] font-mono font-black text-slate-500 uppercase block">Your Line</span>
-                    <span className="text-2xl font-mono font-black text-white">{betLine}</span>
+                    <span className="text-2xl font-mono font-black text-white">{historicalResult?.line || betLine}</span>
                   </div>
                   <div className="text-right">
                     <span className="text-[10px] font-mono font-black text-slate-500 uppercase block">Final Total</span>
                     <span className={cn(
                       "text-2xl font-mono font-black",
-                      status === 'WON' ? "text-green-500" : status === 'PUSH' ? "text-blue-500" : "text-red-500"
-                    )}>{currentTotal}</span>
+                      (historicalResult?.status || status) === 'WON' ? "text-green-500" : (historicalResult?.status || status) === 'PUSH' ? "text-blue-500" : "text-red-500"
+                    )}>{historicalResult?.total || currentTotal}</span>
                   </div>
                 </div>
               </div>
 
               <button 
-                onClick={() => setShowResultModal(false)}
+                onClick={() => {
+                  setShowResultModal(false);
+                  setHistoricalResult(null);
+                }}
                 className="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white font-black uppercase tracking-widest rounded-xl transition-all border border-slate-700"
               >
                 Close Summary

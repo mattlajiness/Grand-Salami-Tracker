@@ -388,9 +388,17 @@ export default function App() {
       } else {
         const savedLine = localStorage.getItem(`${activeSport}_salami_bet_line`);
         const savedType = localStorage.getItem(`${activeSport}_salami_bet_type`);
-        if (savedLine) setBetLine(parseFloat(savedLine));
-        else setBetLine('');
-        if (savedType) setBetType(savedType as 'over' | 'under');
+        const savedDate = localStorage.getItem(`${activeSport}_salami_bet_date`);
+        
+        if (savedDate && savedDate !== today) {
+          // It's a past wager, WagerTracker will handle settlement notification
+          // but we shouldn't show it as today's active wager
+          setBetLine('');
+        } else {
+          if (savedLine) setBetLine(parseFloat(savedLine));
+          else setBetLine('');
+          if (savedType) setBetType(savedType as 'over' | 'under');
+        }
       }
     };
     loadWagers();
@@ -643,6 +651,8 @@ export default function App() {
                   todayStr={todayStr}
                   onOpenHistory={() => setIsHistoryModalOpen(true)}
                   currentStreak={currentStreak}
+                  historicalTotals={historicalTotals}
+                  userWagers={userWagers}
                 />
 
                 {activeSport === 'MLB' && <DailyApex games={games} />}
