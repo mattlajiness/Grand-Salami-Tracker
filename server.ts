@@ -28,53 +28,6 @@ async function startServer() {
 
   app.use(express.json());
 
-  // Ballpark Pal Proxy
-  app.get("/api/ballpark-pal/park-factors", async (req, res) => {
-    try {
-      // Check multiple common variations of the key name
-      const apiKey = process.env.BALLPARK_PAL_API_KEY || 
-                     process.env.BALLPARKPAL_API_KEY || 
-                     process.env.BALLPARK_PAL_KEY ||
-                     process.env.BALLPARKPAL_KEY ||
-                     process.env.PAL_API_KEY;
-                     
-      if (!apiKey) {
-        console.warn("[BallparkPal] API KEY missing in server environment.");
-        return res.status(500).json({ 
-          error: "API Key not configured", 
-          details: "Ensure BALLPARK_PAL_API_KEY is added to the Secrets section in AI Studio Settings." 
-        });
-      }
-
-      const date = req.query.date || new Date().toISOString().split('T')[0];
-      const url = `https://ballparkpal.com/api/v1/parkfactors?date=${date}`;
-      console.log(`[BallparkPal] Proxying request for date: ${date}`);
-
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'X-API-KEY': apiKey,
-          'Accept': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`[BallparkPal] Upstream API Error: ${response.status} - ${errorText}`);
-        return res.status(response.status).json({ 
-          error: "Ballpark Pal API rejection",
-          status: response.status
-        });
-      }
-
-      const data = await response.json();
-      res.json(data);
-    } catch (error) {
-      console.error("[BallparkPal] Proxy Exception:", error);
-      res.status(500).json({ error: "Internal Server Proxy Error" });
-    }
-  });
-
   // NHL API Proxy
   app.get("/api/nhl/scores", async (req, res) => {
     try {

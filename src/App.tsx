@@ -599,26 +599,6 @@ export default function App() {
             />
           )}
 
-          {activeSport === 'MLB' && !palConfigured && (
-            <div className="mb-6 p-4 bg-orange-500/10 border border-orange-500/20 rounded-xl flex items-center gap-4">
-              <div className="p-2 bg-orange-500/20 rounded-lg">
-                <AlertTriangle className="w-5 h-5 text-orange-400" />
-              </div>
-              <div className="flex-1">
-                <h4 className="text-[11px] font-black text-orange-400 uppercase tracking-widest">Ballpark Pal Integration Offline</h4>
-                <p className="text-[10px] text-orange-400/60 font-mono uppercase leading-tight">
-                  The daily environmental factor API is not yielding data. Ensure BALLPARK_PAL_API_KEY is configured in Settings.
-                </p>
-              </div>
-              <button 
-                onClick={() => loadLiveData(true)}
-                className="px-3 py-1.5 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 text-[9px] font-black uppercase tracking-widest rounded-lg transition-all"
-              >
-                Retry
-              </button>
-            </div>
-          )}
-
           {((activeSport === 'MLB' && games.length === 0) || (activeSport === 'NHL' && nhlGames.length === 0)) && !isRefreshing && !isInitialLoad ? (
             <div className="dashboard-card p-12 text-center bg-slate-900 border-slate-800">
               <div className="w-20 h-20 bg-slate-950 rounded-full flex items-center justify-center mx-auto mb-6 border border-slate-800 shadow-inner">
@@ -773,16 +753,9 @@ export default function App() {
             <span className="w-1 h-1 rounded-full bg-slate-800" />
             <a href="https://twitter.com/Salamipace" target="_blank" rel="noreferrer" className="hover:text-[#1DA1F2] transition-colors">Twitter</a>
             <span className="w-1 h-1 rounded-full bg-slate-800" />
-            <a href="https://ais-pre-vccr6fawtybbglnmzdudam-387114323884.us-east1.run.app" target="_blank" rel="noreferrer" className="hover:text-salami-red transition-colors">Shared v1.3.5</a>
+            <a href="https://ais-pre-vccr6fawtybbglnmzdudam-387114323884.us-east1.run.app" target="_blank" rel="noreferrer" className="hover:text-salami-red transition-colors">Shared v1.4.1</a>
             <span className="w-1 h-1 rounded-full bg-slate-800" />
-            <span className="text-slate-700">v1.3.5</span>
-            <span className="w-1 h-1 rounded-full bg-slate-800" />
-            <div className="flex items-center gap-1.5">
-              <div className={`w-1 h-1 rounded-full ${parkFactors.length > 0 ? 'bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)]' : (!palConfigured ? 'bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.5)] animate-pulse' : 'bg-slate-700')}`} />
-              <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest">
-                PAL {(parkFactors.length > 0) ? 'SYNCED' : (!palConfigured ? 'API ERR' : 'LOADING')}
-              </span>
-            </div>
+            <span className="text-slate-700">v1.4.1</span>
           </div>
           <p className="text-[10px] text-slate-600 font-mono tracking-widest">
             DATA PROVIDED BY MLB STATS API • UPDATES EVERY 60S

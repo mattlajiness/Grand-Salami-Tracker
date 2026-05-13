@@ -1,8 +1,8 @@
 import { format } from 'date-fns';
 
 /**
- * Ballpark Pal API Service
- * Sourced via BallparkPal.com
+ * Ballpark Pal Service - Manual Mode
+ * Manual updates for daily park factors
  */
 
 export interface BallparkPalFactor {
@@ -16,96 +16,25 @@ export interface BallparkPalFactor {
   edge?: number;
 }
 
-let factorsCache: Record<string, {
-  data: BallparkPalFactor[];
-  timestamp: number;
-}> = {};
-
-const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+// MANUALLY UPDATE THESE VALUES DAILY FROM BALLPARKPAL.COM
+const MANUAL_FACTORS: BallparkPalFactor[] = [
+  { game: "NYY @ TB", runs: 0.98, hr: 0.95, hits: 0.99, edge: -0.1, temp: 72, wind: "Indoors", condition: "Dome" },
+  { game: "TB @ NYY", runs: 1.12, hr: 1.25, hits: 1.05, edge: 1.1, temp: 72, wind: "12mph Right", condition: "Overcast" },
+  { game: "TOR @ BAL", runs: 1.02, hr: 1.05, hits: 1.01, edge: 0.2, temp: 68, wind: "5mph Out", condition: "Clear" },
+  { game: "MIA @ DET", runs: 0.96, hr: 0.88, hits: 0.98, edge: -0.4, temp: 65, wind: "10mph In", condition: "Cool" },
+  { game: "TEX @ OAK", runs: 1.05, hr: 1.10, hits: 1.02, edge: 0.5, temp: 70, wind: "8mph Out", condition: "Clear" },
+  { game: "KC @ DET", runs: 1.05, hr: 0.98, hits: 1.02, edge: 0.4, temp: 68, wind: "8mph Out", condition: "Clear" },
+  { game: "SEA @ HOU", runs: 0.95, hr: 0.92, hits: 0.98, edge: -0.5, temp: 74, wind: "Indoors", condition: "Roof Closed" },
+  { game: "LAD @ SF", runs: 0.88, hr: 0.75, hits: 0.92, edge: -1.2, temp: 58, wind: "15mph In", condition: "Chilled" },
+  { game: "CHC @ ATL", runs: 1.08, hr: 1.15, hits: 1.04, edge: 0.8, temp: 82, wind: "5mph Left", condition: "Humid" },
+  { game: "PHI @ NYM", runs: 1.02, hr: 1.05, hits: 1.01, edge: 0.2, temp: 65, wind: "10mph In", condition: "Clear" },
+  { game: "PIT @ MIL", runs: 1.04, hr: 1.12, hits: 1.02, edge: 0.3, temp: 70, wind: "Indoors", condition: "Roof Open" },
+  { game: "WAS @ BAL", runs: 0.98, hr: 0.95, hits: 0.99, edge: -0.1, temp: 68, wind: "7mph Out", condition: "Clear" }
+];
 
 export async function fetchBallparkPalFactors(date?: string): Promise<BallparkPalFactor[]> {
-  const now = Date.now();
-  const cacheKey = date || format(new Date(), 'yyyy-MM-dd');
-  
-  const cached = factorsCache[cacheKey];
-  if (cached && (now - cached.timestamp < CACHE_TTL)) {
-    return cached.data;
-  }
-
-  try {
-    const ts = Date.now();
-    const url = date 
-      ? `/api/ballpark-pal/park-factors?date=${date}&_ts=${ts}` 
-      : `/api/ballpark-pal/park-factors?_ts=${ts}`;
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Ballpark Pal API Error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log('[BallparkPal] Raw Data:', data);
-    
-    if (data.error) {
-      console.warn('[BallparkPal] Server reported error:', data.error, data.details || '');
-      throw new Error(data.error);
-    }
-    
-    // Support various API v1 response structures
-    let rawItems: any[] = [];
-    if (data.data?.items && Array.isArray(data.data.items)) {
-      rawItems = data.data.items;
-    } else if (data.data && Array.isArray(data.data)) {
-      rawItems = data.data;
-    } else if (Array.isArray(data.items)) {
-      rawItems = data.items;
-    } else if (Array.isArray(data)) {
-      rawItems = data;
-    } else if (typeof data === 'object' && data !== null) {
-      // Final attempt: check for list keys
-      const entries = data.park_factors || Object.values(data).find(v => Array.isArray(v));
-      if (Array.isArray(entries)) {
-        rawItems = entries;
-      }
-    }
-    
-    console.log(`[BallparkPal] Normalizing ${rawItems.length} items`);
-
-    // Map new API fields to our interface
-    const normalizedData: BallparkPalFactor[] = rawItems.map(item => {
-      // If it's already in the correct format, return as is
-      if (item.game && item.runs !== undefined) return item;
-
-      // Handle new API v1 format (teamAway, teamHome, runsPercent, etc.)
-      const game = item.teamAway && item.teamHome ? `${item.teamAway} @ ${item.teamHome}` : (item.game || 'Unknown');
-      
-      // Calculate multipliers from percentages (e.g., 10% -> 1.10)
-      const runs = item.runsPercent !== undefined ? (1 + (parseFloat(item.runsPercent) / 100)) : (item.runs || 1.0);
-      const hr = item.homeRunsPercent !== undefined ? (1 + (parseFloat(item.homeRunsPercent) / 100)) : (item.hr || 1.0);
-      const hits = item.singlesPercent !== undefined ? (1 + (parseFloat(item.singlesPercent) / 100)) : (item.hits || 1.0);
-
-      return {
-        game,
-        runs,
-        hr,
-        hits,
-        temp: item.temp,
-        wind: item.wind,
-        condition: item.condition,
-        edge: item.runsAmount || item.edge
-      };
-    });
-
-    factorsCache[cacheKey] = {
-      data: normalizedData,
-      timestamp: now
-    };
-
-    return normalizedData;
-  } catch (error) {
-    console.error('Error fetching Ballpark Pal factors:', error);
-    // Propagate the error so App.tsx can show the configuration alert
-    throw error;
-  }
+  console.log('[BallparkPal] Using manual static factors');
+  return MANUAL_FACTORS;
 }
 
 const TEAM_MAPPINGS: Record<string, string[]> = {
@@ -147,11 +76,10 @@ export function findGameFactor(factors: BallparkPalFactor[], awayAbbr: string, h
     for (const h of hAbbrs) {
       const matched = factors.find(f => {
         const gameStr = f.game.toUpperCase();
-        // Ballpark Pal often uses @ or vs
         const parts = gameStr.split(/[@vs]/).map(p => p.trim());
         if (parts.length >= 2) {
           const palAway = parts[0];
-          const palHome = parts[parts.length - 1]; // Support names like "CHICAGO @ CLEVELAND"
+          const palHome = parts[parts.length - 1];
           return (palAway.includes(a) || a.includes(palAway)) && (palHome.includes(h) || h.includes(palHome));
         }
         return gameStr.includes(a) && gameStr.includes(h);
