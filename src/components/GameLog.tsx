@@ -212,7 +212,7 @@ Runs: ${runChange > 0 ? '+' : ''}${runChange}%
 HR: ${hrChange > 0 ? '+' : ''}${hrChange}%
 2B/3B: ${ebChange > 0 ? '+' : ''}${ebChange}%
 1B: ${sChange > 0 ? '+' : ''}${sChange}%
-Data Sourced via BallparkPal.com`;
+Data Sourced via Ballpark Pal Daily Update`;
 
     const mainBadge = { 
       label: `${venueShort} (${runChange > 0 ? '+' : ''}${runChange}%)`, 
@@ -284,7 +284,7 @@ Data Sourced via BallparkPal.com`;
     label: 'STABLE ATMOSPHERE', 
     color: 'bg-slate-500/10 text-slate-400 border-white/5', 
     icon: Activity, 
-    title: 'Current readings show a stable atmospheric baseline.' 
+    title: 'Current readings show a stable atmospheric baseline. Sourced via Ballpark Pal daily weather data.' 
   }];
 };
 
@@ -710,7 +710,7 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
               Live updates • Umpire Intelligence • 
               <a href="https://ballparkpal.com" target="_blank" rel="noreferrer" className="text-emerald-500 hover:text-emerald-400 inline-flex items-center gap-1.5 px-2 py-0.5 bg-emerald-500/5 rounded-full border border-emerald-500/10 group">
                 <BallparkPalLogo className="w-3.5 h-3.5 transition-transform group-hover:rotate-12" />
-                Ballpark Pal Details
+                Live daily weather/park factor data
                 <ExternalLink className="w-2 h-2 opacity-50 group-hover:opacity-100" />
               </a> 
             </span>

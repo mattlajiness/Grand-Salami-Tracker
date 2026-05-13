@@ -228,7 +228,7 @@ export function InfoSection({ sport = 'MLB' }: { sport?: 'MLB' | 'NHL' }) {
               </div>
               <p className="text-xs text-slate-400 leading-relaxed">
                 {isMLB
-                  ? "The Grand Salami is heavily influenced by 'Coors Field' games or high-wind days. One outlier game can carry the entire Over or sink the Under."
+                  ? "The Grand Salami is heavily influenced by 'Coors Field' games or high-wind days. We use live daily weather and park factor data right from Ballpark Pal to track these outliers in real-time."
                   : "NHL totals swing wildly based on backup goalies or high-octane offenses like Edmonton or Florida. Verify starting goalies before locking in your slate total."
                 }
               </p>
