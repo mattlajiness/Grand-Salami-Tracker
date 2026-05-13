@@ -65,6 +65,8 @@ export function WagerTracker({
   const notificationsEnabled = profile?.notificationsEnabled ?? true;
 
   const lastNotifiedStatus = useRef<string | null>(null);
+  const notifiedKeys = useRef<Set<string>>(new Set());
+  const hasShownIframeTip = useRef<boolean>(false);
   const [showResultModal, setShowResultModal] = useState<boolean>(false);
   const [historicalResult, setHistoricalResult] = useState<{
     line: number;
@@ -242,7 +244,7 @@ export function WagerTracker({
     if (!isFinished && status !== 'WON' && status !== 'LOST') return;
 
     const notificationKey = `notified_${today}_${betLine}_${betType}_${status}`;
-    const alreadyNotified = localStorage.getItem(notificationKey);
+    const alreadyNotified = localStorage.getItem(notificationKey) || notifiedKeys.current.has(notificationKey);
 
     if (alreadyNotified) return;
 
@@ -252,33 +254,42 @@ export function WagerTracker({
       triggerWinCelebration();
       setShowResultModal(true);
       const msg = isFinished ? "SLATE FINAL" : "LEVEL REACHED EARLY";
+      const toastId = `wager-won-${today}`;
       toast.success('WAGER WON! 🏆', {
+        id: toastId,
         description: `${msg} - Total: ${currentTotal} (Line: ${betLine})`,
         duration: 15000,
       });
       sendBrowserNotification('WAGER WON! 🏆', `Status: ${msg}. Final Total: ${currentTotal} (Line: ${betLine})`);
       lastNotifiedStatus.current = 'WON';
+      notifiedKeys.current.add(notificationKey);
       localStorage.setItem(notificationKey, 'true');
     } else if (status === 'PUSH' && isFinished && lastNotifiedStatus.current !== 'PUSH') {
       playSound('win');
       setShowResultModal(true);
+      const toastId = `wager-push-${today}`;
       toast.info('WAGER PUSHED 🤝', {
+        id: toastId,
         description: `Total: ${currentTotal} (Line: ${betLine})`,
         duration: 15000,
       });
       sendBrowserNotification('WAGER PUSHED 🤝', `Final Total: ${currentTotal} (Line: ${betLine})`);
       lastNotifiedStatus.current = 'PUSH';
+      notifiedKeys.current.add(notificationKey);
       localStorage.setItem(notificationKey, 'true');
     } else if (status === 'LOST' && lastNotifiedStatus.current !== 'LOST') {
       playSound('loss');
       setShowResultModal(true);
       const msg = isFinished ? "SLATE FINAL" : "LINE EXCEEDED";
+      const toastId = `wager-lost-${today}`;
       toast.error('WAGER LOST ❌', {
+        id: toastId,
         description: `${msg} - Total: ${currentTotal} (Line: ${betLine})`,
         duration: 15000,
       });
       sendBrowserNotification('WAGER LOST ❌', `Status: ${msg}. Total: ${currentTotal} (Line: ${betLine})`);
       lastNotifiedStatus.current = 'LOST';
+      notifiedKeys.current.add(notificationKey);
       localStorage.setItem(notificationKey, 'true');
     } 
   }, [status, notificationsEnabled, currentTotal, betLine, projectedTotal, betType, isFinished, today]);
@@ -299,7 +310,7 @@ export function WagerTracker({
       const resStatus = isWin ? 'WON' : isPush ? 'PUSH' : 'LOST';
 
       const notificationKey = `notified_settlement_${sport}_${wager.date}_${wager.line}_${side}_${resStatus}`;
-      if (!localStorage.getItem(notificationKey)) {
+      if (!localStorage.getItem(notificationKey) && !notifiedKeys.current.has(notificationKey)) {
         setHistoricalResult({
           line: wager.line,
           total: finalTotal,
@@ -318,12 +329,15 @@ export function WagerTracker({
         }
 
         setShowResultModal(true);
+        notifiedKeys.current.add(notificationKey);
         localStorage.setItem(notificationKey, 'true');
         
         const title = resStatus === 'WON' ? 'PAST WAGER WON! 🏆' : resStatus === 'PUSH' ? 'PAST WAGER PUSHED 🤝' : 'PAST WAGER LOST ❌';
         const body = `Your wager for ${wager.date} settled at ${finalTotal} (Line: ${wager.line})`;
+        const toastId = `historical-settlement-${sport}-${wager.date}`;
         
         toast(title, {
+          id: toastId,
           description: body,
           duration: 20000,
         });
@@ -379,12 +393,14 @@ export function WagerTracker({
     
     // Check if we are in an iframe
     const isIframe = window.self !== window.top;
-    if (isIframe) {
+    if (isIframe && !hasShownIframeTip.current) {
       console.warn('Notifications typically blocked in iframes. Open app in new tab.');
-      // Special instruction toast for iframe users
+      // Special instruction toast for iframe users - only show once per session
       toast.info('TIP: OPEN IN NEW TAB 🚀', {
+        id: 'iframe-notification-tip',
         description: 'For full push notifications, open Salami Tracker in its own browser tab.'
       });
+      hasShownIframeTip.current = true;
     }
     
     try {
