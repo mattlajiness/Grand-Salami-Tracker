@@ -8,8 +8,18 @@ import { TwitterApi } from "twitter-api-v2";
 // Load environment variables from .env file
 dotenv.config();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Fix for CJS/ESM compatibility - using a safer approach
+const isESM = typeof import.meta !== 'undefined' && import.meta.url;
+let _filename = '';
+let _dirname = '';
+
+if (isESM) {
+  _filename = fileURLToPath(import.meta.url);
+  _dirname = path.dirname(_filename);
+} else {
+  _filename = typeof __filename !== 'undefined' ? __filename : '';
+  _dirname = typeof __dirname !== 'undefined' ? __dirname : '';
+}
 
 async function startServer() {
   const app = express();
@@ -22,12 +32,14 @@ async function startServer() {
     try {
       const apiKey = process.env.BALLPARK_PAL_API_KEY;
       if (!apiKey) {
+        console.warn("BALLPARK_PAL_API_KEY missing from environment");
         return res.status(500).json({ error: "BALLPARK_PAL_API_KEY not configured" });
       }
 
-      // Found the correct API endpoint and auth method
       const date = req.query.date || new Date().toISOString().split('T')[0];
       const url = `https://ballparkpal.com/api/v1/parkfactors?date=${date}`;
+      console.log(`[BallparkPal] Fetching date: ${date}`);
+
       const response = await fetch(url, {
         headers: {
           'X-API-KEY': apiKey
@@ -36,14 +48,15 @@ async function startServer() {
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Ballpark Pal fetch error:", response.status, errorText);
+        console.error("[BallparkPal] Status:", response.status, errorText);
         return res.status(response.status).json({ error: "Failed to fetch from Ballpark Pal" });
       }
 
       const data = await response.json();
+      console.log(`[BallparkPal] Success. Received ${Array.isArray(data?.data?.items) ? data.data.items.length : (data.items ? data.items.length : 'unknown')} items`);
       res.json(data);
     } catch (error) {
-      console.error("Ballpark Pal Proxy Error:", error);
+      console.error("[BallparkPal] Proxy Error:", error);
       res.status(500).json({ error: "Internal Server Error" });
     }
   });

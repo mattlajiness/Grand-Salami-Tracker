@@ -34,6 +34,7 @@ export default function App() {
   const [games, setGames] = useState<MLBGame[]>([]);
   const [nhlGames, setNhlGames] = useState<NHLGame[]>([]);
   const [parkFactors, setParkFactors] = useState<BallparkPalFactor[]>([]);
+  const [palConfigured, setPalConfigured] = useState(true);
   const [historicalGames, setHistoricalGames] = useState<MLBGame[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
@@ -113,15 +114,28 @@ export default function App() {
     
     try {
       const today = format(new Date(), 'yyyy-MM-dd');
-      const [mlbData, nhlData, palData] = await Promise.all([
+      const results = await Promise.allSettled([
         fetchMLBGames(today),
         fetchNHLGames(today),
         fetchBallparkPalFactors(today)
       ]);
       
-      setGames(mlbData || []);
-      setNhlGames(nhlData || []);
-      setParkFactors(palData || []);
+      const mlbResult = results[0].status === 'fulfilled' ? results[0].value : [];
+      const nhlResult = results[1].status === 'fulfilled' ? results[1].value : [];
+      const palResult = results[2].status === 'fulfilled' ? results[2].value : [];
+
+      if (results[2].status === 'rejected') {
+        const errorMsg = results[2].reason?.message || '';
+        if (errorMsg.includes('500')) {
+          setPalConfigured(false);
+        }
+      } else {
+        setPalConfigured(true);
+      }
+      
+      setGames(mlbResult || []);
+      setNhlGames(nhlResult || []);
+      setParkFactors(palResult || []);
       setLastUpdated(new Date());
     } catch (error) {
       console.error('Error in loadLiveData:', error);
@@ -586,6 +600,26 @@ export default function App() {
             />
           )}
 
+          {activeSport === 'MLB' && !palConfigured && (
+            <div className="mb-6 p-4 bg-orange-500/10 border border-orange-500/20 rounded-xl flex items-center gap-4">
+              <div className="p-2 bg-orange-500/20 rounded-lg">
+                <AlertTriangle className="w-5 h-5 text-orange-400" />
+              </div>
+              <div className="flex-1">
+                <h4 className="text-[11px] font-black text-orange-400 uppercase tracking-widest">Ballpark Pal Integration Offline</h4>
+                <p className="text-[10px] text-orange-400/60 font-mono uppercase leading-tight">
+                  The daily environmental factor API is not yielding data. Ensure BALLPARK_PAL_API_KEY is configured in Settings.
+                </p>
+              </div>
+              <button 
+                onClick={() => loadLiveData(true)}
+                className="px-3 py-1.5 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 text-[9px] font-black uppercase tracking-widest rounded-lg transition-all"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
           {((activeSport === 'MLB' && games.length === 0) || (activeSport === 'NHL' && nhlGames.length === 0)) && !isRefreshing && !isInitialLoad ? (
             <div className="dashboard-card p-12 text-center bg-slate-900 border-slate-800">
               <div className="w-20 h-20 bg-slate-950 rounded-full flex items-center justify-center mx-auto mb-6 border border-slate-800 shadow-inner">
@@ -740,9 +774,9 @@ export default function App() {
             <span className="w-1 h-1 rounded-full bg-slate-800" />
             <a href="https://twitter.com/Salamipace" target="_blank" rel="noreferrer" className="hover:text-[#1DA1F2] transition-colors">Twitter</a>
             <span className="w-1 h-1 rounded-full bg-slate-800" />
-            <a href="https://www.mlb.com" target="_blank" rel="noreferrer" className="hover:text-salami-red transition-colors">MLB.com</a>
+            <a href="https://ais-pre-vccr6fawtybbglnmzdudam-387114323884.us-east1.run.app" target="_blank" rel="noreferrer" className="hover:text-salami-red transition-colors">Shared v1.2.2</a>
             <span className="w-1 h-1 rounded-full bg-slate-800" />
-            <span className="text-slate-700">v1.2.0</span>
+            <span className="text-slate-700">v1.2.2</span>
           </div>
           <p className="text-[10px] text-slate-600 font-mono tracking-widest">
             DATA PROVIDED BY MLB STATS API • UPDATES EVERY 60S

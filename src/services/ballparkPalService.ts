@@ -33,13 +33,17 @@ export async function fetchBallparkPalFactors(date?: string): Promise<BallparkPa
   }
 
   try {
-    const url = date ? `/api/ballpark-pal/park-factors?date=${date}` : '/api/ballpark-pal/park-factors';
+    const ts = Date.now();
+    const url = date 
+      ? `/api/ballpark-pal/park-factors?date=${date}&_ts=${ts}` 
+      : `/api/ballpark-pal/park-factors?_ts=${ts}`;
     const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`Ballpark Pal API Error: ${response.status}`);
     }
 
     const data = await response.json();
+    console.log('Ballpark Pal raw data:', data);
     
     // Support new API v1 format: { meta: {}, data: { items: [...] } }
     let rawItems: any[] = [];
@@ -48,11 +52,14 @@ export async function fetchBallparkPalFactors(date?: string): Promise<BallparkPa
     } else if (Array.isArray(data)) {
       rawItems = data;
     } else if (typeof data === 'object' && data !== null) {
-      const entries = data.park_factors || data.data || Object.values(data);
+      // Check for various possible keys
+      const entries = data.park_factors || data.data || (Array.isArray(data.items) ? data.items : null) || Object.values(data).find(v => Array.isArray(v));
       if (Array.isArray(entries)) {
         rawItems = entries;
       }
     }
+    
+    console.log(`Processing ${rawItems.length} items from Ballpark Pal`);
 
     // Map new API fields to our interface
     const normalizedData: BallparkPalFactor[] = rawItems.map(item => {
@@ -94,13 +101,17 @@ export function findGameFactor(factors: BallparkPalFactor[], awayAbbr: string, h
     const matched = factors.find(f => {
       const gameStr = f.game.toUpperCase();
       // Ballpark Pal often uses 2 or 3 letter abbreviations
-      return (gameStr.includes(aAbbr) && gameStr.includes(hAbbr));
+      const isMatch = (gameStr.includes(aAbbr) && gameStr.includes(hAbbr));
+      return isMatch;
     });
-    if (matched) return matched;
+    if (matched) {
+      console.log(`Matched ${aAbbr}@${hAbbr} via abbreviation in ${matched.game}`);
+      return matched;
+    }
   }
 
   // Fallback to matching by names if abbreviations fail or are missing
-  return factors.find(f => {
+  const matchedByName = factors.find(f => {
     const gameStr = f.game.toUpperCase();
     const parts = gameStr.split('@').map(p => p.trim());
     if (parts.length !== 2) return false;
@@ -114,4 +125,12 @@ export function findGameFactor(factors: BallparkPalFactor[], awayAbbr: string, h
 
     return matchAway && matchHome;
   }) || null;
+
+  if (matchedByName) {
+    console.log(`Matched ${aName}@${hName} via name in ${matchedByName.game}`);
+  } else if (factors.length > 0) {
+    console.warn(`No match found for ${aAbbr || aName} @ ${hAbbr || hName} among ${factors.length} factors. First factor: ${factors[0].game}`);
+  }
+
+  return matchedByName;
 }
