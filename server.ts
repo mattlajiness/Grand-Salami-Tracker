@@ -34,19 +34,21 @@ async function startServer() {
       // Check multiple common variations of the key name
       const apiKey = process.env.BALLPARK_PAL_API_KEY || 
                      process.env.BALLPARKPAL_API_KEY || 
-                     process.env.BALLPARK_PAL_KEY;
+                     process.env.BALLPARK_PAL_KEY ||
+                     process.env.BALLPARKPAL_KEY ||
+                     process.env.PAL_API_KEY;
                      
       if (!apiKey) {
-        console.warn("[BallparkPal] API KEY missing. Checked: BALLPARK_PAL_API_KEY, BALLPARKPAL_API_KEY, BALLPARK_PAL_KEY");
+        console.warn("[BallparkPal] API KEY missing in server environment.");
         return res.status(500).json({ 
           error: "API Key not configured", 
-          details: "Please add BALLPARK_PAL_API_KEY to your environment variables." 
+          details: "Ensure BALLPARK_PAL_API_KEY is added to the Secrets section in AI Studio Settings." 
         });
       }
 
       const date = req.query.date || new Date().toISOString().split('T')[0];
       const url = `https://ballparkpal.com/api/v1/parkfactors?date=${date}`;
-      console.log(`[BallparkPal] Fetching factors for ${date}`);
+      console.log(`[BallparkPal] Proxying request for date: ${date}`);
 
       const response = await fetch(url, {
         method: 'GET',
@@ -58,16 +60,14 @@ async function startServer() {
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`[BallparkPal] API Error: ${response.status} - ${errorText}`);
+        console.error(`[BallparkPal] Upstream API Error: ${response.status} - ${errorText}`);
         return res.status(response.status).json({ 
-          error: "Ballpark Pal API returned an error",
+          error: "Ballpark Pal API rejection",
           status: response.status
         });
       }
 
       const data = await response.json();
-      const itemCount = data.data?.items?.length || (Array.isArray(data) ? data.length : 0);
-      console.log(`[BallparkPal] Success: Received ${itemCount} items`);
       res.json(data);
     } catch (error) {
       console.error("[BallparkPal] Proxy Exception:", error);

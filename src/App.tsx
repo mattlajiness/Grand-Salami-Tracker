@@ -773,14 +773,14 @@ export default function App() {
             <span className="w-1 h-1 rounded-full bg-slate-800" />
             <a href="https://twitter.com/Salamipace" target="_blank" rel="noreferrer" className="hover:text-[#1DA1F2] transition-colors">Twitter</a>
             <span className="w-1 h-1 rounded-full bg-slate-800" />
-            <a href="https://ais-pre-vccr6fawtybbglnmzdudam-387114323884.us-east1.run.app" target="_blank" rel="noreferrer" className="hover:text-salami-red transition-colors">Shared v1.3.2</a>
+            <a href="https://ais-pre-vccr6fawtybbglnmzdudam-387114323884.us-east1.run.app" target="_blank" rel="noreferrer" className="hover:text-salami-red transition-colors">Shared v1.3.5</a>
             <span className="w-1 h-1 rounded-full bg-slate-800" />
-            <span className="text-slate-700">v1.3.2</span>
+            <span className="text-slate-700">v1.3.5</span>
             <span className="w-1 h-1 rounded-full bg-slate-800" />
             <div className="flex items-center gap-1.5">
-              <div className={`w-1 h-1 rounded-full ${parkFactors.length > 0 ? 'bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)]' : (!palConfigured ? 'bg-red-500 animate-pulse' : 'bg-slate-700')}`} />
+              <div className={`w-1 h-1 rounded-full ${parkFactors.length > 0 ? 'bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)]' : (!palConfigured ? 'bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.5)] animate-pulse' : 'bg-slate-700')}`} />
               <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest">
-                PAL {(parkFactors.length > 0) ? 'ONLINE' : (!palConfigured ? 'KEY ERR' : 'WAIT')}
+                PAL {(parkFactors.length > 0) ? 'SYNCED' : (!palConfigured ? 'API ERR' : 'LOADING')}
               </span>
             </div>
           </div>

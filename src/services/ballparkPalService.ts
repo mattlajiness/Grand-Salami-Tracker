@@ -50,17 +50,19 @@ export async function fetchBallparkPalFactors(date?: string): Promise<BallparkPa
       throw new Error(data.error);
     }
     
-    // Support new API v1 format: { meta: {}, data: { items: [...] } }
+    // Support various API v1 response structures
     let rawItems: any[] = [];
     if (data.data?.items && Array.isArray(data.data.items)) {
       rawItems = data.data.items;
+    } else if (data.data && Array.isArray(data.data)) {
+      rawItems = data.data;
     } else if (Array.isArray(data.items)) {
       rawItems = data.items;
     } else if (Array.isArray(data)) {
       rawItems = data;
     } else if (typeof data === 'object' && data !== null) {
-      // Check for various possible keys
-      const entries = data.park_factors || data.data || Object.values(data).find(v => Array.isArray(v));
+      // Final attempt: check for list keys
+      const entries = data.park_factors || Object.values(data).find(v => Array.isArray(v));
       if (Array.isArray(entries)) {
         rawItems = entries;
       }
