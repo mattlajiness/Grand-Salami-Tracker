@@ -56,13 +56,23 @@ export async function fetchNHLGames(date?: string): Promise<NHLGame[]> {
   try {
     const response = await fetch(url);
     if (!response.ok) {
-        throw new Error(`NHL Proxy Error: ${response.status}`);
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (e) {
+          errorData = { error: response.statusText };
+        }
+        throw new Error(`NHL Proxy Error ${response.status}: ${JSON.stringify(errorData)}`);
     }
 
     const data: NHLScoreResponse = await response.json();
     return data.games || [];
-  } catch (error) {
-    console.error('Error fetching NHL games:', error);
+  } catch (error: any) {
+    console.error('Error fetching NHL games:', {
+      message: error.message,
+      url: url,
+      stack: error.stack
+    });
     return [];
   }
 }
