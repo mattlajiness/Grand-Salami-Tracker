@@ -18,11 +18,11 @@
   <!-- Background -->
   <rect width="1000" height="1000" fill="#111827" />
 
-  <!-- Main Neon Circle -->
-  <circle cx="500" cy="500" r="350" fill="none" stroke="#22c55e" stroke-width="12" filter="url(#outer-glow)" />
+  <!-- Main Neon Circle - Now much larger to fill the space -->
+  <circle cx="500" cy="500" r="480" fill="none" stroke="#22c55e" stroke-width="20" filter="url(#outer-glow)" />
 
-  <!-- Salami Icon Group -->
-  <g transform="translate(300, 380) scale(0.8)">
+  <!-- Salami Icon Group - Scaled up and centered -->
+  <g transform="translate(100, 310) scale(1.6)">
     <!-- Salami Outline -->
     <path d="M100,50 L400,50 C450,50 480,100 480,150 C480,200 450,250 400,250 L100,250 C50,250 20,200 20,150 C20,100 50,50 100,50 Z" fill="none" stroke="white" stroke-width="15" stroke-linecap="round" />
     <!-- End Detail -->
