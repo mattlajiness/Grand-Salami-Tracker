@@ -3,12 +3,12 @@
   "name": "MLB & NHL Grand Salami Tracker",
   "icons": [
     {
-      "src": "/favicon.svg?v=2",
+      "src": "/favicon.svg?v=3",
       "type": "image/svg+xml",
       "sizes": "192x192"
     },
     {
-      "src": "/favicon.svg?v=2",
+      "src": "/favicon.svg?v=3",
       "type": "image/svg+xml",
       "sizes": "512x512"
     }

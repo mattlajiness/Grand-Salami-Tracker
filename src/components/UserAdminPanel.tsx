@@ -40,7 +40,7 @@ export function UserAdminPanel() {
   const emailString = users.map(u => u.email).filter(Boolean).join('\n');
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* User Directory Section */}
       <div className="dashboard-card p-6 border-slate-800 bg-slate-900/80 backdrop-blur-md">
         <div className="flex items-center justify-between mb-6">
@@ -124,3 +124,4 @@ export function UserAdminPanel() {
     </div>
   );
 }
+

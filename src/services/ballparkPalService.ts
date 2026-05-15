@@ -18,17 +18,21 @@ export interface BallparkPalFactor {
 
 // MANUALLY UPDATE THESE VALUES DAILY FROM BALLPARKPAL.COM
 const MANUAL_FACTORS: BallparkPalFactor[] = [
-  { game: "STL @ ATH", runs: 1.17, hr: 1.22, hits: 1.05 },
-  { game: "WAS @ CIN", runs: 1.01, hr: 1.01, hits: 1.00 },
-  { game: "MIA @ MIN", runs: 0.98, hr: 0.91, hits: 1.00 },
-  { game: "CHC @ ATL", runs: 0.98, hr: 0.94, hits: 1.07 },
-  { game: "COL @ PIT", runs: 0.96, hr: 0.86, hits: 1.00 },
-  { game: "SEA @ HOU", runs: 0.96, hr: 1.05, hits: 0.96 },
-  { game: "SD @ MIL", runs: 0.95, hr: 1.06, hits: 0.92 },
-  { game: "PHI @ BOS", runs: 0.95, hr: 0.82, hits: 1.01 },
-  { game: "SF @ LAD", runs: 0.94, hr: 1.06, hits: 0.94 },
-  { game: "KC @ CHW", runs: 0.92, hr: 0.89, hits: 1.03 },
-  { game: "DET @ NYM", runs: 0.86, hr: 0.92, hits: 0.97 }
+  { game: "ARI @ COL", runs: 1.29, hr: 1.19, hits: 1.16 },
+  { game: "SF @ ATH", runs: 1.24, hr: 1.29, hits: 1.04 },
+  { game: "LAD @ LAA", runs: 1.03, hr: 1.03, hits: 1.02 },
+  { game: "PHI @ PIT", runs: 0.99, hr: 0.84, hits: 1.01 },
+  { game: "MIL @ MIN", runs: 0.99, hr: 1.01, hits: 1.01 },
+  { game: "KC @ STL", runs: 0.99, hr: 1.04, hits: 1.03 },
+  { game: "CHC @ CHW", runs: 0.99, hr: 1.02, hits: 0.98 },
+  { game: "BOS @ ATL", runs: 0.97, hr: 0.89, hits: 1.02 },
+  { game: "CIN @ CLE", runs: 0.96, hr: 0.97, hits: 0.98 },
+  { game: "TEX @ HOU", runs: 0.95, hr: 1.05, hits: 0.96 },
+  { game: "BAL @ WAS", runs: 0.95, hr: 0.93, hits: 0.99 },
+  { game: "MIA @ TB", runs: 0.94, hr: 0.97, hits: 0.92 },
+  { game: "TOR @ DET", runs: 0.89, hr: 0.72, hits: 1.07 },
+  { game: "SD @ SEA", runs: 0.87, hr: 1.00, hits: 0.98 },
+  { game: "NYY @ NYM", runs: 0.85, hr: 0.88, hits: 0.94 }
 ];
 
 export async function fetchBallparkPalFactors(date?: string): Promise<BallparkPalFactor[]> {

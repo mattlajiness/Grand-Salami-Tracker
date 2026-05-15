@@ -546,173 +546,173 @@ export default function App() {
 
         <div className="space-y-6">
           {stats.hasRainRisk && (
-            <motion.div 
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              className="bg-blue-900/20 border border-blue-800/50 rounded-xl p-3 flex items-center justify-between px-6"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-500/10 rounded-lg">
-                  <Droplets className="w-4 h-4 text-blue-400" />
-                </div>
-                <div>
-                  <span className="text-[10px] font-mono font-black text-blue-400 uppercase tracking-widest block">Weather Alert</span>
-                  <p className="text-[11px] font-mono text-slate-300 uppercase tracking-tight">Active precipitation detected in one or more games. Monitor for delays.</p>
-                </div>
-              </div>
-              <div className="hidden sm:block text-[8px] font-mono text-slate-500 uppercase tracking-widest text-right">
-                Canceled games may void<br/>Grand Salami wagers
-              </div>
-            </motion.div>
-          )}
-
-          {activeSport === 'MLB' ? (
-            <GrandSalamiHeader 
-              currentTotal={currentTotal}
-              gameCount={games.length}
-              finalCount={stats.finalCount}
-              liveCount={stats.liveCount}
-              onRefresh={() => loadLiveData(true)}
-              isRefreshing={isRefreshing}
-              lastUpdated={lastUpdated}
-              games={games}
-              betLine={betLine}
-              betType={betType}
-              projectedTotal={projectedTotal}
-              isFinished={stats.isFinished}
-              weatherSummary={stats.weatherSummary}
-            />
-          ) : nhlStats && (
-            <NHLGrandSalamiHeader 
-              currentTotal={currentTotal}
-              gameCount={nhlStats.gameCount}
-              finalCount={nhlStats.finalCount}
-              liveCount={nhlStats.liveCount}
-              onRefresh={() => loadLiveData(true)}
-              isRefreshing={isRefreshing}
-              lastUpdated={lastUpdated}
-              games={nhlGames}
-              betLine={betLine}
-              betType={betType}
-              projectedTotal={null}
-              isFinished={nhlStats.isFinished}
-            />
-          )}
-
-          {((activeSport === 'MLB' && games.length === 0) || (activeSport === 'NHL' && nhlGames.length === 0)) && !isRefreshing && !isInitialLoad ? (
-            <div className="dashboard-card p-12 text-center bg-slate-900 border-slate-800">
-              <div className="w-20 h-20 bg-slate-950 rounded-full flex items-center justify-center mx-auto mb-6 border border-slate-800 shadow-inner">
-                <Calendar className="w-10 h-10 text-slate-700" />
-              </div>
-              <h3 className="text-white font-black text-2xl mb-3 tracking-tighter uppercase">No Games Found</h3>
-              <p className="text-slate-500 font-mono text-[10px] uppercase tracking-[0.2em] max-w-md mx-auto leading-relaxed">
-                We couldn't find any {activeSport} games scheduled for <span className="text-white bg-slate-800 px-2 py-0.5 rounded">{format(new Date(), 'MMMM do, yyyy').toUpperCase()}</span>.
-              </p>
-              <div className="mt-8 flex flex-col items-center gap-4">
-                <button 
-                  onClick={() => loadLiveData(true)}
-                  className="px-8 py-3 bg-salami-red hover:bg-red-700 text-white rounded-xl font-black text-[11px] uppercase tracking-[0.3em] transition-all active:scale-95 shadow-lg shadow-red-900/20"
+                <motion.div 
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  className="bg-blue-900/20 border border-blue-800/50 rounded-xl p-3 flex items-center justify-between px-6"
                 >
-                  Force Sync Now
-                </button>
-                <div className="flex items-center gap-2 text-[9px] font-mono text-slate-600 uppercase tracking-widest">
-                  <Activity className="w-3 h-3" />
-                  Requesting {activeSport} Stats API...
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              <div className="order-2 lg:order-1 lg:col-span-3">
-                {activeSport === 'MLB' ? (
-                  <GameLog 
-                    games={games} 
-                    gameLines={gameLines} 
-                    manualLines={gameLines} 
-                    parkFactors={parkFactors}
-                  />
-                ) : (
-                  <NHLGameLog 
-                    games={nhlGames}
-                    gameLines={nhlGameLines}
-                    manualLines={nhlGameLines}
-                  />
-                )}
-              </div>
-              
-              <div className="order-1 lg:order-2 lg:col-span-1 space-y-6">
-                {isAdmin && (
-                  <div className="space-y-6">
-                    <UserAdminPanel />
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-500/10 rounded-lg">
+                      <Droplets className="w-4 h-4 text-blue-400" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-mono font-black text-blue-400 uppercase tracking-widest block">Weather Alert</span>
+                      <p className="text-[11px] font-mono text-slate-300 uppercase tracking-tight">Active precipitation detected in one or more games. Monitor for delays.</p>
+                    </div>
                   </div>
-                )}
+                  <div className="hidden sm:block text-[8px] font-mono text-slate-500 uppercase tracking-widest text-right">
+                    Canceled games may void<br/>Grand Salami wagers
+                  </div>
+                </motion.div>
+              )}
 
-                <WagerTracker 
-                  sport={activeSport}
+              {activeSport === 'MLB' ? (
+                <GrandSalamiHeader 
                   currentTotal={currentTotal}
-                  playedInnings={activeSport === 'MLB' ? stats.playedInnings : (nhlStats?.playedPeriods || 0)}
-                  totalExpectedInnings={activeSport === 'MLB' ? stats.totalExpectedInnings : (nhlStats?.totalExpectedPeriods || 0)}
-                  isFinished={activeSport === 'MLB' ? stats.isFinished : (nhlStats?.isFinished || false)}
-                  gameCount={activeSport === 'MLB' ? stats.gameCount : (nhlStats?.gameCount || 0)}
-                  finalCount={activeSport === 'MLB' ? stats.finalCount : (nhlStats?.finalCount || 0)}
-                  liveThreats={activeSport === 'MLB' ? stats.liveThreats : 0}
+                  gameCount={games.length}
+                  finalCount={stats.finalCount}
+                  liveCount={stats.liveCount}
+                  onRefresh={() => loadLiveData(true)}
+                  isRefreshing={isRefreshing}
+                  lastUpdated={lastUpdated}
+                  games={games}
                   betLine={betLine}
-                  setBetLine={setBetLine}
                   betType={betType}
-                  setBetType={setBetType}
-                  projectedTotal={activeSport === 'MLB' ? projectedTotal : null}
-                  todayStr={todayStr}
-                  onOpenHistory={() => setIsHistoryModalOpen(true)}
-                  currentStreak={currentStreak}
-                  historicalTotals={historicalTotals}
-                  userWagers={userWagers}
+                  projectedTotal={projectedTotal}
+                  isFinished={stats.isFinished}
+                  weatherSummary={stats.weatherSummary}
                 />
+              ) : nhlStats && (
+                <NHLGrandSalamiHeader 
+                  currentTotal={currentTotal}
+                  gameCount={nhlStats.gameCount}
+                  finalCount={nhlStats.finalCount}
+                  liveCount={nhlStats.liveCount}
+                  onRefresh={() => loadLiveData(true)}
+                  isRefreshing={isRefreshing}
+                  lastUpdated={lastUpdated}
+                  games={nhlGames}
+                  betLine={betLine}
+                  betType={betType}
+                  projectedTotal={null}
+                  isFinished={nhlStats.isFinished}
+                />
+              )}
 
-                {activeSport === 'MLB' && <DailyApex games={games} />}
-
-                {activeSport === 'MLB' && (
-                  <div className="hidden lg:block space-y-6">
-                    <BullpenFatigueReport 
-                      historicalGames={historicalGames} 
-                      todayGames={games} 
-                      isLoading={historyLoading} 
-                    />
+              {((activeSport === 'MLB' && games.length === 0) || (activeSport === 'NHL' && nhlGames.length === 0)) && !isRefreshing && !isInitialLoad ? (
+                <div className="dashboard-card p-12 text-center bg-slate-900 border-slate-800">
+                  <div className="w-20 h-20 bg-slate-950 rounded-full flex items-center justify-center mx-auto mb-6 border border-slate-800 shadow-inner">
+                    <Calendar className="w-10 h-10 text-slate-700" />
                   </div>
-                )}
+                  <h3 className="text-white font-black text-2xl mb-3 tracking-tighter uppercase">No Games Found</h3>
+                  <p className="text-slate-500 font-mono text-[10px] uppercase tracking-[0.2em] max-w-md mx-auto leading-relaxed">
+                    We couldn't find any {activeSport} games scheduled for <span className="text-white bg-slate-800 px-2 py-0.5 rounded">{format(new Date(), 'MMMM do, yyyy').toUpperCase()}</span>.
+                  </p>
+                  <div className="mt-8 flex flex-col items-center gap-4">
+                    <button 
+                      onClick={() => loadLiveData(true)}
+                      className="px-8 py-3 bg-salami-red hover:bg-red-700 text-white rounded-xl font-black text-[11px] uppercase tracking-[0.3em] transition-all active:scale-95 shadow-lg shadow-red-900/20"
+                    >
+                      Force Sync Now
+                    </button>
+                    <div className="flex items-center gap-2 text-[9px] font-mono text-slate-600 uppercase tracking-widest">
+                      <Activity className="w-3 h-3" />
+                      Requesting {activeSport} Stats API...
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                  <div className="order-2 lg:order-1 lg:col-span-3">
+                    {activeSport === 'MLB' ? (
+                      <GameLog 
+                        games={games} 
+                        gameLines={gameLines} 
+                        manualLines={gameLines} 
+                        parkFactors={parkFactors}
+                      />
+                    ) : (
+                      <NHLGameLog 
+                        games={nhlGames}
+                        gameLines={nhlGameLines}
+                        manualLines={nhlGameLines}
+                      />
+                    )}
+                  </div>
+                  
+                  <div className="order-1 lg:order-2 lg:col-span-1 space-y-6">
+                    {isAdmin && (
+                      <div className="space-y-6">
+                        <UserAdminPanel />
+                      </div>
+                    )}
 
-                {/* Desktop Run Trends */}
-                {activeSport === 'MLB' && (
-                  <div className="hidden lg:block">
-                    <RunTrends 
-                      historicalGames={historicalGames}
+                    <WagerTracker 
+                      sport={activeSport as 'MLB' | 'NHL'}
                       currentTotal={currentTotal}
-                      games={games}
-                      gameLines={gameLines}
-                      manualLines={gameLines}
+                      playedInnings={activeSport === 'MLB' ? stats.playedInnings : (nhlStats?.playedPeriods || 0)}
+                      totalExpectedInnings={activeSport === 'MLB' ? stats.totalExpectedInnings : (nhlStats?.totalExpectedPeriods || 0)}
+                      isFinished={activeSport === 'MLB' ? stats.isFinished : (nhlStats?.isFinished || false)}
+                      gameCount={activeSport === 'MLB' ? stats.gameCount : (nhlStats?.gameCount || 0)}
+                      finalCount={activeSport === 'MLB' ? stats.finalCount : (nhlStats?.finalCount || 0)}
+                      liveThreats={activeSport === 'MLB' ? stats.liveThreats : 0}
+                      betLine={betLine}
+                      setBetLine={setBetLine}
+                      betType={betType}
+                      setBetType={setBetType}
+                      projectedTotal={activeSport === 'MLB' ? projectedTotal : null}
+                      todayStr={todayStr}
+                      onOpenHistory={() => setIsHistoryModalOpen(true)}
+                      currentStreak={currentStreak}
+                      historicalTotals={historicalTotals}
+                      userWagers={userWagers}
                     />
-                  </div>
-                )}
-              </div>
 
-              {/* Mobile Run Trends & PreGameAudit - Placed under the GameLog (Scoreboard) */}
-              {activeSport === 'MLB' && (
-                <div className="order-3 lg:hidden space-y-6">
-                  <RunTrends 
-                    historicalGames={historicalGames}
-                    currentTotal={currentTotal}
-                    games={games}
-                    gameLines={gameLines}
-                    manualLines={gameLines}
-                  />
-                  <BullpenFatigueReport 
-                    historicalGames={historicalGames} 
-                    todayGames={games} 
-                    isLoading={historyLoading}
-                  />
+                    {activeSport === 'MLB' && <DailyApex games={games} />}
+
+                    {activeSport === 'MLB' && (
+                      <div className="hidden lg:block space-y-6">
+                        <BullpenFatigueReport 
+                          historicalGames={historicalGames} 
+                          todayGames={games} 
+                          isLoading={historyLoading} 
+                        />
+                      </div>
+                    )}
+
+                    {/* Desktop Run Trends */}
+                    {activeSport === 'MLB' && (
+                      <div className="hidden lg:block">
+                        <RunTrends 
+                          historicalGames={historicalGames}
+                          currentTotal={currentTotal}
+                          games={games}
+                          gameLines={gameLines}
+                          manualLines={gameLines}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Mobile Run Trends & PreGameAudit - Placed under the GameLog (Scoreboard) */}
+                  {activeSport === 'MLB' && (
+                    <div className="order-3 lg:hidden space-y-6">
+                      <RunTrends 
+                        historicalGames={historicalGames}
+                        currentTotal={currentTotal}
+                        games={games}
+                        gameLines={gameLines}
+                        manualLines={gameLines}
+                      />
+                      <BullpenFatigueReport 
+                        historicalGames={historicalGames} 
+                        todayGames={games} 
+                        isLoading={historyLoading}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
-          )}
 
           {/* Hidden SEO Text for Search Indexing */}
           <div className="sr-only">
