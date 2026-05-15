@@ -278,14 +278,29 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
       }
 
       resultGames = resultGames.map(game => {
-        const newGame = { ...game };
-        if (newGame.teams.away.probablePitcher?.id) {
-          newGame.teams.away.probablePitcher.era = statsMap[newGame.teams.away.probablePitcher.id];
-        }
-        if (newGame.teams.home.probablePitcher?.id) {
-          newGame.teams.home.probablePitcher.era = statsMap[newGame.teams.home.probablePitcher.id];
-        }
-        return newGame;
+        const awayPitcher = game.teams.away.probablePitcher;
+        const homePitcher = game.teams.home.probablePitcher;
+        
+        return {
+          ...game,
+          teams: {
+            ...game.teams,
+            away: {
+              ...game.teams.away,
+              probablePitcher: awayPitcher ? {
+                ...awayPitcher,
+                era: statsMap[awayPitcher.id] || awayPitcher.era
+              } : undefined
+            },
+            home: {
+              ...game.teams.home,
+              probablePitcher: homePitcher ? {
+                ...homePitcher,
+                era: statsMap[homePitcher.id] || homePitcher.era
+              } : undefined
+            }
+          }
+        };
       });
     }
 
@@ -336,9 +351,35 @@ async function fetchPitcherStats(pitcherIds: number[]): Promise<Record<number, s
       const data = await response.json();
       if (data && data.people) {
         data.people.forEach((person: any) => {
-          const era = person.stats?.[0]?.splits?.[0]?.stat?.era;
-          if (era) {
-            statsMap[person.id] = era;
+          // Find any pitching stats
+          const allPitchingStats = person.stats?.filter((s: any) => 
+            s.group?.displayName === 'pitching' || s.group?.code === 'pitching'
+          );
+          
+          let era: any = null;
+          
+          // 1. Try to find 2026 season stats first
+          for (const statGroup of allPitchingStats || []) {
+            const seasonSplit = statGroup.splits?.find((split: any) => split.season === '2026');
+            if (seasonSplit?.stat?.era !== undefined) {
+              era = seasonSplit.stat.era;
+              break;
+            }
+          }
+          
+          // 2. Fallback to any season stats
+          if (era === null || era === undefined) {
+            for (const statGroup of allPitchingStats || []) {
+              const firstSplit = statGroup.splits?.[0];
+              if (firstSplit?.stat?.era !== undefined) {
+                era = firstSplit.stat.era;
+                break;
+              }
+            }
+          }
+          
+          if (era !== undefined && era !== null) {
+            statsMap[person.id] = era.toString();
           }
         });
       }
