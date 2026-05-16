@@ -20,7 +20,8 @@ import { UserAdminPanel } from './components/UserAdminPanel';
 import { WagerHistory } from './components/WagerHistory';
 import { FeedbackSection } from './components/FeedbackSection';
 import { BallparkPalLogo } from './components/BallparkPalLogo';
-import { Calendar, Share2, Droplets, Activity, ExternalLink, Smartphone, LogIn, AlertTriangle, XCircle, RefreshCw } from 'lucide-react';
+import { ParkFactorsReport } from './components/ParkFactorsReport';
+import { Calendar, Share2, Droplets, Activity, ExternalLink, Smartphone, LogIn, AlertTriangle, XCircle, RefreshCw, Library } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { useAuth } from './contexts/AuthContext';
 import { db, handleFirestoreError, OperationType } from './firebase';
@@ -498,50 +499,48 @@ export default function App() {
       
       <main className="max-w-7xl mx-auto px-4 pt-8">
         {/* Sport Tab Switcher */}
-        <div className="flex items-center gap-4 mb-8">
-          <button 
-            onClick={() => setActiveSport('MLB')}
-            className={cn(
-              "flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all border-2 relative overflow-hidden group",
-              activeSport === 'MLB' 
-                ? "bg-slate-900 border-salami-red text-white shadow-[0_0_20px_rgba(225,29,72,0.1)]" 
-                : "bg-slate-950 border-slate-900 text-slate-500 hover:text-slate-400"
-            )}
-          >
-            <div className="relative z-10 flex items-center justify-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-salami-red animate-pulse" />
-              MLB Salami
-            </div>
-            {activeSport === 'MLB' && (
-              <motion.div 
-                layoutId="activeTab"
-                className="absolute inset-0 bg-gradient-to-r from-salami-red/10 to-transparent opacity-50"
-              />
-            )}
-          </button>
-          <button 
-            onClick={() => setActiveSport('NHL')}
-            className={cn(
-              "flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all border-2 relative group",
-              activeSport === 'NHL' 
-                ? "bg-slate-900 border-blue-500 text-white shadow-[0_0_20px_rgba(37,99,235,0.1)]" 
-                : "bg-slate-950 border-slate-900 text-slate-500 hover:text-slate-400"
-            )}
-          >
-            <div className="relative z-10 flex flex-col items-center gap-0.5">
-              <span>NHL Salami</span>
-              <span className="text-[7px] font-mono text-blue-400 opacity-80 tracking-widest leading-none">Coming Soon</span>
-            </div>
-            {activeSport === 'NHL' && (
-              <motion.div 
-                layoutId="activeTab"
-                className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-transparent opacity-50"
-              />
-            )}
-            <div className="absolute top-2 right-3">
-              <div className="px-1.5 py-0.5 bg-blue-500/20 border border-blue-500/30 rounded text-[6px] text-blue-400 font-black animate-pulse">BETA</div>
-            </div>
-          </button>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mb-8 pt-4">
+          <div className="flex-1 flex gap-3 sm:gap-4">
+            <button 
+              onClick={() => setActiveSport('MLB')}
+              className={cn(
+                "flex-1 py-4 rounded-2xl font-black text-[10px] sm:text-xs uppercase tracking-[0.1em] sm:tracking-[0.2em] transition-all border-2 relative overflow-hidden group",
+                activeSport === 'MLB' 
+                  ? "bg-slate-900 border-salami-red text-white shadow-[0_0_20px_rgba(225,29,72,0.1)]" 
+                  : "bg-slate-950 border-slate-900 text-slate-500 hover:text-slate-400"
+              )}
+            >
+              <div className="relative z-10 flex items-center justify-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-salami-red animate-pulse" />
+                MLB Salami
+              </div>
+              {activeSport === 'MLB' && (
+                <motion.div 
+                  layoutId="activeTab"
+                  className="absolute inset-0 bg-gradient-to-r from-salami-red/10 to-transparent opacity-50"
+                />
+              )}
+            </button>
+            <button 
+              onClick={() => setActiveSport('NHL')}
+              className={cn(
+                "flex-1 py-4 rounded-2xl font-black text-[10px] sm:text-xs uppercase tracking-[0.1em] sm:tracking-[0.2em] transition-all border-2 relative group",
+                activeSport === 'NHL' 
+                  ? "bg-slate-900 border-blue-500 text-white shadow-[0_0_20px_rgba(37,99,235,0.1)]" 
+                  : "bg-slate-950 border-slate-900 text-slate-500 hover:text-slate-400"
+              )}
+            >
+              <div className="relative z-10 flex flex-col items-center gap-0.5">
+                <span>NHL Salami</span>
+              </div>
+              {activeSport === 'NHL' && (
+                <motion.div 
+                  layoutId="activeTab"
+                  className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-transparent opacity-50"
+                />
+              )}
+            </button>
+          </div>
         </div>
 
         <div className="space-y-6">
@@ -623,7 +622,8 @@ export default function App() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                  <div className="order-2 lg:order-1 lg:col-span-3">
+                  <div className="order-2 lg:order-1 lg:col-span-3 space-y-6">
+                    {activeSport === 'MLB' && parkFactors.length > 0 && <ParkFactorsReport factors={parkFactors} />}
                     {activeSport === 'MLB' ? (
                       <GameLog 
                         games={games} 
@@ -742,8 +742,8 @@ export default function App() {
 
       <footer className="mt-12 py-12 border-t border-slate-800 text-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="flex items-center gap-6 text-[10px] font-mono font-black text-slate-500 uppercase tracking-[0.2em]">
-            <a href="#how-it-works" className="hover:text-salami-red transition-colors">How it works</a>
+          <div className="flex flex-wrap items-center justify-center gap-y-4 gap-x-6 text-[10px] font-mono font-black text-slate-500 uppercase tracking-[0.2em]">
+            <a href="#how-it-works" className="hover:text-salami-red transition-colors">Knowledge Base</a>
             <span className="w-1 h-1 rounded-full bg-slate-800" />
             <a href="https://ballparkpal.com" target="_blank" rel="noreferrer" className="text-emerald-500/80 hover:text-emerald-400 transition-colors flex items-center gap-1.5 border border-emerald-500/10 rounded-full px-2 py-0.5 bg-emerald-500/5 group">
               <BallparkPalLogo className="w-4 h-4 transition-transform group-hover:scale-110" />

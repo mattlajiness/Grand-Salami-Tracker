@@ -107,6 +107,11 @@ service cloud.firestore {
              (data.get('updatedAt', request.time) is timestamp);
     }
 
+    function isValidParkFactors(data) {
+      return data.parkFactors is list &&
+             (data.get('updatedAt', request.time) is timestamp);
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
@@ -118,6 +123,11 @@ service cloud.firestore {
     match /dailyIntelligence/{date} {
       allow read: if true;
       allow write: if isAdmin() && isValidDailyIntelligence(request.resource.data);
+    }
+
+    match /parkFactors/{date} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidParkFactors(request.resource.data);
     }
 
     match /feedback/{feedbackId} {
@@ -146,6 +156,11 @@ service cloud.firestore {
     match /nhlGameLines/{gameId} {
       allow read: if true;
       allow write: if isAdmin() && isValidNHLGameLine(request.resource.data);
+    }
+
+    match /site_settings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
     match /deliSettings/{date} {

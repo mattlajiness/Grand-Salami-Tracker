@@ -18,21 +18,21 @@ export interface BallparkPalFactor {
 
 // MANUALLY UPDATE THESE VALUES DAILY FROM BALLPARKPAL.COM
 const MANUAL_FACTORS: BallparkPalFactor[] = [
-  { game: "ARI @ COL", runs: 1.29, hr: 1.19, hits: 1.16, temp: 74, wind: "12mph OUT", condition: "Receptive: Low | Hum: 24%" },
-  { game: "SF @ ATH", runs: 1.24, hr: 1.29, hits: 1.04, temp: 80, wind: "7mph OUT", condition: "Receptive: Very High | Hum: 17%" },
-  { game: "LAD @ LAA", runs: 1.03, hr: 1.03, hits: 1.02, temp: 66, wind: "8mph OUT", condition: "Consistent | Hum: 60%" },
-  { game: "PHI @ PIT", runs: 0.99, hr: 0.84, hits: 1.01, temp: 59, wind: "4mph OUT", condition: "Med-High | Hum: 50%" },
-  { game: "MIL @ MIN", runs: 0.99, hr: 1.01, hits: 1.01, temp: 81, wind: "7mph OUT", condition: "Medium | Hum: 19%" },
-  { game: "KC @ STL", runs: 0.99, hr: 1.04, hits: 1.03, temp: 73, wind: "9mph CROSS", condition: "Med-High | Hum: 67%" },
-  { game: "CHC @ CHW", runs: 0.99, hr: 1.02, hits: 0.98, temp: 62, wind: "11mph IN", condition: "Med-High | Hum: 63%" },
-  { game: "BOS @ ATL", runs: 0.97, hr: 0.89, hits: 1.02, temp: 75, wind: "5mph CROSS", condition: "Medium | Hum: 23%" },
-  { game: "CIN @ CLE", runs: 0.96, hr: 0.97, hits: 0.98, temp: 58, wind: "7mph CROSS", condition: "High | Hum: 69%" },
+  { game: "ARI @ COL", runs: 1.32, hr: 1.13, hits: 1.20, temp: 75, wind: "8mph CROSS", condition: "Receptive: Very High" },
+  { game: "SF @ ATH", runs: 1.13, hr: 1.16, hits: 1.06, temp: 78, wind: "10mph OUT", condition: "Receptive: High" },
+  { game: "BAL @ WAS", runs: 1.10, hr: 1.10, hits: 1.08, temp: 72, wind: "5mph OUT", condition: "Receptive: Med" },
+  { game: "CHC @ CHW", runs: 1.03, hr: 1.09, hits: 1.03, temp: 64, wind: "12mph IN", condition: "Med-High" },
+  { game: "PHI @ PIT", runs: 1.01, hr: 0.96, hits: 1.04, temp: 62, wind: "4mph IN", condition: "Humidity Active" },
+  { game: "TOR @ DET", runs: 1.01, hr: 0.99, hits: 1.10, temp: 58, wind: "8mph CROSS", condition: "Neutral" },
+  { game: "CIN @ CLE", runs: 1.01, hr: 1.10, hits: 0.94, temp: 60, wind: "9mph OUT", condition: "High HR Appeal" },
+  { game: "LAD @ LAA", runs: 0.99, hr: 1.04, hits: 0.99, temp: 68, wind: "7mph OUT", condition: "Stable" },
+  { game: "KC @ STL", runs: 0.99, hr: 1.02, hits: 1.09, temp: 74, wind: "6mph OUT", condition: "Med-High" },
+  { game: "MIL @ MIN", runs: 0.97, hr: 0.95, hits: 1.00, temp: 80, wind: "5mph OUT", condition: "Hum: 19%" },
   { game: "TEX @ HOU", runs: 0.95, hr: 1.05, hits: 0.96, temp: 72, wind: "NONE", condition: "ROOF CLOSED" },
-  { game: "BAL @ WAS", runs: 0.95, hr: 0.93, hits: 0.99, temp: 63, wind: "3mph CROSS", condition: "Med-High | Hum: 42%" },
   { game: "MIA @ TB", runs: 0.94, hr: 0.97, hits: 0.92, temp: 72, wind: "NONE", condition: "ROOF CLOSED" },
-  { game: "TOR @ DET", runs: 0.89, hr: 0.72, hits: 1.07, temp: 57, wind: "8mph IN", condition: "High | Hum: 63%" },
-  { game: "SD @ SEA", runs: 0.87, hr: 1.00, hits: 0.98, temp: 47, wind: "7mph OUT", condition: "Medium | Hum: 91%" },
-  { game: "NYY @ NYM", runs: 0.85, hr: 0.88, hits: 0.94, temp: 61, wind: "8mph IN", condition: "Low | Hum: 54%" }
+  { game: "NYY @ NYM", runs: 0.93, hr: 1.01, hits: 0.97, temp: 62, wind: "8mph IN", condition: "Low Density" },
+  { game: "BOS @ ATL", runs: 0.92, hr: 0.90, hits: 0.99, temp: 76, wind: "4mph IN", condition: "Low Appeal" },
+  { game: "SD @ SEA", runs: 0.87, hr: 0.87, hits: 0.97, temp: 48, wind: "8mph IN", condition: "High Marine Layer" }
 ];
 
 export async function fetchBallparkPalFactors(date?: string): Promise<BallparkPalFactor[]> {
