@@ -1547,101 +1547,6 @@ function GameDetailView({ game, parkFactors = [] }: { game: MLBGame, parkFactors
     );
   })();
 
-  const WeatherIntelligenceModule = (() => {
-    const intelligence = getParkIntelligence(game);
-    if (!intelligence) return null;
-
-    const awayAbbr = game.teams.away.team.abbreviation || '';
-    const homeAbbr = game.teams.home.team.abbreviation || '';
-    const awayName = game.teams.away.team.name || '';
-    const homeName = game.teams.home.team.name || '';
-    const livePalFactor = findGameFactor(parkFactors, awayAbbr, homeAbbr, awayName, homeName);
-
-    const displayTemp = livePalFactor?.temp ?? intelligence.temp;
-    const displayWind = livePalFactor?.wind ?? intelligence.windStr;
-    const displayCondition = livePalFactor?.condition ?? intelligence.condition;
-
-    return (
-      <div className="bg-slate-900/40 rounded-xl border border-slate-800/80 p-3 sm:p-4 shadow-xl shadow-black/20 overflow-hidden relative group h-full flex flex-col">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-amber-500/5 to-transparent -mr-16 -mt-16 rounded-full blur-3xl" />
-        
-        <div className="flex flex-col gap-3 relative z-10">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-slate-950 flex items-center justify-center border border-slate-800 shadow-inner shrink-0">
-              {(() => {
-                const weather = getWeatherIcon(displayCondition);
-                if (displayTemp >= 90) return <Zap className="w-4 h-4 text-amber-500" />;
-                return <weather.icon className={cn("w-4 h-4", weather.color)} />;
-              })()}
-            </div>
-            <div className="flex flex-col min-w-0">
-              <div className="flex items-center gap-2">
-                 <span className="text-[7px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black">Ballpark Dynamics</span>
-                 <div className="h-px w-8 bg-slate-800" />
-              </div>
-              <span className="text-xs font-black text-white uppercase tracking-tight truncate">Atmospheric Analysis</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="flex flex-col items-start">
-              <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest mb-1">{intelligence.isHumidor ? "Daily Pulse" : (intelligence.isDome ? "Environment" : "Scoring Bias")}</span>
-              <div className={cn(
-                "px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shadow-sm border",
-                intelligence.isHumidor ? "bg-teal-500/10 text-teal-300 border-teal-500/20" :
-                intelligence.isDome ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" :
-                intelligence.impulse === 'positive' ? "bg-red-500/10 text-red-500 border-red-500/20" :
-                intelligence.impulse === 'negative' ? "bg-blue-500/10 text-blue-400 border-blue-500/20" :
-                "bg-slate-800 text-slate-400 border-slate-700/50"
-              )}>
-                {intelligence.isHumidor ? 'HUMIDOR CONTROL' : (intelligence.isDome ? 'DOME CONTROL' : (intelligence.impulse === 'positive' ? 'Offense Boost' : intelligence.impulse === 'negative' ? 'Pitching Edge' : 'Neutral'))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-3 gap-3 mt-4 pt-3 border-t border-slate-800/50">
-          <div className="space-y-0.5">
-            <span className="text-[6px] font-mono text-slate-600 uppercase tracking-widest flex items-center gap-1">
-              Temp {(game.weather?.isForecast || livePalFactor) && <span className="text-[5px] bg-blue-500/20 text-blue-400 px-0.5 rounded leading-none">{livePalFactor ? 'LIVE' : 'FORECAST'}</span>}
-            </span>
-            <div className="flex items-center gap-1.5">
-              <Thermometer className={cn("w-3 h-3", displayTemp >= 85 ? "text-red-500" : displayTemp <= 50 ? "text-blue-400" : "text-amber-500")} />
-              <span className="text-[10px] font-bold text-white tracking-widest">{displayTemp}°F</span>
-            </div>
-          </div>
-          <div className="space-y-0.5 text-center">
-            <span className="text-[6px] font-mono text-slate-600 uppercase tracking-widest flex items-center justify-center gap-1">
-              Wind {(game.weather?.isForecast || livePalFactor) && <span className="text-[5px] bg-blue-500/20 text-blue-400 px-0.5 rounded leading-none">{livePalFactor ? 'LIVE' : 'FORECAST'}</span>}
-            </span>
-            <div className="flex items-center justify-center gap-1.5 min-w-0">
-              <Wind className={cn("w-3 h-3 shrink-0", (livePalFactor?.wind?.includes('OUT') || intelligence.windSpeed >= 15) ? "text-red-400" : (livePalFactor?.wind?.includes('IN') || intelligence.windSpeed >= 10) ? "text-blue-400" : "text-slate-500")} />
-              <span className="text-[10px] font-bold text-white tracking-widest uppercase truncate">{displayWind.split(' ')[0] || 'Calm'}</span>
-            </div>
-          </div>
-          <div className="space-y-0.5 text-right">
-            <span className="text-[6px] font-mono text-slate-600 uppercase tracking-widest">Condition</span>
-            <div className="flex items-center justify-end gap-1.5 min-w-0">
-              {(() => {
-                const weather = getWeatherIcon(displayCondition);
-                return <weather.icon className={cn("w-3 h-3 shrink-0", weather.color)} />;
-              })()}
-              <span className="text-[10px] font-bold text-white tracking-widest uppercase truncate">{displayCondition.split(' ')[0] || 'Clear'}</span>
-            </div>
-          </div>
-        </div>
-        
-        <div className="mt-auto pt-3">
-          <div className="bg-slate-950/50 rounded-lg p-2 border border-slate-800/30">
-            <p className="text-[9px] font-mono text-slate-400 italic leading-relaxed">
-              "{livePalFactor ? `Ballpark Pal Live Update: ${livePalFactor.condition}. Wind is ${livePalFactor.wind}.` : intelligence.message}"
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  })();
-
   const ParkFactorsModule = (() => {
     const awayAbbr = game.teams.away.team.abbreviation || '';
     const homeAbbr = game.teams.home.team.abbreviation || '';
@@ -1906,12 +1811,9 @@ function GameDetailView({ game, parkFactors = [] }: { game: MLBGame, parkFactors
         </div>
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 pt-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-4">
         <div className="flex flex-col h-full">
            {UmpireIntelligenceModule}
-        </div>
-        <div className="flex flex-col h-full">
-           {WeatherIntelligenceModule}
         </div>
         {ParkFactorsModule && (
           <div className="flex flex-col h-full">
