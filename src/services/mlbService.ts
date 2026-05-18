@@ -24,6 +24,10 @@ export interface MLBGame {
         id: number;
         fullName: string;
         era?: string;
+        whip?: string;
+        wins?: number;
+        losses?: number;
+        recent?: string;
       };
     };
     home: {
@@ -37,6 +41,10 @@ export interface MLBGame {
         id: number;
         fullName: string;
         era?: string;
+        whip?: string;
+        wins?: number;
+        losses?: number;
+        recent?: string;
       };
     };
   };
@@ -260,21 +268,31 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
     let resultGames = enrichedGames;
 
     // Enrich with pitcher stats
-    const pitcherIds = new Set<number>();
+    const pitcherIdsWithOpponents: { id: number, opponentId: number }[] = [];
     resultGames.forEach(game => {
-      if (game.teams.away.probablePitcher?.id) pitcherIds.add(game.teams.away.probablePitcher.id);
-      if (game.teams.home.probablePitcher?.id) pitcherIds.add(game.teams.home.probablePitcher.id);
+      if (game.teams.away.probablePitcher?.id) {
+        pitcherIdsWithOpponents.push({ 
+          id: game.teams.away.probablePitcher.id, 
+          opponentId: game.teams.home.team.id 
+        });
+      }
+      if (game.teams.home.probablePitcher?.id) {
+        pitcherIdsWithOpponents.push({ 
+          id: game.teams.home.probablePitcher.id, 
+          opponentId: game.teams.away.team.id 
+        });
+      }
     });
 
-    if (pitcherIds.size > 0) {
-      let statsMap: Record<number, string> = {};
+    if (pitcherIdsWithOpponents.length > 0) {
+      let statsMap: Record<number, any> = {};
       const now = Date.now();
       
-      if (pitcherStatsCache && (now - pitcherStatsCache.lastFetched < CACHE_TTL)) {
+      if (pitcherStatsCache && (now - (pitcherStatsCache as any).lastFetched < CACHE_TTL)) {
         statsMap = pitcherStatsCache.data;
       } else {
-        statsMap = await fetchPitcherStats(Array.from(pitcherIds));
-        pitcherStatsCache = { data: statsMap, lastFetched: now };
+        statsMap = await fetchPitcherStats(pitcherIdsWithOpponents);
+        pitcherStatsCache = { data: statsMap, lastFetched: now } as any;
       }
 
       resultGames = resultGames.map(game => {
@@ -289,14 +307,14 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
               ...game.teams.away,
               probablePitcher: awayPitcher ? {
                 ...awayPitcher,
-                era: statsMap[awayPitcher.id] || awayPitcher.era
+                ...statsMap[awayPitcher.id]
               } : undefined
             },
             home: {
               ...game.teams.home,
               probablePitcher: homePitcher ? {
                 ...homePitcher,
-                era: statsMap[homePitcher.id] || homePitcher.era
+                ...statsMap[homePitcher.id]
               } : undefined
             }
           }
@@ -328,10 +346,11 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
   }
 }
 
-async function fetchPitcherStats(pitcherIds: number[]): Promise<Record<number, string>> {
-  const statsMap: Record<number, string> = {};
+async function fetchPitcherStats(pitcherInfo: { id: number, opponentId: number }[]): Promise<Record<number, any>> {
+  const statsMap: Record<number, any> = {};
+  const pitcherIds = pitcherInfo.map(p => p.id);
   
-  // Batch in groups of 50 (MLB API limit is usually around here)
+  // Batch in groups of 50
   const batches = [];
   for (let i = 0; i < pitcherIds.length; i += 50) {
     batches.push(pitcherIds.slice(i, i + 50));
@@ -339,9 +358,9 @@ async function fetchPitcherStats(pitcherIds: number[]): Promise<Record<number, s
 
   await Promise.all(batches.map(async (batch) => {
     try {
-      const url = `https://statsapi.mlb.com/api/v1/people?personIds=${batch.join(',')}&hydrate=stats(group=[pitching],type=[season])`;
+      const url = `https://statsapi.mlb.com/api/v1/people?personIds=${batch.join(',')}&hydrate=stats(group=[pitching],type=[season,gameLog])`;
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort('PitcherStatsTimeout'), 20000); // 20s per batch
+      const timeoutId = setTimeout(() => controller.abort('PitcherStatsTimeout'), 20000);
       
       const response = await fetch(url, { signal: controller.signal });
       clearTimeout(timeoutId);
@@ -351,44 +370,47 @@ async function fetchPitcherStats(pitcherIds: number[]): Promise<Record<number, s
       const data = await response.json();
       if (data && data.people) {
         data.people.forEach((person: any) => {
-          // Find any pitching stats
-          const allPitchingStats = person.stats?.filter((s: any) => 
-            s.group?.displayName === 'pitching' || s.group?.code === 'pitching'
-          );
+          const stats: any = {};
           
-          let era: any = null;
-          
-          // 1. Try to find 2026 season stats first
-          for (const statGroup of allPitchingStats || []) {
-            const seasonSplit = statGroup.splits?.find((split: any) => split.season === '2026');
-            if (seasonSplit?.stat?.era !== undefined) {
-              era = seasonSplit.stat.era;
-              break;
-            }
+          // Season stats
+          const seasonStats = person.stats?.find((s: any) => s.type.displayName === 'season' && s.group.displayName === 'pitching');
+          const seasonSplit = seasonStats?.splits?.find((split: any) => split.season === '2026' || split.season === '2025');
+          if (seasonSplit?.stat) {
+            stats.era = seasonSplit.stat.era;
+            stats.whip = seasonSplit.stat.whip;
+            stats.wins = seasonSplit.stat.wins;
+            stats.losses = seasonSplit.stat.losses;
           }
-          
-          // 2. Fallback to any season stats
-          if (era === null || era === undefined) {
-            for (const statGroup of allPitchingStats || []) {
-              const firstSplit = statGroup.splits?.[0];
-              if (firstSplit?.stat?.era !== undefined) {
-                era = firstSplit.stat.era;
-                break;
+
+          // Last 3 games from gameLog
+          const gameLogStats = person.stats?.find((s: any) => s.type.displayName === 'gameLog' && s.group.displayName === 'pitching');
+          if (gameLogStats?.splits?.length > 0) {
+            const lastThree = gameLogStats.splits.slice(-3);
+            let totalER = 0;
+            let totalOuts = 0;
+            
+            lastThree.forEach((split: any) => {
+              if (split.stat) {
+                totalER += split.stat.earnedRuns || 0;
+                const ipStr = split.stat.inningsPitched || "0";
+                const [whole, partial] = ipStr.split('.');
+                totalOuts += (parseInt(whole) || 0) * 3 + (partial ? parseInt(partial) : 0);
               }
+            });
+
+            if (totalOuts > 0) {
+              const recentEra = (totalER * 9) / (totalOuts / 3);
+              stats.recent = recentEra.toFixed(2);
+            } else {
+              stats.recent = "0.00";
             }
           }
           
-          if (era !== undefined && era !== null) {
-            statsMap[person.id] = era.toString();
-          }
+          statsMap[person.id] = stats;
         });
       }
     } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        console.error('Pitcher stats fetch timed out after 20s');
-      } else {
-        console.error('Error fetching pitcher stats batch:', error);
-      }
+      console.error('Error fetching pitcher stats batch:', error);
     }
   }));
 

@@ -1629,10 +1629,84 @@ function GameDetailView({ game, parkFactors = [] }: { game: MLBGame, parkFactors
     );
   })();
 
+  const PitcherComparisonModule = (() => {
+    const awayPitcher = game.teams.away.probablePitcher;
+    const homePitcher = game.teams.home.probablePitcher;
+
+    if (!awayPitcher && !homePitcher) return null;
+
+    const PitcherStatsCol = ({ pitcher, teamAbbr, isHome }: { pitcher?: any, teamAbbr: string, isHome: boolean }) => {
+      if (!pitcher) return (
+        <div className="flex flex-col items-center justify-center p-4 bg-slate-950/30 rounded-xl border border-slate-800/50 h-full text-slate-600 italic text-[10px] uppercase">
+          TBD
+        </div>
+      );
+
+      return (
+        <div className={cn(
+          "flex flex-col p-4 rounded-xl border transition-all h-full bg-slate-900/40 hover:bg-slate-900/60",
+          isHome ? "border-blue-500/10" : "border-salami-red/10"
+        )}>
+           <div className="flex items-center gap-3 mb-4">
+             <div className={cn(
+               "w-10 h-10 rounded-full flex items-center justify-center border font-mono font-black text-xs shadow-inner shrink-0",
+               isHome ? "bg-blue-500/10 border-blue-500/20 text-blue-400" : "bg-salami-red/10 border-salami-red/20 text-salami-red"
+             )}>
+               <User className="w-5 h-5" />
+             </div>
+             <div className="flex flex-col min-w-0">
+               <span className="text-[7px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black">{teamAbbr} Starter</span>
+               <span className="text-xs font-black text-white uppercase tracking-tight truncate">{pitcher.fullName}</span>
+             </div>
+           </div>
+
+           <div className="grid grid-cols-2 gap-4">
+             <div className="space-y-1">
+               <span className="text-[6px] font-mono text-slate-500 uppercase tracking-widest block">Season ERA</span>
+               <span className="text-sm font-black text-white font-mono tracking-tighter">{pitcher.era || '---'}</span>
+             </div>
+             <div className="space-y-1">
+               <span className="text-[6px] font-mono text-slate-500 uppercase tracking-widest block">Season WHIP</span>
+               <span className="text-sm font-black text-white font-mono tracking-tighter">{pitcher.whip || '---'}</span>
+             </div>
+             <div className="space-y-1">
+               <span className="text-[6px] font-mono text-slate-500 uppercase tracking-widest block">Last 3 ERA</span>
+               <div className="flex items-center gap-1.5">
+                 <Flame className={cn("w-3 h-3", parseFloat(pitcher.recent || '0') < parseFloat(pitcher.era || '10') ? "text-emerald-400" : "text-rose-400")} />
+                 <span className="text-[11px] font-black text-white font-mono">{pitcher.recent || '---'}</span>
+               </div>
+             </div>
+             <div className="space-y-1">
+               <span className="text-[6px] font-mono text-slate-500 uppercase tracking-widest block">Record</span>
+               <span className="text-[11px] font-black text-slate-400 font-mono tracking-tighter">
+                {pitcher.wins ?? 0}W - {pitcher.losses ?? 0}L
+               </span>
+             </div>
+           </div>
+        </div>
+      );
+    };
+
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-slate-950 flex items-center justify-center border border-slate-800 shadow-lg shadow-black/20">
+            <Target className="w-4 h-4 text-salami-red" />
+          </div>
+          <h4 className="text-[10px] font-mono font-black text-white uppercase tracking-[0.2em]">Starter Analytics</h4>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <PitcherStatsCol pitcher={awayPitcher} teamAbbr={game.teams.away.team.abbreviation || ''} isHome={false} />
+          <PitcherStatsCol pitcher={homePitcher} teamAbbr={game.teams.home.team.abbreviation || ''} isHome={true} />
+        </div>
+      </div>
+    );
+  })();
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-2">
+        <div className="md:col-span-2 space-y-6">
           {(() => {
             const TableModule = (
               <div className="space-y-6">
@@ -1738,6 +1812,7 @@ function GameDetailView({ game, parkFactors = [] }: { game: MLBGame, parkFactors
             );
             return TableModule;
           })()}
+          {PitcherComparisonModule}
         </div>
         <div>
           {(() => {
