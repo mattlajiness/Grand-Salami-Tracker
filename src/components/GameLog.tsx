@@ -1649,10 +1649,18 @@ function GameDetailView({ game, parkFactors = [] }: { game: MLBGame, parkFactors
         )}>
            <div className="flex items-center gap-3 mb-4">
              <div className={cn(
-               "w-10 h-10 rounded-full flex items-center justify-center border font-mono font-black text-xs shadow-inner shrink-0",
-               isHome ? "bg-blue-500/10 border-blue-500/20 text-blue-400" : "bg-salami-red/10 border-salami-red/20 text-salami-red"
+               "w-10 h-10 rounded-full flex items-center justify-center border font-mono font-black text-xs shadow-inner shrink-0 overflow-hidden bg-slate-950",
+               isHome ? "border-blue-500/20" : "border-salami-red/20"
              )}>
-               <User className="w-5 h-5" />
+               <img 
+                 src={`https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_100,q_auto:best/v1/people/${pitcher.id}/headshot/67/current.png`}
+                 alt={pitcher.fullName}
+                 className="w-full h-full object-cover"
+                 referrerPolicy="no-referrer"
+                 onError={(e) => {
+                   (e.target as HTMLImageElement).src = 'https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/v1/people/generic/headshot/67/current.png';
+                 }}
+               />
              </div>
              <div className="flex flex-col min-w-0">
                <span className="text-[7px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black">{teamAbbr} Starter</span>
