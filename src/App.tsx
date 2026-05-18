@@ -530,8 +530,9 @@ export default function App() {
                   : "bg-slate-950 border-slate-900 text-slate-500 hover:text-slate-400"
               )}
             >
-              <div className="relative z-10 flex flex-col items-center gap-0.5">
+              <div className="relative z-10 flex flex-col items-center gap-1">
                 <span>NHL Salami</span>
+                <span className="text-[7px] text-blue-400/70 font-mono tracking-widest leading-none">(Work in Progress)</span>
               </div>
               {activeSport === 'NHL' && (
                 <motion.div 

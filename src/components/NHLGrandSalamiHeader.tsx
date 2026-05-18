@@ -125,9 +125,12 @@ export function NHLGrandSalamiHeader({
               <SalamiLogo className="w-12 h-12 relative z-10" sport="NHL" />
             </div>
             <div className="flex flex-col">
-              <h1 className="font-mono font-black tracking-tighter text-sm sm:text-xl leading-none text-white whitespace-nowrap uppercase">
-                NHL GRAND SALAMI
-              </h1>
+              <div className="flex items-center gap-2">
+                <h1 className="font-mono font-black tracking-tighter text-sm sm:text-xl leading-none text-white whitespace-nowrap uppercase">
+                  NHL GRAND SALAMI
+                </h1>
+                <span className="px-1.5 py-0.5 rounded bg-blue-500/10 border border-blue-500/20 text-[6px] font-black text-blue-400 uppercase tracking-widest leading-none">WIP</span>
+              </div>
               <span className="text-[7px] sm:text-[9px] font-mono text-blue-500 font-black tracking-[0.3em] sm:tracking-[0.4em] mt-0.5 uppercase mb-1">Hockey Live Tracker</span>
             </div>
           </div>
