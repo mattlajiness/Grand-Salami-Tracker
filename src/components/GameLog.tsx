@@ -1882,14 +1882,14 @@ function GameDetailView({ game, parkFactors = [] }: { game: MLBGame, parkFactors
                 ) : (
                   <div className="flex flex-col items-center text-center space-y-2">
                     <Info className="w-8 h-8 text-slate-700" />
-                    <p className="text-[9px] font-mono text-slate-600 uppercase tracking-widest leading-relaxed">
+                    <div className="text-[9px] font-mono text-slate-600 uppercase tracking-widest leading-relaxed">
                       {isFinal ? 'Game Complete' : (
                         <div className="flex flex-col items-center gap-1">
                           <span>Game Scheduled</span>
                           <span className="text-slate-500 font-black">{format(new Date(game.gameDate), 'h:mm a')}</span>
                         </div>
                       )}
-                    </p>
+                    </div>
                   </div>
                 )}
               </div>
