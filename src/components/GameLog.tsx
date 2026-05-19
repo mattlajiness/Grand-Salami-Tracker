@@ -1711,191 +1711,199 @@ function GameDetailView({ game, parkFactors = [] }: { game: MLBGame, parkFactors
     );
   })();
 
+  const TableModule = (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <MapPin className="w-3 h-3 text-slate-500" />
+          <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
+            {game.venue?.name || 'Unknown Venue'}
+          </span>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-[10px] font-mono border-collapse">
+          <thead>
+            <tr className="text-slate-500 border-b border-slate-800">
+              <th className="text-left py-2 font-black uppercase tracking-widest">Team</th>
+              {linescore.innings?.map(inn => (
+                <th key={inn.num} className="text-center px-2 py-2">{inn.num}</th>
+              ))}
+              <th className="text-center px-3 py-2 border-l border-slate-800 font-black text-white">R</th>
+              <th className="text-center px-3 py-2 text-slate-500">H</th>
+              <th className="text-center px-3 py-2 text-slate-500">E</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-800">
+            <tr>
+              <td className="py-3 font-bold text-slate-300 uppercase tracking-tighter">
+                {game.teams.away.team.name.split(' ').pop()}
+              </td>
+              {linescore.innings?.map(inn => (
+                <td key={inn.num} className="text-center px-2 py-3 text-slate-500">{inn.away.runs ?? '-'}</td>
+              ))}
+              <td className="text-center px-3 py-3 border-l border-slate-800 font-black text-salami-red bg-slate-950/50">
+                {linescore.teams.away.runs ?? 0}
+              </td>
+              <td className="text-center px-3 py-3 text-slate-500">{linescore.teams.away.hits ?? 0}</td>
+              <td className="text-center px-3 py-3 text-slate-500">{linescore.teams.away.errors ?? 0}</td>
+            </tr>
+            <tr>
+              <td className="py-3 font-bold text-slate-300 uppercase tracking-tighter">
+                {game.teams.home.team.name.split(' ').pop()}
+              </td>
+              {linescore.innings?.map(inn => (
+                <td key={inn.num} className="text-center px-2 py-3 text-slate-500">{inn.home.runs ?? '-'}</td>
+              ))}
+              <td className="text-center px-3 py-3 border-l border-slate-800 font-black text-salami-red bg-slate-950/50">
+                {linescore.teams.home.runs ?? 0}
+              </td>
+              <td className="text-center px-3 py-3 text-slate-500">{linescore.teams.home.hits ?? 0}</td>
+              <td className="text-center px-3 py-3 text-slate-500">{linescore.teams.home.errors ?? 0}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {isLive && (
+        <div className="flex flex-wrap gap-4 pt-2">
+          <div className="flex items-center gap-2 bg-slate-950 px-3 py-2 rounded-lg border border-slate-800">
+            <User className="w-3 h-3 text-salami-red" />
+            <div className="flex flex-col">
+              <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest">At Bat</span>
+              <span className="text-[10px] font-bold text-white">{linescore.offense?.batter?.fullName || '---'}</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 bg-slate-950 px-3 py-2 rounded-lg border border-slate-800">
+            <Activity className="w-3 h-3 text-slate-500" />
+            <div className="flex flex-col">
+              <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest">Pitching</span>
+              <span className="text-[10px] font-bold text-white">{linescore.defense?.pitcher?.fullName || '---'}</span>
+            </div>
+          </div>
+          {(() => {
+            const offense = linescore.offense;
+            const hasRISP = !!offense?.second || !!offense?.third;
+            if (!hasRISP) return null;
+
+            const threat = calculateLiveThreat({
+              first: !!offense?.first,
+              second: !!offense?.second,
+              third: !!offense?.third,
+              outs: linescore.outs || 0
+            });
+            
+            if (threat <= 0.1) return null;
+            
+            return (
+              <div className={cn(
+                "flex items-center gap-2 px-3 py-2 rounded-lg border",
+                threat > 0.8 ? "bg-red-500/10 border-red-500/20 text-red-500" : "bg-orange-500/10 border-orange-500/20 text-orange-500"
+              )}>
+                <AlertTriangle className="w-3 h-3" />
+                <div className="flex flex-col">
+                  <span className="text-[7px] font-mono uppercase tracking-widest opacity-70">Live Threat Level</span>
+                  <span className="text-[10px] font-bold uppercase">{threat > 0.8 ? 'Extremely High' : 'Elevated'} ({threat.toFixed(2)})</span>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      )}
+    </div>
+  );
+
+  const DiamondModule = (
+    <div className="flex flex-col items-center justify-center space-y-8 md:border-l md:border-slate-800 md:pl-8 h-full min-h-[160px]">
+      {isLive ? (
+        <>
+          <div className="relative w-32 h-32 flex items-center justify-center">
+            {/* The Diamond Border */}
+            <div className="absolute w-24 h-24 rotate-45 border-2 border-slate-800 bg-slate-950/20 shadow-inner" />
+            
+            {/* Bases */}
+            <div className="relative w-24 h-24 rotate-45">
+              <div className={cn(
+                "absolute -top-2 -left-2 w-4 h-4 border border-slate-700 transition-all duration-300", 
+                linescore.offense?.second ? "bg-salami-red shadow-[0_0_15px_rgba(225,29,72,0.7)] z-10 scale-110" : "bg-slate-900"
+              )} title="2nd Base" />
+              <div className={cn(
+                "absolute -bottom-2 -left-2 w-4 h-4 border border-slate-700 transition-all duration-300", 
+                linescore.offense?.third ? "bg-salami-red shadow-[0_0_15px_rgba(225,29,72,0.7)] z-10 scale-110" : "bg-slate-900"
+              )} title="3rd Base" />
+              <div className={cn(
+                "absolute -top-2 -right-2 w-4 h-4 border border-slate-700 transition-all duration-300", 
+                linescore.offense?.first ? "bg-salami-red shadow-[0_0_15px_rgba(225,29,72,0.7)] z-10 scale-110" : "bg-slate-900"
+              )} title="1st Base" />
+              <div className="absolute -bottom-2 -right-2 w-4 h-4 border border-slate-700 bg-slate-800" title="Home Plate" />
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center gap-3 w-full">
+            <div className="flex gap-6">
+              <div className="flex flex-col items-center">
+                <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest font-black">Balls</span>
+                <div className="flex gap-1.5 mt-1">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className={cn("w-2 h-2 rounded-full", (linescore.balls || 0) >= i ? "bg-green-500" : "bg-slate-800")} />
+                  ))}
+                </div>
+              </div>
+              <div className="flex flex-col items-center">
+                <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest font-black">Strikes</span>
+                <div className="flex gap-1.5 mt-1">
+                  {[1, 2].map(i => (
+                    <div key={i} className={cn("w-2 h-2 rounded-full", (linescore.strikes || 0) >= i ? "bg-salami-red" : "bg-slate-800")} />
+                  ))}
+                </div>
+              </div>
+              <div className="flex flex-col items-center">
+                <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest font-black">Outs</span>
+                <div className="flex gap-1.5 mt-1">
+                  {[1, 2].map(i => (
+                    <div key={i} className={cn("w-2 h-2 rounded-full", (linescore.outs || 0) >= i ? "bg-white" : "bg-slate-800")} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="flex flex-col items-center text-center space-y-2">
+          <Info className="w-8 h-8 text-slate-700" />
+          <div className="text-[9px] font-mono text-slate-600 uppercase tracking-widest leading-relaxed">
+            {isFinal ? 'Game Complete' : (
+              <div className="flex flex-col items-center gap-1">
+                <span>Game Scheduled</span>
+                <span className="text-slate-500 font-black">{format(new Date(game.gameDate), 'h:mm a')}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-2 space-y-6">
-          {(() => {
-            const TableModule = (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-3 h-3 text-slate-500" />
-                    <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
-                      {game.venue?.name || 'Unknown Venue'}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full text-[10px] font-mono border-collapse">
-                    <thead>
-                      <tr className="text-slate-500 border-b border-slate-800">
-                        <th className="text-left py-2 font-black uppercase tracking-widest">Team</th>
-                        {linescore.innings?.map(inn => (
-                          <th key={inn.num} className="text-center px-2 py-2">{inn.num}</th>
-                        ))}
-                        <th className="text-center px-3 py-2 border-l border-slate-800 font-black text-white">R</th>
-                        <th className="text-center px-3 py-2 text-slate-500">H</th>
-                        <th className="text-center px-3 py-2 text-slate-500">E</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-800">
-                      <tr>
-                        <td className="py-3 font-bold text-slate-300 uppercase tracking-tighter">
-                          {game.teams.away.team.name.split(' ').pop()}
-                        </td>
-                        {linescore.innings?.map(inn => (
-                          <td key={inn.num} className="text-center px-2 py-3 text-slate-500">{inn.away.runs ?? '-'}</td>
-                        ))}
-                        <td className="text-center px-3 py-3 border-l border-slate-800 font-black text-salami-red bg-slate-950/50">
-                          {linescore.teams.away.runs ?? 0}
-                        </td>
-                        <td className="text-center px-3 py-3 text-slate-500">{linescore.teams.away.hits ?? 0}</td>
-                        <td className="text-center px-3 py-3 text-slate-500">{linescore.teams.away.errors ?? 0}</td>
-                      </tr>
-                      <tr>
-                        <td className="py-3 font-bold text-slate-300 uppercase tracking-tighter">
-                          {game.teams.home.team.name.split(' ').pop()}
-                        </td>
-                        {linescore.innings?.map(inn => (
-                          <td key={inn.num} className="text-center px-2 py-3 text-slate-500">{inn.home.runs ?? '-'}</td>
-                        ))}
-                        <td className="text-center px-3 py-3 border-l border-slate-800 font-black text-salami-red bg-slate-950/50">
-                          {linescore.teams.home.runs ?? 0}
-                        </td>
-                        <td className="text-center px-3 py-3 text-slate-500">{linescore.teams.home.hits ?? 0}</td>
-                        <td className="text-center px-3 py-3 text-slate-500">{linescore.teams.home.errors ?? 0}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-
-                {isLive && (
-                  <div className="flex flex-wrap gap-4 pt-2">
-                    <div className="flex items-center gap-2 bg-slate-950 px-3 py-2 rounded-lg border border-slate-800">
-                      <User className="w-3 h-3 text-salami-red" />
-                      <div className="flex flex-col">
-                        <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest">At Bat</span>
-                        <span className="text-[10px] font-bold text-white">{linescore.offense?.batter?.fullName || '---'}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 bg-slate-950 px-3 py-2 rounded-lg border border-slate-800">
-                      <Activity className="w-3 h-3 text-slate-500" />
-                      <div className="flex flex-col">
-                        <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest">Pitching</span>
-                        <span className="text-[10px] font-bold text-white">{linescore.defense?.pitcher?.fullName || '---'}</span>
-                      </div>
-                    </div>
-                    {(() => {
-                      const offense = linescore.offense;
-                      const hasRISP = !!offense?.second || !!offense?.third;
-                      if (!hasRISP) return null;
-
-                      const threat = calculateLiveThreat({
-                        first: !!offense?.first,
-                        second: !!offense?.second,
-                        third: !!offense?.third,
-                        outs: linescore.outs || 0
-                      });
-                      
-                      if (threat <= 0.1) return null;
-                      
-                      return (
-                        <div className={cn(
-                          "flex items-center gap-2 px-3 py-2 rounded-lg border",
-                          threat > 0.8 ? "bg-red-500/10 border-red-500/20 text-red-500" : "bg-orange-500/10 border-orange-500/20 text-orange-500"
-                        )}>
-                          <AlertTriangle className="w-3 h-3" />
-                          <div className="flex flex-col">
-                            <span className="text-[7px] font-mono uppercase tracking-widest opacity-70">Live Threat Level</span>
-                            <span className="text-[10px] font-bold uppercase">{threat > 0.8 ? 'Extremely High' : 'Elevated'} ({threat.toFixed(2)})</span>
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                )}
-              </div>
-            );
-            return TableModule;
-          })()}
-          {PitcherComparisonModule}
+        <div className="md:col-span-2 order-1">
+           {TableModule}
         </div>
-        <div>
-          {(() => {
-            const DiamondModule = (
-              <div className="flex flex-col items-center justify-center space-y-8 md:border-l md:border-slate-800 md:pl-8 h-full">
-                {isLive ? (
-                  <>
-                    <div className="relative w-32 h-32 flex items-center justify-center">
-                      {/* The Diamond Border */}
-                      <div className="absolute w-24 h-24 rotate-45 border-2 border-slate-800 bg-slate-950/20 shadow-inner" />
-                      
-                      {/* Bases */}
-                      <div className="relative w-24 h-24 rotate-45">
-                        <div className={cn(
-                          "absolute -top-2 -left-2 w-4 h-4 border border-slate-700 transition-all duration-300", 
-                          linescore.offense?.second ? "bg-salami-red shadow-[0_0_15px_rgba(225,29,72,0.7)] z-10 scale-110" : "bg-slate-900"
-                        )} title="2nd Base" />
-                        <div className={cn(
-                          "absolute -bottom-2 -left-2 w-4 h-4 border border-slate-700 transition-all duration-300", 
-                          linescore.offense?.third ? "bg-salami-red shadow-[0_0_15px_rgba(225,29,72,0.7)] z-10 scale-110" : "bg-slate-900"
-                        )} title="3rd Base" />
-                        <div className={cn(
-                          "absolute -top-2 -right-2 w-4 h-4 border border-slate-700 transition-all duration-300", 
-                          linescore.offense?.first ? "bg-salami-red shadow-[0_0_15px_rgba(225,29,72,0.7)] z-10 scale-110" : "bg-slate-900"
-                        )} title="1st Base" />
-                        <div className="absolute -bottom-2 -right-2 w-4 h-4 border border-slate-700 bg-slate-800" title="Home Plate" />
-                      </div>
-                    </div>
+        
+        <div className={cn(
+          "md:col-span-1 md:order-3 md:row-span-2",
+          isLive ? "order-2" : "order-3"
+        )}>
+          {DiamondModule}
+        </div>
 
-                    <div className="flex flex-col items-center gap-3 w-full">
-                      <div className="flex gap-6">
-                        <div className="flex flex-col items-center">
-                          <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest font-black">Balls</span>
-                          <div className="flex gap-1.5 mt-1">
-                            {[1, 2, 3].map(i => (
-                              <div key={i} className={cn("w-2 h-2 rounded-full", (linescore.balls || 0) >= i ? "bg-green-500" : "bg-slate-800")} />
-                            ))}
-                          </div>
-                        </div>
-                        <div className="flex flex-col items-center">
-                          <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest font-black">Strikes</span>
-                          <div className="flex gap-1.5 mt-1">
-                            {[1, 2].map(i => (
-                              <div key={i} className={cn("w-2 h-2 rounded-full", (linescore.strikes || 0) >= i ? "bg-salami-red" : "bg-slate-800")} />
-                            ))}
-                          </div>
-                        </div>
-                        <div className="flex flex-col items-center">
-                          <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest font-black">Outs</span>
-                          <div className="flex gap-1.5 mt-1">
-                            {[1, 2].map(i => (
-                              <div key={i} className={cn("w-2 h-2 rounded-full", (linescore.outs || 0) >= i ? "bg-white" : "bg-slate-800")} />
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex flex-col items-center text-center space-y-2">
-                    <Info className="w-8 h-8 text-slate-700" />
-                    <div className="text-[9px] font-mono text-slate-600 uppercase tracking-widest leading-relaxed">
-                      {isFinal ? 'Game Complete' : (
-                        <div className="flex flex-col items-center gap-1">
-                          <span>Game Scheduled</span>
-                          <span className="text-slate-500 font-black">{format(new Date(game.gameDate), 'h:mm a')}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-            return DiamondModule;
-          })()}
+        <div className={cn(
+          "md:col-span-2 md:order-2",
+          isLive ? "order-3" : "order-2"
+        )}>
+           {PitcherComparisonModule}
         </div>
       </div>
       

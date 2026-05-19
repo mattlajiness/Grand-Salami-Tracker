@@ -71,10 +71,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setLoading(false);
           clearTimeout(timeoutId);
         }, (error) => {
-          try {
-            handleFirestoreError(error, OperationType.GET, `users/${currentUser.uid}`);
-          } catch (e) {
-             console.warn("Profile fetch failed - check rules or connection.");
+          const isOffline = error instanceof Error && (error.message.includes('offline') || error.message.includes('unavailable'));
+          
+          if (isOffline) {
+            console.warn("Firestore is offline or unavailable. Profile features may be limited.");
+          } else {
+            try {
+              handleFirestoreError(error, OperationType.GET, `users/${currentUser.uid}`);
+            } catch (e) {
+               console.warn("Profile fetch failed - check rules or connection.");
+            }
           }
           setLoading(false);
           clearTimeout(timeoutId);

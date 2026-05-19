@@ -10,7 +10,7 @@ export const auth = getAuth(app);
 // Initialize Firestore with specific settings to improve connectivity
 export const db = initializeFirestore(app, {
   experimentalForceLongPolling: true,
-}, firebaseConfig.firestoreDatabaseId);
+}, firebaseConfig.firestoreDatabaseId || '(default)');
 export const googleProvider = new GoogleAuthProvider();
 
 // Auth Helpers
@@ -83,13 +83,23 @@ async function testConnection() {
     // Using getDocFromServer forces a network round-trip instead of using cached data
     await getDocFromServer(testDoc);
     console.log("Firestore Connected successfully to database:", firebaseConfig.firestoreDatabaseId);
+    console.log("Firestore Settings:", {
+      projectId: firebaseConfig.projectId,
+      dbId: firebaseConfig.firestoreDatabaseId
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    if (message.includes('the client is offline')) {
-      console.error("Please check your Firebase configuration. The client is offline.");
-      console.warn("Detected likely connectivity issue or misconfigured database ID:", firebaseConfig.firestoreDatabaseId);
+    if (message.includes('the client is offline') || message.includes('unavailable')) {
+      console.error("Firebase Connectivity Issue Identified:");
+      console.error("- Message:", message);
+      console.warn("- Configuration:", {
+        projectId: firebaseConfig.projectId,
+        databaseId: firebaseConfig.firestoreDatabaseId,
+        forceLongPolling: true
+      });
+      console.warn("- Suggestion: Ensure the database is provisioned in the Firebase console and that your network allows long polling requests.");
     } else {
-      console.error("Firestore connectivity test failed:", message);
+      console.error("Firestore connectivity test failed with unexpected error:", message);
     }
   }
 }
