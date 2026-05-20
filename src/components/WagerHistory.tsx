@@ -7,6 +7,7 @@ import { MLBGame } from '../services/mlbService';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { format, parseISO } from 'date-fns';
+import { toast } from 'sonner';
 
 interface WagerRecord {
   id: string;
@@ -17,16 +18,26 @@ interface WagerRecord {
 }
 
 interface WagerHistoryProps {
-  historicalGames: MLBGame[];
+  historicalGames: any[];
   isOpen: boolean;
   onClose: () => void;
   userWagers: WagerRecord[];
   historicalTotals: Record<string, number>;
   currentStreak: { type: 'WIN' | 'LOSS' | 'PUSH'; count: number } | null;
   isLoading: boolean;
+  onDeleteWager?: (wagerId: string) => void;
 }
 
-export function WagerHistory({ historicalGames, isOpen, onClose, userWagers, historicalTotals, currentStreak, isLoading }: WagerHistoryProps) {
+export function WagerHistory({ 
+  historicalGames, 
+  isOpen, 
+  onClose, 
+  userWagers, 
+  historicalTotals, 
+  currentStreak, 
+  isLoading,
+  onDeleteWager
+}: WagerHistoryProps) {
   const { user } = useAuth();
   const [wagers, setWagers] = useState<WagerRecord[]>(userWagers);
 
@@ -34,16 +45,23 @@ export function WagerHistory({ historicalGames, isOpen, onClose, userWagers, his
     setWagers(userWagers);
   }, [userWagers]);
 
-  const handleDelete = async (date: string) => {
+  const handleDelete = async (wagerId: string, date: string) => {
     if (!user) return;
     
     if (confirm(`Are you sure you want to remove the wager for ${date}?`)) {
       try {
-        const wagerDocRef = doc(db, 'users', user.uid, 'wagers', date);
+        const wagerDocRef = doc(db, 'users', user.uid, 'wagers', wagerId);
         await deleteDoc(wagerDocRef);
-        setWagers(prev => prev.filter(w => w.date !== date));
+        setWagers(prev => prev.filter(w => w.id !== wagerId));
+        if (onDeleteWager) {
+          onDeleteWager(wagerId);
+        }
+        toast.info('WAGER REMOVED FROM HISTORY 🗑️', {
+          description: `Wager for ${date} has been deleted.`
+        });
       } catch (error) {
         console.error("Error deleting wager:", error);
+        toast.error('Failed to delete wager. Please try again.');
       }
     }
   };
@@ -168,7 +186,7 @@ export function WagerHistory({ historicalGames, isOpen, onClose, userWagers, his
                       >
                         {/* Delete Button - Floating */}
                         <button 
-                          onClick={() => handleDelete(wager.date)}
+                          onClick={() => handleDelete(wager.id, wager.date)}
                           className="absolute top-2 right-2 p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-600 hover:text-red-500 hover:border-red-500/30 transition-all opacity-0 group-hover:opacity-100 z-20"
                           title="Delete record"
                         >

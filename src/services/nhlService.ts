@@ -13,12 +13,14 @@ export interface NHLGame {
     abbrev: string;
     logo: string;
     score?: number;
+    sog?: number;
   };
   homeTeam: {
     id: number;
     abbrev: string;
     logo: string;
     score?: number;
+    sog?: number;
   };
   periodDescriptor?: {
     number: number;
@@ -28,6 +30,18 @@ export interface NHLGame {
     timeRemaining: string;
     secondsRemaining: number;
     inIntermission: boolean;
+  };
+  situation?: {
+    homeTeam?: {
+      situationCode?: string;
+      strength?: number;
+    };
+    awayTeam?: {
+      situationCode?: string;
+      strength?: number;
+    };
+    situationCode?: string;
+    strength?: number;
   };
   boxscore?: any;
   // Starting Goalie info from landing

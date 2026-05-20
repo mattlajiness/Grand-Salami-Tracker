@@ -92,7 +92,7 @@ const getSpecialIntelligence = (game: MLBGame, parkFactors: BallparkPalFactor[] 
   if (livePalFactor) {
     const runChange = Math.round((livePalFactor.runs - 1) * 100);
     const hrChange = Math.round((livePalFactor.hr - 1) * 100);
-    const hitsChange = Math.round((livePalFactor.hits - 1) * 100);
+    const hitsChange = Math.round((livePalFactor.single - 1) * 100);
     
     const venueName = game.venue?.name || '';
     const venueShort = venueName.includes('Great American') 
@@ -106,11 +106,16 @@ Runs: ${runChange > 0 ? '+' : ''}${runChange}%
 HR: ${hrChange > 0 ? '+' : ''}${hrChange}%
 Hits: ${hitsChange > 0 ? '+' : ''}${hitsChange}%`;
 
-    if (livePalFactor.temp || livePalFactor.wind || livePalFactor.condition) {
+    const hasAtmosphere = (livePalFactor.tempHours && livePalFactor.tempHours.length > 0) || (livePalFactor.windHours && livePalFactor.windHours.length > 0);
+    if (hasAtmosphere) {
       palTitle += `\n\nATMOSPHERIC ANALYSIS:`;
-      if (livePalFactor.temp) palTitle += `\nTemp: ${livePalFactor.temp}°F`;
-      if (livePalFactor.wind) palTitle += `\nWind: ${livePalFactor.wind}`;
-      if (livePalFactor.condition) palTitle += `\nCondition: ${livePalFactor.condition}`;
+      if (livePalFactor.tempHours && livePalFactor.tempHours.length > 0) {
+        palTitle += `\nHour Temperatures: ${livePalFactor.tempHours.map(t => `${t}°F`).join(' / ')}`;
+      }
+      if (livePalFactor.windHours && livePalFactor.windHours.length > 0) {
+        palTitle += `\nHour Winds: ${livePalFactor.windHours.map(w => `${w.speed}mph ${w.dir}`).join(' / ')}`;
+      }
+      palTitle += `\nHumidity: ${livePalFactor.humidity}% | Pressure: ${livePalFactor.pressure}`;
     }
 
     palTitle += `\n\nLive environmental analysis sourced via daily updates`;
@@ -1558,8 +1563,8 @@ function GameDetailView({ game, parkFactors = [] }: { game: MLBGame, parkFactors
     const factors = livePalFactor ? {
       runs: livePalFactor.runs,
       hr: livePalFactor.hr,
-      extraBase: livePalFactor.hits, // Hits used as proxy for XB if not detailed
-      single: livePalFactor.hits
+      extraBase: livePalFactor.doubleTriple,
+      single: livePalFactor.single
     } : staticFactors;
 
     if (!factors) return null;

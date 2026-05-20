@@ -7,32 +7,252 @@ import { format } from 'date-fns';
 
 export interface BallparkPalFactor {
   game: string; // e.g. "TB @ CLE"
-  runs: number;
-  hr: number;
-  hits: number;
-  temp?: number;
-  wind?: string;
-  condition?: string;
+  venue: string; // e.g. "Coors Field"
+  time: string; // e.g. "3:10"
+  runs: number; // runs multiplier e.g. 1.25 (+25%)
+  hr: number; // hr multiplier e.g. 1.04 (+4%)
+  doubleTriple: number; // 2b/3b multiplier e.g. 1.27 (+27%)
+  single: number; // 1b multiplier e.g. 1.16 (+16%)
+  receptive: string; // "Low", "Very High", "Consistent", "Med-High", "Roof Closed", "High", "Medium", "Extreme"
+  windHours: { speed: number; dir: string }[];
+  tempHours: number[]; // Hourly temperatures
+  humidity: number; // Humidity percentage
+  pressure: number; // Atmospheric pressure
+  icons: string[]; // Custom meteorological glyphs like ["↓", "↓", "↓", "~"]
+  isClosed?: boolean;
   edge?: number;
 }
 
-// MANUALLY UPDATE THESE VALUES DAILY FROM BALLPARKPAL.COM
+// VALUED DIRECTLY FROM THE LIVE BALLPARKPAL SCREENSHOTS PROVIDED BY THE USER
 const MANUAL_FACTORS: BallparkPalFactor[] = [
-  { game: "TEX @ COL", runs: 1.14, hr: 0.92, hits: 1.11, temp: 46, wind: "6mph IN", condition: "Hum: 69% | Pres: 1020 | Low Carry" },
-  { game: "CIN @ PHI", runs: 1.12, hr: 1.37, hits: 0.97, temp: 88, wind: "8mph OUT", condition: "Hum: 39% | Pres: 1017 | Very High Carry" },
-  { game: "NYM @ WAS", runs: 1.07, hr: 1.05, hits: 1.07, temp: 88, wind: "5mph OUT", condition: "Hum: 26% | Pres: 1017 | Med-High" },
-  { game: "TOR @ NYY", runs: 1.04, hr: 1.18, hits: 0.97, temp: 86, wind: "12mph OUT", condition: "Hum: 42% | Pres: 1015 | High Carry" },
-  { game: "SF @ ARI", runs: 1.03, hr: 0.93, hits: 0.98, temp: 86, wind: "9mph OUT", condition: "Hum: 8% | Pres: 1009 | Medium Carry" },
-  { game: "ATH @ LAA", runs: 1.01, hr: 1.05, hits: 1.02, temp: 73, wind: "8mph OUT", condition: "Hum: 38% | Pres: 1012 | Consistent" },
-  { game: "CLE @ DET", runs: 0.99, hr: 0.98, hits: 1.05, temp: 80, wind: "12mph IN", condition: "Hum: 72% | Pres: 1012 | High Density" },
-  { game: "ATL @ MIA", runs: 0.94, hr: 0.85, hits: 0.98, temp: 72, wind: "NONE", condition: "ROOF CLOSED" },
-  { game: "BAL @ TB", runs: 0.94, hr: 0.97, hits: 0.92, temp: 72, wind: "NONE", condition: "ROOF CLOSED" },
-  { game: "LAD @ SD", runs: 0.90, hr: 0.94, hits: 0.91, temp: 68, wind: "7mph OUT", condition: "Hum: 59% | Pres: 1013 | Low Carry" },
-  { game: "HOU @ MIN", runs: 0.89, hr: 0.75, hits: 0.97, temp: 48, wind: "11mph OUT", condition: "Hum: 57% | Pres: 1021 | Medium Carry" },
-  { game: "MIL @ CHC", runs: 0.89, hr: 0.94, hits: 0.98, temp: 61, wind: "8mph OUT", condition: "Hum: 76% | Pres: 1016 | Extreme Air Edge" },
-  { game: "PIT @ STL", runs: 0.87, hr: 0.80, hits: 1.07, temp: 67, wind: "9mph OUT", condition: "Hum: 89% | Pres: 1017 | Med-High Density" },
-  { game: "CHW @ SEA", runs: 0.85, hr: 0.90, hits: 0.92, temp: 56, wind: "2mph IN", condition: "Hum: 69% | Pres: 1021 | Medium Carry" },
-  { game: "BOS @ KC", runs: 0.84, hr: 0.79, hits: 0.90, temp: 59, wind: "9mph IN", condition: "Hum: 66% | Pres: 1020 | High Density" }
+  {
+    game: "TEX @ COL",
+    venue: "Coors Field",
+    time: "3:10",
+    runs: 1.25,
+    hr: 1.04,
+    doubleTriple: 1.27,
+    single: 1.16,
+    receptive: "Low",
+    windHours: [{ speed: 8, dir: "↓" }, { speed: 6, dir: "↙" }, { speed: 2, dir: "↓" }],
+    tempHours: [59, 63, 63],
+    humidity: 45,
+    pressure: 1013,
+    icons: ["↓", "↓", "↓", "~"]
+  },
+  {
+    game: "CIN @ PHI",
+    venue: "Citizens Bank Park",
+    time: "1:05",
+    runs: 1.11,
+    hr: 1.32,
+    doubleTriple: 0.89,
+    single: 1.02,
+    receptive: "Very High",
+    windHours: [{ speed: 13, dir: "→" }, { speed: 13, dir: "→" }, { speed: 13, dir: "→" }],
+    tempHours: [90, 90, 90],
+    humidity: 43,
+    pressure: 1016,
+    icons: ["→", "→", "→", "≈", "☀️"]
+  },
+  {
+    game: "ATH @ LAA",
+    venue: "Angel Stadium",
+    time: "9:38",
+    runs: 1.04,
+    hr: 1.07,
+    doubleTriple: 0.96,
+    single: 1.03,
+    receptive: "Consistent",
+    windHours: [{ speed: 9, dir: "↑" }, { speed: 9, dir: "↑" }, { speed: 8, dir: "↑" }],
+    tempHours: [73, 70, 70],
+    humidity: 43,
+    pressure: 1011,
+    icons: ["↑", "↑", "↑", "~"]
+  },
+  {
+    game: "NYM @ WAS",
+    venue: "Nationals Park",
+    time: "6:45",
+    runs: 1.01,
+    hr: 0.93,
+    doubleTriple: 0.98,
+    single: 1.09,
+    receptive: "Med-High",
+    windHours: [{ speed: 11, dir: "↘" }, { speed: 4, dir: "↙" }, { speed: 4, dir: "↙" }],
+    tempHours: [73, 72, 70],
+    humidity: 88,
+    pressure: 1015,
+    icons: ["↘", "↓", "↓", "~", "H"]
+  },
+  {
+    game: "SF @ ARI",
+    venue: "Chase Field",
+    time: "3:40",
+    runs: 1.00,
+    hr: 0.92,
+    doubleTriple: 1.11,
+    single: 1.00,
+    receptive: "Roof Closed",
+    windHours: [],
+    tempHours: [],
+    humidity: 0,
+    pressure: 0,
+    icons: ["🏟️"],
+    isClosed: true
+  },
+  {
+    game: "TOR @ NYY",
+    venue: "Yankee Stadium",
+    time: "7:05",
+    runs: 0.96,
+    hr: 1.09,
+    doubleTriple: 0.86,
+    single: 0.93,
+    receptive: "High",
+    windHours: [{ speed: 15, dir: "↗" }, { speed: 14, dir: "↗" }, { speed: 13, dir: "↗" }],
+    tempHours: [75, 72, 70],
+    humidity: 61,
+    pressure: 1015,
+    icons: ["↗", "↗", "↗", "≈"]
+  },
+  {
+    game: "ATL @ MIA",
+    venue: "LoanDepot Park",
+    time: "6:40",
+    runs: 0.95,
+    hr: 0.87,
+    doubleTriple: 1.02,
+    single: 0.98,
+    receptive: "Roof Closed",
+    windHours: [],
+    tempHours: [],
+    humidity: 0,
+    pressure: 0,
+    icons: ["🏟️"],
+    isClosed: true
+  },
+  {
+    game: "BAL @ TB",
+    venue: "Tropicana Field",
+    time: "1:10",
+    runs: 0.94,
+    hr: 0.98,
+    doubleTriple: 0.93,
+    single: 0.92,
+    receptive: "Roof Closed",
+    windHours: [],
+    tempHours: [],
+    humidity: 0,
+    pressure: 0,
+    icons: ["🏟️"],
+    isClosed: true
+  },
+  {
+    game: "BOS @ KC",
+    venue: "Kauffman Stadium",
+    time: "7:40",
+    runs: 0.90,
+    hr: 0.78,
+    doubleTriple: 1.05,
+    single: 0.97,
+    receptive: "High",
+    windHours: [{ speed: 9, dir: "↓" }, { speed: 9, dir: "↓" }, { speed: 7, dir: "↙" }],
+    tempHours: [63, 61, 57],
+    humidity: 63,
+    pressure: 1021,
+    icons: ["↓", "↓", "↙", "~", "P"]
+  },
+  {
+    game: "LAD @ SD",
+    venue: "Petco Park",
+    time: "8:40",
+    runs: 0.89,
+    hr: 0.97,
+    doubleTriple: 0.81,
+    single: 0.95,
+    receptive: "Low",
+    windHours: [{ speed: 9, dir: "↗" }, { speed: 7, dir: "↗" }, { speed: 6, dir: "↗" }],
+    tempHours: [70, 68, 68],
+    humidity: 57,
+    pressure: 1012,
+    icons: ["↗", "↗", "↗", "~"]
+  },
+  {
+    game: "HOU @ MIN",
+    venue: "Target Field",
+    time: "1:40",
+    runs: 0.88,
+    hr: 0.65,
+    doubleTriple: 0.90,
+    single: 1.07,
+    receptive: "Medium",
+    windHours: [{ speed: 4, dir: "↘" }, { speed: 4, dir: "↘" }, { speed: 5, dir: "↘" }],
+    tempHours: [55, 59, 61],
+    humidity: 33,
+    pressure: 1028,
+    icons: ["↘", "↓", "↓", "❄️", "P"]
+  },
+  {
+    game: "CHW @ SEA",
+    venue: "T-Mobile Park",
+    time: "4:10",
+    runs: 0.87,
+    hr: 0.93,
+    doubleTriple: 0.79,
+    single: 0.96,
+    receptive: "Medium",
+    windHours: [{ speed: 6, dir: "↘" }, { speed: 7, dir: "↘" }, { speed: 7, dir: "↘" }],
+    tempHours: [64, 64, 64],
+    humidity: 49,
+    pressure: 1021,
+    icons: ["↘", "↘", "↘", "~", "P"]
+  },
+  {
+    game: "PIT @ STL",
+    venue: "Busch Stadium",
+    time: "7:45",
+    runs: 0.85,
+    hr: 0.74,
+    doubleTriple: 0.92,
+    single: 1.02,
+    receptive: "Med-High",
+    windHours: [{ speed: 5, dir: "↘" }, { speed: 3, dir: "↘" }, { speed: 3, dir: "↘" }],
+    tempHours: [61, 61, 61],
+    humidity: 73,
+    pressure: 1021,
+    icons: ["↘", "↘", "↘", "P"]
+  },
+  {
+    game: "CLE @ DET",
+    venue: "Comerica Park",
+    time: "6:40",
+    runs: 0.85,
+    hr: 0.68,
+    doubleTriple: 0.96,
+    single: 1.04,
+    receptive: "High",
+    windHours: [{ speed: 12, dir: "→" }, { speed: 11, dir: "→" }, { speed: 11, dir: "→" }],
+    tempHours: [57, 55, 52],
+    humidity: 54,
+    pressure: 1024,
+    icons: ["→", "→", "→", "≈", "P"]
+  },
+  {
+    game: "MIL @ CHC",
+    venue: "Wrigley Field",
+    time: "7:40",
+    runs: 0.76,
+    hr: 0.59,
+    doubleTriple: 0.80,
+    single: 1.02,
+    receptive: "Extreme",
+    windHours: [{ speed: 14, dir: "↓" }, { speed: 12, dir: "↓" }, { speed: 12, dir: "↓" }],
+    tempHours: [50, 50, 48],
+    humidity: 55,
+    pressure: 1026,
+    icons: ["↓", "↓", "↙", "≈", "❄️", "P"]
+  }
 ];
 
 export async function fetchBallparkPalFactors(date?: string): Promise<BallparkPalFactor[]> {

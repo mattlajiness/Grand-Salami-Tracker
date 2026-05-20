@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { fetchMLBGames, MLBGame } from './services/mlbService';
 import { fetchNHLGames, NHLGame } from './services/nhlService';
+import { SIMULATED_GAMES, PRE_SLATE_GAMES, tickSimulatedGames } from './services/nhlMockData';
 import { fetchBallparkPalFactors, BallparkPalFactor } from './services/ballparkPalService';
 import { calculateLiveThreat, calculateSmartProjection } from './lib/projectionEngine';
 import { GrandSalamiHeader } from './components/GrandSalamiHeader';
@@ -12,6 +13,7 @@ import { getParkFactor, getTeamOffensePower } from './lib/leagueConstants';
 import { GameLog } from './components/GameLog';
 import { WagerTracker } from './components/WagerTracker';
 import { RunTrends } from './components/RunTrends';
+import { NHLGoalTrends } from './components/NHLGoalTrends';
 import { BullpenFatigueReport } from './components/BullpenFatigueReport';
 import { InfoSection } from './components/InfoSection';
 import { DailyApex } from './components/DailyApex';
@@ -21,7 +23,7 @@ import { WagerHistory } from './components/WagerHistory';
 import { FeedbackSection } from './components/FeedbackSection';
 import { BallparkPalLogo } from './components/BallparkPalLogo';
 import { ParkFactorsReport } from './components/ParkFactorsReport';
-import { Calendar, Share2, Droplets, Activity, ExternalLink, Smartphone, LogIn, AlertTriangle, XCircle, RefreshCw, Library } from 'lucide-react';
+import { Calendar, Share2, Droplets, Activity, ExternalLink, Smartphone, LogIn, AlertTriangle, XCircle, RefreshCw, Library, CalendarRange, Eye, CloudSun } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { useAuth } from './contexts/AuthContext';
 import { db, handleFirestoreError, OperationType } from './firebase';
@@ -34,9 +36,11 @@ export default function App() {
   const [activeSport, setActiveSport] = useState<'MLB' | 'NHL'>('MLB');
   const [games, setGames] = useState<MLBGame[]>([]);
   const [nhlGames, setNhlGames] = useState<NHLGame[]>([]);
+  const [selectedNhlDate, setSelectedNhlDate] = useState<string>('demo');
   const [parkFactors, setParkFactors] = useState<BallparkPalFactor[]>([]);
   const [palConfigured, setPalConfigured] = useState(true);
   const [historicalGames, setHistoricalGames] = useState<MLBGame[]>([]);
+  const [historicalNhlGames, setHistoricalNhlGames] = useState<NHLGame[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -48,6 +52,17 @@ export default function App() {
   const [betType, setBetType] = useState<'over' | 'under'>('over');
   const [isWagerLoading, setIsWagerLoading] = useState(false);
   const [userWagers, setUserWagers] = useState<any[]>([]);
+  const [showParkFactors, setShowParkFactors] = useState<boolean>(() => {
+    const saved = localStorage.getItem('salami_show_park_factors');
+    return saved !== 'false';
+  });
+
+  const handleToggleParkFactors = () => {
+    setShowParkFactors(prev => {
+      localStorage.setItem('salami_show_park_factors', String(!prev));
+      return !prev;
+    });
+  };
   
   const isLogoMode = new URLSearchParams(window.location.search).get('logo') === 'true';
   const isFetchingRef = useRef(false);
@@ -95,11 +110,17 @@ export default function App() {
     setHistoryLoading(true);
     try {
       const datesToFetch = [1, 2, 3, 4, 5, 6, 7].map(d => format(subDays(new Date(), d), 'yyyy-MM-dd'));
-      const historicalResults = await Promise.all(
-        datesToFetch.map(date => fetchMLBGames(date))
-      );
-      const combinedHistory = historicalResults.flat();
-      setHistoricalGames(combinedHistory || []);
+      
+      const [mlbResults, nhlResults] = await Promise.all([
+        Promise.all(datesToFetch.map(date => fetchMLBGames(date))),
+        Promise.all(datesToFetch.map(date => fetchNHLGames(date)))
+      ]);
+
+      const combinedMlbHistory = mlbResults.flat();
+      const combinedNhlHistory = nhlResults.flat();
+
+      setHistoricalGames(combinedMlbHistory || []);
+      setHistoricalNhlGames(combinedNhlHistory || []);
     } catch (error) {
       console.error('Error loading historical data:', error);
     } finally {
@@ -115,9 +136,13 @@ export default function App() {
     
     try {
       const today = format(new Date(), 'yyyy-MM-dd');
+      const nhlDateStr = (selectedNhlDate === 'today' || selectedNhlDate === 'demo' || selectedNhlDate === 'pre-slate') 
+        ? today 
+        : selectedNhlDate;
+
       const results = await Promise.allSettled([
         fetchMLBGames(today),
-        fetchNHLGames(today),
+        (selectedNhlDate === 'demo' || selectedNhlDate === 'pre-slate') ? Promise.resolve([]) : fetchNHLGames(nhlDateStr),
         fetchBallparkPalFactors(today)
       ]);
       
@@ -134,7 +159,9 @@ export default function App() {
       }
       
       setGames(mlbResult || []);
-      setNhlGames(nhlResult || []);
+      if (selectedNhlDate !== 'demo' && selectedNhlDate !== 'pre-slate') {
+        setNhlGames(nhlResult || []);
+      }
       setParkFactors(palResult || []);
       setLastUpdated(new Date());
     } catch (error) {
@@ -145,7 +172,7 @@ export default function App() {
       setIsRefreshing(false);
       setIsInitialLoad(false);
     }
-  }, []);
+  }, [selectedNhlDate]);
 
   useEffect(() => {
     loadHistoricalData();
@@ -158,6 +185,56 @@ export default function App() {
     
     return () => clearInterval(interval);
   }, [loadHistoricalData, loadLiveData]);
+
+  // NHL Demo Ticker Effect
+  useEffect(() => {
+    if (selectedNhlDate !== 'demo') return;
+    
+    // Initialize standard simulation on activation
+    setNhlGames(JSON.parse(JSON.stringify(SIMULATED_GAMES)));
+    
+    const interval = setInterval(() => {
+      setNhlGames(prev => {
+        const ticked = tickSimulatedGames(prev);
+        // Toast about dramatic goals - Suppressed if active tab is MLB
+        ticked.forEach((game, idx) => {
+          const prevGame = prev[idx];
+          if (prevGame) {
+            const prevAway = prevGame.awayTeam?.score || 0;
+            const prevHome = prevGame.homeTeam?.score || 0;
+            const newAway = game.awayTeam?.score || 0;
+            const newHome = game.homeTeam?.score || 0;
+            if (newAway > prevAway) {
+              if (activeSport === 'NHL') {
+                toast(`🚨 GOAL! ${game.awayTeam.abbrev} scores! It's now ${newAway}-${newHome} vs ${game.homeTeam.abbrev}`, {
+                  icon: '🏒',
+                  duration: 4000
+                });
+              }
+            } else if (newHome > prevHome) {
+              if (activeSport === 'NHL') {
+                toast(`🚨 GOAL! ${game.homeTeam.abbrev} scores! It's now ${newAway}-${newHome} vs ${game.awayTeam.abbrev}`, {
+                  icon: '🏒',
+                  duration: 4000
+                });
+              }
+            }
+          }
+        });
+        return ticked;
+      });
+    }, 3000); // tick every 3 seconds for active simulation
+    
+    return () => clearInterval(interval);
+  }, [selectedNhlDate, activeSport]);
+
+  // NHL Pre-slate Simulation Effect
+  useEffect(() => {
+    if (selectedNhlDate !== 'pre-slate') return;
+    
+    // Initialize standard scheduled games
+    setNhlGames(JSON.parse(JSON.stringify(PRE_SLATE_GAMES)));
+  }, [selectedNhlDate]);
 
   const [todayStr] = useState(() => format(new Date(), 'yyyy-MM-dd'));
 
@@ -360,15 +437,26 @@ export default function App() {
   }, [games, historicalGames]);
 
   // Group historical games by date for results
+  // Group historical games by date for results
   const historicalTotals = useMemo(() => {
     const totals: Record<string, number> = {};
-    historicalGames.forEach(game => {
-      const date = game.officialDate || format(new Date(game.gameDate), 'yyyy-MM-dd');
-      if (!totals[date]) totals[date] = 0;
-      totals[date] += (game.teams.away.score || 0) + (game.teams.home.score || 0);
-    });
+    if (activeSport === 'MLB') {
+      historicalGames.forEach(game => {
+        const date = game.officialDate || format(new Date(game.gameDate), 'yyyy-MM-dd');
+        if (!totals[date]) totals[date] = 0;
+        totals[date] += (game.teams.away.score || 0) + (game.teams.home.score || 0);
+      });
+    } else {
+      historicalNhlGames.forEach(game => {
+        const date = game.gameDate ? game.gameDate.split('T')[0] : '';
+        if (date) {
+          if (!totals[date]) totals[date] = 0;
+          totals[date] += (game.awayTeam?.score || 0) + (game.homeTeam?.score || 0);
+        }
+      });
+    }
     return totals;
-  }, [historicalGames]);
+  }, [historicalGames, historicalNhlGames, activeSport]);
 
   // Load Wager Data for global access
   useEffect(() => {
@@ -418,10 +506,22 @@ export default function App() {
     loadWagers();
   }, [user, activeSport]);
 
+  const activeUserWagers = useMemo(() => {
+    return userWagers.filter(w => (w.sport || 'MLB').toUpperCase() === activeSport.toUpperCase());
+  }, [userWagers, activeSport]);
+
+  const handleDeleteWager = useCallback((wagerId: string) => {
+    setUserWagers(prev => prev.filter(w => w.id !== wagerId));
+    const today = format(new Date(), 'yyyy-MM-dd');
+    if (wagerId === `${activeSport}_${today}`) {
+      setBetLine('');
+    }
+  }, [activeSport]);
+
   const currentStreak = useMemo(() => {
-    if (userWagers.length === 0) return null;
+    if (activeUserWagers.length === 0) return null;
     
-    const settled = userWagers.filter(w => historicalTotals[w.date] !== undefined);
+    const settled = activeUserWagers.filter(w => historicalTotals[w.date] !== undefined);
     if (settled.length === 0) return null;
 
     let streakCount = 0;
@@ -445,7 +545,7 @@ export default function App() {
     }
 
     return { type: streakType, count: streakCount };
-  }, [userWagers, historicalTotals]);
+  }, [activeUserWagers, historicalTotals]);
 
   const projectedTotal = useMemo(() => {
     if (activeSport === 'MLB') {
@@ -544,9 +644,110 @@ export default function App() {
           </div>
         </div>
 
+        {/* NHL Date/Showcase Selector (Always visible on NHL view) */}
+        {activeSport === 'NHL' && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8 p-6 bg-slate-900/60 border border-slate-800 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-6 font-mono"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
+                <CalendarRange className="w-5 h-5 text-blue-400" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs font-black uppercase text-white tracking-widest">
+                  NHL Slate Selector
+                </span>
+                <span className="text-[9px] text-slate-500 uppercase tracking-wider mt-0.5">
+                  Pick a historical sheet or live ticker simulation
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => setSelectedNhlDate('today')}
+                  className={cn(
+                    "px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border cursor-pointer",
+                    selectedNhlDate === 'today'
+                      ? "bg-blue-600 border-blue-500 text-white font-extrabold shadow-[0_0_12px_rgba(37,99,235,0.3)]"
+                      : "bg-slate-950/80 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700"
+                  )}
+                >
+                  📅 Today (Live API)
+                </button>
+                <button
+                  onClick={() => setSelectedNhlDate('2026-03-24')}
+                  className={cn(
+                    "px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border cursor-pointer",
+                    selectedNhlDate === '2026-03-24'
+                      ? "bg-blue-600 border-blue-500 text-white font-extrabold shadow-[0_0_12px_rgba(37,99,235,0.3)]"
+                      : "bg-slate-950/80 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700"
+                  )}
+                >
+                  🏒 March 24 (11 Gms)
+                </button>
+                <button
+                  onClick={() => setSelectedNhlDate('2026-04-11')}
+                  className={cn(
+                    "px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border cursor-pointer",
+                    selectedNhlDate === '2026-04-11'
+                      ? "bg-blue-600 border-blue-500 text-white font-extrabold shadow-[0_0_12px_rgba(37,99,235,0.3)]"
+                      : "bg-slate-950/80 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700"
+                  )}
+                >
+                  🏒 April 11 (14 Gms)
+                </button>
+                <button
+                  onClick={() => setSelectedNhlDate('demo')}
+                  className={cn(
+                    "px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border cursor-pointer relative overflow-hidden",
+                    selectedNhlDate === 'demo'
+                      ? "bg-cyan-950/60 border-cyan-500 text-cyan-300 font-extrabold shadow-[0_0_15px_rgba(6,182,212,0.4)] animate-pulse"
+                      : "bg-teal-950/25 border-teal-900/40 text-teal-400 hover:text-teal-350 hover:border-teal-700"
+                  )}
+                >
+                  <span className="inline-block w-2 h-2 bg-cyan-400 rounded-full animate-ping mr-1" />
+                  🚨 Simulated Showcase
+                </button>
+                <button
+                  onClick={() => setSelectedNhlDate('pre-slate')}
+                  className={cn(
+                    "px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border cursor-pointer relative overflow-hidden",
+                    selectedNhlDate === 'pre-slate'
+                      ? "bg-purple-950/65 border-purple-500 text-purple-300 font-extrabold shadow-[0_0_15px_rgba(168,85,247,0.4)]"
+                      : "bg-slate-950 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700"
+                  )}
+                >
+                  <span className="inline-block w-2 h-2 bg-purple-400 rounded-full mr-1 animate-pulse" />
+                  🔮 NHL Pre-Slate (Demo)
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 pl-3 border-l border-slate-850">
+                <span className="text-[9px] uppercase font-black text-slate-500">Custom:</span>
+                <input
+                  type="date"
+                  min="2025-10-01"
+                  max="2026-06-30"
+                  value={(selectedNhlDate !== 'today' && selectedNhlDate !== 'demo' && selectedNhlDate !== 'pre-slate' && selectedNhlDate !== '2026-03-24' && selectedNhlDate !== '2026-04-11') ? selectedNhlDate : ''}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      setSelectedNhlDate(e.target.value);
+                    }
+                  }}
+                  className="bg-slate-950 border border-slate-850 hover:border-slate-700 text-slate-250 rounded-lg px-2.5 py-1.5 text-[10px] font-mono focus:outline-none focus:border-blue-500/50 cursor-pointer"
+                />
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         <div className="space-y-6">
-          {stats.hasRainRisk && (
-                <motion.div 
+          {activeSport === 'MLB' && stats.hasRainRisk && (
+                <motion.div  
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: 'auto', opacity: 1 }}
                   className="bg-blue-900/20 border border-blue-800/50 rounded-xl p-3 flex items-center justify-between px-6"
@@ -624,7 +825,35 @@ export default function App() {
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                   <div className="order-2 lg:order-1 lg:col-span-3 space-y-6">
-                    {activeSport === 'MLB' && parkFactors.length > 0 && <ParkFactorsReport factors={parkFactors} />}
+                    {activeSport === 'MLB' && parkFactors.length > 0 && (
+                      showParkFactors ? (
+                        <ParkFactorsReport 
+                          factors={parkFactors} 
+                          onHide={handleToggleParkFactors} 
+                        />
+                      ) : (
+                        <motion.button
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          onClick={handleToggleParkFactors}
+                          className="w-full py-3.5 px-5 bg-slate-950 hover:bg-slate-900 border border-slate-900 rounded-2xl flex items-center justify-between transition-all group cursor-pointer"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-blue-500/10 rounded-xl group-hover:bg-blue-500/15 transition-colors">
+                              <CloudSun className="w-4 h-4 text-blue-400" />
+                            </div>
+                            <div className="text-left">
+                              <span className="text-xs font-black uppercase tracking-wider text-white">Atmospheric Park Factors</span>
+                              <span className="text-[10px] font-mono text-slate-500 block mt-0.5">Sourced via Ballpark Pal Sync • Click to expand environmental multipliers</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-xl group-hover:border-slate-700 transition-colors text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-slate-300">
+                            <Eye className="w-3.5 h-3.5 text-blue-400" />
+                            <span>Expand Factors</span>
+                          </div>
+                        </motion.button>
+                      )
+                    )}
                     {activeSport === 'MLB' ? (
                       <GameLog 
                         games={games} 
@@ -637,6 +866,8 @@ export default function App() {
                         games={nhlGames}
                         gameLines={nhlGameLines}
                         manualLines={nhlGameLines}
+                        selectedDate={selectedNhlDate}
+                        onSelectDate={setSelectedNhlDate}
                       />
                     )}
                   </div>
@@ -666,7 +897,7 @@ export default function App() {
                       onOpenHistory={() => setIsHistoryModalOpen(true)}
                       currentStreak={currentStreak}
                       historicalTotals={historicalTotals}
-                      userWagers={userWagers}
+                      userWagers={activeUserWagers}
                     />
 
                     {activeSport === 'MLB' && <DailyApex games={games} />}
@@ -693,6 +924,18 @@ export default function App() {
                         />
                       </div>
                     )}
+
+                    {/* Desktop NHL Goal Trends */}
+                    {activeSport === 'NHL' && (
+                      <div className="hidden lg:block">
+                        <NHLGoalTrends 
+                          historicalGames={historicalNhlGames}
+                          games={nhlGames}
+                          gameLines={nhlGameLines}
+                          manualLines={nhlGameLines}
+                        />
+                      </div>
+                    )}
                   </div>
 
                   {/* Mobile Run Trends & PreGameAudit - Placed under the GameLog (Scoreboard) */}
@@ -709,6 +952,18 @@ export default function App() {
                         historicalGames={historicalGames} 
                         todayGames={games} 
                         isLoading={historyLoading}
+                      />
+                    </div>
+                  )}
+
+                  {/* Mobile NHL Goal Trends */}
+                  {activeSport === 'NHL' && (
+                    <div className="order-3 lg:hidden space-y-6">
+                      <NHLGoalTrends 
+                        historicalGames={historicalNhlGames}
+                        games={nhlGames}
+                        gameLines={nhlGameLines}
+                        manualLines={nhlGameLines}
                       />
                     </div>
                   )}
@@ -731,10 +986,11 @@ export default function App() {
             historicalGames={historicalGames} 
             isOpen={isHistoryModalOpen} 
             onClose={() => setIsHistoryModalOpen(false)} 
-            userWagers={userWagers}
+            userWagers={activeUserWagers}
             historicalTotals={historicalTotals}
             currentStreak={currentStreak}
             isLoading={isWagerLoading}
+            onDeleteWager={handleDeleteWager}
           />
 
           <FeedbackSection />

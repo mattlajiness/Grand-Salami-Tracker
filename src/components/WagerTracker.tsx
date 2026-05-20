@@ -243,7 +243,7 @@ export function WagerTracker({
     // If not finished, we only notify if it's already WON or LOST (early settlement)
     if (!isFinished && status !== 'WON' && status !== 'LOST') return;
 
-    const notificationKey = `notified_${today}_${betLine}_${betType}_${status}`;
+    const notificationKey = `notified_${sport}_${today}_${betLine}_${betType}_${status}`;
     const alreadyNotified = localStorage.getItem(notificationKey) || notifiedKeys.current.has(notificationKey);
 
     if (alreadyNotified) return;
@@ -254,26 +254,26 @@ export function WagerTracker({
       triggerWinCelebration();
       setShowResultModal(true);
       const msg = isFinished ? "SLATE FINAL" : "LEVEL REACHED EARLY";
-      const toastId = `wager-won-${today}`;
-      toast.success('WAGER WON! 🏆', {
+      const toastId = `wager-won-${sport}-${today}`;
+      toast.success(`${sport} WAGER WON! 🏆`, {
         id: toastId,
         description: `${msg} - Total: ${currentTotal} (Line: ${betLine})`,
         duration: 15000,
       });
-      sendBrowserNotification('WAGER WON! 🏆', `Status: ${msg}. Final Total: ${currentTotal} (Line: ${betLine})`);
+      sendBrowserNotification(`${sport} WAGER WON! 🏆`, `Status: ${msg}. Final Total: ${currentTotal} (Line: ${betLine})`);
       lastNotifiedStatus.current = 'WON';
       notifiedKeys.current.add(notificationKey);
       localStorage.setItem(notificationKey, 'true');
     } else if (status === 'PUSH' && isFinished && lastNotifiedStatus.current !== 'PUSH') {
       playSound('win');
       setShowResultModal(true);
-      const toastId = `wager-push-${today}`;
-      toast.info('WAGER PUSHED 🤝', {
+      const toastId = `wager-push-${sport}-${today}`;
+      toast.info(`${sport} WAGER PUSHED 🤝`, {
         id: toastId,
         description: `Total: ${currentTotal} (Line: ${betLine})`,
         duration: 15000,
       });
-      sendBrowserNotification('WAGER PUSHED 🤝', `Final Total: ${currentTotal} (Line: ${betLine})`);
+      sendBrowserNotification(`${sport} WAGER PUSHED 🤝`, `Final Total: ${currentTotal} (Line: ${betLine})`);
       lastNotifiedStatus.current = 'PUSH';
       notifiedKeys.current.add(notificationKey);
       localStorage.setItem(notificationKey, 'true');
@@ -281,18 +281,18 @@ export function WagerTracker({
       playSound('loss');
       setShowResultModal(true);
       const msg = isFinished ? "SLATE FINAL" : "LINE EXCEEDED";
-      const toastId = `wager-lost-${today}`;
-      toast.error('WAGER LOST ❌', {
+      const toastId = `wager-lost-${sport}-${today}`;
+      toast.error(`${sport} WAGER LOST ❌`, {
         id: toastId,
         description: `${msg} - Total: ${currentTotal} (Line: ${betLine})`,
         duration: 15000,
       });
-      sendBrowserNotification('WAGER LOST ❌', `Status: ${msg}. Total: ${currentTotal} (Line: ${betLine})`);
+      sendBrowserNotification(`${sport} WAGER LOST ❌`, `Status: ${msg}. Total: ${currentTotal} (Line: ${betLine})`);
       lastNotifiedStatus.current = 'LOST';
       notifiedKeys.current.add(notificationKey);
       localStorage.setItem(notificationKey, 'true');
     } 
-  }, [status, notificationsEnabled, currentTotal, betLine, projectedTotal, betType, isFinished, today]);
+  }, [status, notificationsEnabled, currentTotal, betLine, projectedTotal, betType, isFinished, today, sport]);
 
   // Historical Settlement Check (Handles "Next Day" notifications)
   useEffect(() => {
