@@ -169,6 +169,8 @@ HR: ${hrChange > 0 ? '+' : ''}${hrChange}%`;
   }
 
   // 2. Dome / Retractable Status Badge
+  const isChase = (game.venue?.name || '').toLowerCase().includes('chase field');
+  
   if (isTropicana) {
     badges.push({
       label: 'DOME FIELD',
@@ -178,12 +180,14 @@ HR: ${hrChange > 0 ? '+' : ''}${hrChange}%`;
     });
   } else if (isRetractable && !isTMobile) {
     if (isClosed) {
-      badges.push({
-        label: 'ROOF CLOSED',
-        color: 'bg-slate-800/60 text-slate-300 border-slate-700/50 shadow-sm',
-        icon: ShieldCheck,
-        title: `${game.venue?.name || 'Dome'}: Roof is CLOSED / indoor atmosphere regulated.`
-      });
+      if (!isChase) {
+        badges.push({
+          label: 'ROOF CLOSED',
+          color: 'bg-slate-800/60 text-slate-300 border-slate-700/50 shadow-sm',
+          icon: ShieldCheck,
+          title: `${game.venue?.name || 'Dome'}: Roof is CLOSED / indoor atmosphere regulated.`
+        });
+      }
     } else {
       badges.push({
         label: 'ROOF OPEN',
@@ -195,7 +199,6 @@ HR: ${hrChange > 0 ? '+' : ''}${hrChange}%`;
   }
 
   // 3. Special Override Alerts
-  const isChase = (game.venue?.name || '').toLowerCase().includes('chase field');
   const isChaseClosed = isChase && isClosed;
   if (isChaseClosed) {
     badges.push({ 
