@@ -2,7 +2,7 @@ import { useState, Fragment, useEffect, useMemo } from 'react';
 import { MLBGame } from '../services/mlbService';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
-import { Activity, RefreshCw, ChevronDown, ChevronUp, User, Info, Wind, Thermometer, Cloud, Sun, CloudRain, CloudLightning, MapPin, AlertTriangle, Droplets, Zap, ShieldCheck, Target, Edit2, Save, Scale, Flame, ExternalLink, ThermometerSun } from 'lucide-react';
+import { Activity, RefreshCw, ChevronDown, ChevronUp, User, Info, Wind, Thermometer, Cloud, Sun, CloudRain, CloudLightning, MapPin, AlertTriangle, Droplets, Zap, ShieldCheck, Target, Edit2, Save, Scale, Flame, ExternalLink, ThermometerSun, Clock } from 'lucide-react';
 import { calculateLiveThreat } from '../lib/projectionEngine';
 import { getUmpireTendency, getGenericTendency } from '../lib/umpireEngine';
 import { BallparkPalLogo } from './BallparkPalLogo';
@@ -732,6 +732,25 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                              
                              // 1. Weather/Risk
                              const risk = getRainRisk(game);
+                             const isDelay = (game.status?.detailedState || '').toLowerCase().includes('delay') || 
+                                             ['D', 'DR', 'DI'].includes((game.status?.statusCode || '').toUpperCase());
+                             if (isDelay) {
+                               badges.push(
+                                 <button 
+                                   key="delayed-badge"
+                                   type="button" 
+                                   className="flex items-center gap-1 bg-amber-500/20 text-amber-400 border border-amber-500/30 px-1.5 py-0.5 rounded cursor-help select-none touch-manipulation appearance-none outline-none animate-pulse"
+                                   onClick={(e) => {
+                                     e.preventDefault();
+                                     e.stopPropagation();
+                                     toast.info(`Game is currently delayed: ${game.status.detailedState || 'In progress or scheduled'}`, { duration: 3000, position: 'bottom-center' });
+                                   }}
+                                 >
+                                   <Clock className="w-2.5 h-2.5 text-amber-400" />
+                                   <span className="text-[7px] font-mono font-black uppercase tracking-widest">DELAYED</span>
+                                  </button>
+                               );
+                             }
                              if (risk) {
                                const isRain = risk.startsWith('Raining') || risk.includes('Risk');
                                badges.push(
@@ -1270,6 +1289,27 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                                 {(() => {
                                    const badges = [];
                                    
+                                   const isDelay = (game.status?.detailedState || '').toLowerCase().includes('delay') || 
+                                                   ['D', 'DR', 'DI'].includes((game.status?.statusCode || '').toUpperCase());
+                                   if (isDelay) {
+                                     badges.push(
+                                       <button 
+                                         key="delayed-badge"
+                                         type="button"
+                                         className="flex items-center gap-1 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded cursor-help select-none touch-manipulation appearance-none outline-none animate-pulse text-left"
+                                         title={`Game is currently delayed: ${game.status.detailedState || 'In progress or scheduled'}`}
+                                         onClick={(e) => {
+                                           e.preventDefault();
+                                           e.stopPropagation();
+                                           toast.info(`Game is currently delayed: ${game.status.detailedState || 'In progress or scheduled'}`, { duration: 3000, position: 'bottom-center' });
+                                         }}
+                                       >
+                                         <Clock className="w-2.5 h-2.5 text-amber-400" />
+                                         <span className="text-[7px] font-mono font-black text-amber-400 uppercase tracking-widest whitespace-nowrap">DELAYED</span>
+                                       </button>
+                                     );
+                                   }
+
                                    // 1. Rain Risk
                                    if (riskMessage) {
                                      const isRain = riskMessage.startsWith('Raining') || riskMessage.includes('Risk');
