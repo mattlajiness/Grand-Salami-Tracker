@@ -71,12 +71,32 @@ export function NHLPowerPlayTracker({ game }: NHLPowerPlayTrackerProps) {
 
     const { situationCode } = game.situation;
     
-    // Default parser if situationCode is present (4-digit format: e.g. '1541' or '1551')
+    // Default parser if situationCode is present (4-digit format: e.g. '1541' or '1551' or standard '1515')
     if (situationCode && situationCode.length === 4) {
-      const gAway = situationCode[0] === '1';
-      const skAway = parseInt(situationCode[1]) || 5;
-      const gHome = situationCode[2] === '1';
-      const skHome = parseInt(situationCode[3]) || 5;
+      // Since goalie status can only be '0' or '1', if the third character is > 1 (e.g., '3', '4', '5'),
+      // it means the code is in the mock/unconventional layout: [gAway, skAway, skHome, gHome]
+      // Otherwise, it is in the standard NHL API layout: [gAway, skAway, gHome, skHome]
+      const thirdDigitVal = parseInt(situationCode[2], 10);
+      const isCustomLayout = !isNaN(thirdDigitVal) && thirdDigitVal > 1;
+
+      let gAway = false;
+      let skAway = 5;
+      let gHome = false;
+      let skHome = 5;
+
+      if (isCustomLayout) {
+        // [gAway, skAway, skHome, gHome]
+        gAway = situationCode[0] === '1';
+        skAway = parseInt(situationCode[1], 10) || 5;
+        skHome = parseInt(situationCode[2], 10) || 5;
+        gHome = situationCode[3] === '1';
+      } else {
+        // [gAway, skAway, gHome, skHome]
+        gAway = situationCode[0] === '1';
+        skAway = parseInt(situationCode[1], 10) || 5;
+        gHome = situationCode[2] === '1';
+        skHome = parseInt(situationCode[3], 10) || 5;
+      }
 
       const emptyNet = !gAway || !gHome;
       const emptyNetTeam = !gAway ? 'away' : (!gHome ? 'home' : null);

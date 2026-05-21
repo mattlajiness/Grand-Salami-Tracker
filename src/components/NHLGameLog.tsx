@@ -3,7 +3,7 @@ import { NHLGame, fetchNHLGameDetails, NHLGoalie } from '../services/nhlService'
 import { SIMULATED_DETAILS } from '../services/nhlMockData';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
-import { Activity, ChevronDown, ChevronUp, Info, Clock, AlertTriangle, ShieldCheck, Zap, Edit2, Save, CalendarRange, Eye, BarChart3 } from 'lucide-react';
+import { Activity, ChevronDown, ChevronUp, Info, Clock, AlertTriangle, ShieldCheck, Zap, Edit2, Save, CalendarRange, Eye, BarChart3, Flame, TrendingDown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { Timestamp, doc, setDoc } from 'firebase/firestore';
@@ -482,10 +482,72 @@ export function NHLGameLog({
                   {filteredGames.map((game, index) => {
                     const totalScore = (game.awayTeam.score || 0) + (game.homeTeam.score || 0);
                     const isExpanded = expandedGameId === game.id;
-                    const awayPP = game.situation?.awayTeam?.strength && game.situation.awayTeam.strength > game.situation.homeTeam?.strength!;
-                    const homePP = game.situation?.homeTeam?.strength && game.situation.homeTeam.strength > game.situation.awayTeam?.strength!;
+                    // Dynamic skater-strength calculation
+                    let skAway = game.situation?.awayTeam?.strength || 5;
+                    let skHome = game.situation?.homeTeam?.strength || 5;
+
+                    if (game.situation?.situationCode && game.situation.situationCode.length === 4) {
+                      const code = game.situation.situationCode;
+                      const thirdDigitVal = parseInt(code[2], 10);
+                      const isCustomLayout = !isNaN(thirdDigitVal) && thirdDigitVal > 1;
+
+                      if (isCustomLayout) {
+                        skAway = parseInt(code[1], 10) || 5;
+                        skHome = parseInt(code[2], 10) || 5;
+                      } else {
+                        skAway = parseInt(code[1], 10) || 5;
+                        skHome = parseInt(code[3], 10) || 5;
+                      }
+                    }
+
+                    const awayPP = skAway > skHome;
+                    const homePP = skHome > skAway;
                     const isAwayB2B = isTeamB2B(game.awayTeam.abbrev, game.gameDate);
                     const isHomeB2B = isTeamB2B(game.homeTeam.abbrev, game.gameDate);
+
+                    // Pace & GPM Calculations for active games
+                    let elapsedMins = 0;
+                    const isLive = game.gameState === 'LIVE' || game.gameState === 'CRIT';
+                    
+                    if (game.gameState === 'FINAL' || game.gameState === 'OFF') {
+                      elapsedMins = 60;
+                    } else if (isLive) {
+                      const period = game.periodDescriptor?.number || 1;
+                      if (period > 3) {
+                        elapsedMins = 60; // Standard regulation of 60m is complete
+                      } else {
+                        elapsedMins = (period - 1) * 20;
+                        if (game.clock?.timeRemaining) {
+                          const parts = game.clock.timeRemaining.split(':');
+                          const min = parseInt(parts[0], 10);
+                          const sec = parts[1] ? parseInt(parts[1], 10) : 0;
+                          if (!isNaN(min)) {
+                            const remainingSec = (min * 60) + sec;
+                            const elapsedSecInPeriod = (20 * 60) - remainingSec;
+                            elapsedMins += Math.max(0, elapsedSecInPeriod / 60);
+                          }
+                        } else if (game.clock?.inIntermission) {
+                          elapsedMins = period * 20;
+                        }
+                      }
+                    }
+
+                    const gpm = elapsedMins > 0 ? totalScore / elapsedMins : 0;
+                    const gpp = gpm * 20;
+                    const projectedPace = gpm * 60;
+                    
+                    const LEAGUE_AVG_GPG = 6.1;
+                    const HIGH_THRESHOLD = 7.3;
+                    const LOW_THRESHOLD = 4.9;
+
+                    let paceHighlight: 'NONE' | 'HIGH' | 'LOW' = 'NONE';
+                    if (isLive && elapsedMins >= 3) {
+                      if (projectedPace >= HIGH_THRESHOLD) {
+                        paceHighlight = 'HIGH';
+                      } else if (projectedPace <= LOW_THRESHOLD) {
+                        paceHighlight = 'LOW';
+                      }
+                    }
 
                     return (
                       <Fragment key={game.id}>
@@ -608,15 +670,49 @@ export function NHLGameLog({
                                     {game.clock?.timeRemaining}
                                   </span>
                                 )}
+
+                                {/* Pace Indicator Pill */}
+                                <div 
+                                  className={cn(
+                                    "inline-flex items-center gap-1 px-1.5 py-0.5 mt-2 rounded border text-[7.5px] font-mono leading-none tracking-wider whitespace-nowrap uppercase font-black",
+                                    paceHighlight === 'HIGH' 
+                                      ? "bg-red-500/15 border-red-500/40 text-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.25)]" 
+                                      : paceHighlight === 'LOW' 
+                                        ? "bg-cyan-500/15 border-cyan-500/40 text-cyan-400" 
+                                        : "bg-slate-950/80 border-slate-800 text-slate-500"
+                                  )}
+                                  title={`Goals Per Period (GPP): ${gpp.toFixed(2)}. Projected GPG: ${projectedPace.toFixed(1)} goals (vs league average 6.1 GPG).`}
+                                >
+                                  {paceHighlight === 'HIGH' && <Flame className="w-2.5 h-2.5 text-red-400 animate-pulse fill-red-400/10 shrink-0" />}
+                                  {paceHighlight === 'LOW' && <TrendingDown className="w-2.5 h-2.5 text-cyan-400 shrink-0" />}
+                                  {paceHighlight === 'NONE' && <Activity className="w-2.5 h-2.5 text-slate-500 shrink-0" />}
+                                  <span>
+                                    {elapsedMins < 3 
+                                      ? "WARMING UP" 
+                                      : `${projectedPace.toFixed(1)} PACE • ${gpp.toFixed(2)} GPP`}
+                                  </span>
+                                </div>
                               </div>
                             ) : (
-                              <span className={cn(
-                                "text-[10px] font-mono uppercase tracking-widest font-black",
-                                game.gameState === 'OFF' ? "text-amber-500 animate-pulse" : "text-slate-500"
-                              )}>
-                                {game.gameState === 'OFF' ? 'End on Ice' :
-                                 game.gameState === 'FINAL' ? 'Complete' : 'Scheduled'}
-                              </span>
+                              <div className="inline-flex flex-col items-center">
+                                <span className={cn(
+                                  "text-[10px] font-mono uppercase tracking-widest font-black",
+                                  game.gameState === 'OFF' ? "text-amber-500 animate-pulse" : "text-slate-500"
+                                )}>
+                                  {game.gameState === 'OFF' ? 'End on Ice' :
+                                   game.gameState === 'FINAL' ? 'Complete' : 'Scheduled'}
+                                </span>
+                                
+                                {game.gameState === 'OFF' && (
+                                  <div 
+                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 mt-2 rounded border border-slate-800 bg-slate-950/80 text-slate-400 text-[6.5px] font-mono tracking-wider whitespace-nowrap uppercase font-black"
+                                    title={`Final Goals Per Period (GPP): ${gpp.toFixed(2)}. Total Goals: ${totalScore}.`}
+                                  >
+                                    <Activity className="w-2 h-2 text-slate-600" />
+                                    <span>{totalScore.toFixed(1)} Pace • {gpp.toFixed(2)} GPP</span>
+                                  </div>
+                                )}
+                              </div>
                             )}
                           </td>
                           <td className="px-6 py-5 text-center border-l border-slate-800">
@@ -881,6 +977,83 @@ export function NHLGameLog({
                                             </div>
                                           ) : (
                                             <div className="space-y-4">
+                                              {/* Live Pace Monitor Card */}
+                                              {isLive && (
+                                                <div className="bg-slate-950 p-3 rounded-lg border border-slate-800/80 space-y-2">
+                                                  <div className="flex items-center justify-between">
+                                                    <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest font-black">Live Pace Metric</span>
+                                                    <span className={cn(
+                                                      "text-[8px] font-mono font-black uppercase px-1.5 py-0.5 rounded",
+                                                      paceHighlight === 'HIGH' ? "bg-red-500/20 text-red-400" :
+                                                      paceHighlight === 'LOW' ? "bg-cyan-500/20 text-cyan-400" :
+                                                      "bg-slate-800 text-slate-500"
+                                                    )}>
+                                                      {paceHighlight === 'HIGH' ? '🔥 HIGH PACE' :
+                                                       paceHighlight === 'LOW' ? '❄️ LOW PACE' :
+                                                       'NORMAL PACE'}
+                                                    </span>
+                                                  </div>
+                                                  <div className="grid grid-cols-2 gap-2 text-center">
+                                                    <div className="bg-slate-900/40 p-1.5 rounded border border-slate-800/50">
+                                                      <div className="text-[14px] font-mono font-black text-white">
+                                                        {elapsedMins < 3 ? '--' : projectedPace.toFixed(1)}
+                                                      </div>
+                                                      <div className="text-[7px] font-mono text-slate-500 uppercase tracking-wider">Projected GPG</div>
+                                                    </div>
+                                                    <div className="bg-slate-900/40 p-1.5 rounded border border-slate-800/50">
+                                                      <div className="text-[14px] font-mono font-black text-blue-400">
+                                                        {gpp.toFixed(2)}
+                                                      </div>
+                                                      <div className="text-[7px] font-mono text-slate-500 uppercase tracking-wider">Goals Per Period (GPP)</div>
+                                                    </div>
+                                                  </div>
+                                                  
+                                                  {/* Pace Gauge representation vs League Average of 6.1 */}
+                                                  {elapsedMins >= 3 && (
+                                                    <div className="space-y-1.5 pt-1">
+                                                      <div className="flex justify-between text-[7px] font-mono text-slate-500 uppercase tracking-wider font-bold">
+                                                        <span>Low Pace (&lt;4.9 G)</span>
+                                                        <span className="text-slate-400">Avg: 6.1 G</span>
+                                                        <span>High Pace (&gt;7.3 G)</span>
+                                                      </div>
+                                                      <div className="h-1.5 w-full bg-slate-900 rounded-full overflow-hidden border border-slate-800 relative">
+                                                        {/* Marker for average (6.1) */}
+                                                        <div className="absolute top-0 bottom-0 w-0.5 bg-slate-700 h-full left-[55%] z-10" />
+                                                        
+                                                        {/* Progress bar representing pacing */}
+                                                        {(() => {
+                                                          // Map projected pace (say, from 2 to 10) to percentage (0% to 100%)
+                                                          const minPace = 2;
+                                                          const maxPace = 10;
+                                                          const normPace = Math.min(maxPace, Math.max(minPace, projectedPace));
+                                                          const percentage = ((normPace - minPace) / (maxPace - minPace)) * 100;
+                                                          
+                                                          return (
+                                                            <div 
+                                                              className={cn(
+                                                                "h-full transition-all duration-500 rounded-full",
+                                                                paceHighlight === 'HIGH' ? "bg-red-500" :
+                                                                paceHighlight === 'LOW' ? "bg-cyan-500" :
+                                                                "bg-blue-500"
+                                                              )} 
+                                                              style={{ width: `${percentage}%` }} 
+                                                            />
+                                                          );
+                                                        })()}
+                                                      </div>
+                                                      <p className="text-[7.5px] font-mono text-slate-500 italic mt-1 leading-normal text-center uppercase tracking-wider">
+                                                        {projectedPace > 6.1 
+                                                          ? `Trending ${((projectedPace - 6.1) / 6.1 * 100).toFixed(0)}% ABOVE league average`
+                                                          : projectedPace < 6.1
+                                                            ? `Trending ${((6.1 - projectedPace) / 6.1 * 100).toFixed(0)}% BELOW league average`
+                                                            : "Aligned with league GPG average"
+                                                        }
+                                                      </p>
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              )}
+
                                               {/* Scoring Summary */}
                                               <div className="space-y-2">
                                                 <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest font-black">Recent Scoring</span>

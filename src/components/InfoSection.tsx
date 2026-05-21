@@ -99,7 +99,7 @@ export function InfoSection({ sport = 'MLB' }: { sport?: 'MLB' | 'NHL' }) {
               <div>
                 <h4 className="text-sm font-black text-white uppercase tracking-widest mb-1">Salami Streak History</h4>
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  Join the official Grand Salami Streak. Registered users get their history tracked automatically to build and preserve long-term winning streaks.
+                  Join the official Grand Salami Streak. Registered users get their history tracked automatically to build long-term winning streaks and unlock live streak sharing on Twitter / X!
                 </p>
               </div>
             </div>

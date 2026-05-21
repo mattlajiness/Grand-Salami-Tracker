@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { History, Trophy, Frown, Calendar, TrendingUp, TrendingDown, ChevronRight, Loader2, Target, Activity, Trash2, RefreshCw, Flame, Zap } from 'lucide-react';
+import { History, Trophy, Frown, Calendar, TrendingUp, TrendingDown, ChevronRight, Loader2, Target, Activity, Trash2, RefreshCw, Flame, Zap, Twitter } from 'lucide-react';
 import { collection, query, orderBy, getDocs, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -45,6 +45,47 @@ export function WagerHistory({
     setWagers(userWagers);
   }, [userWagers]);
 
+  const stats = useMemo(() => {
+    let wins = 0;
+    let losses = 0;
+    let pushes = 0;
+    let graded = 0;
+
+    wagers.forEach((wager) => {
+      const finalTotal = historicalTotals[wager.date];
+      const hasData = finalTotal !== undefined;
+      if (hasData) {
+        graded++;
+        const isPush = finalTotal === wager.line;
+        if (isPush) {
+          pushes++;
+        } else {
+          const isWin = wager.side === 'OVER' ? finalTotal > wager.line : finalTotal < wager.line;
+          if (isWin) {
+            wins++;
+          } else {
+            losses++;
+          }
+        }
+      }
+    });
+
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    const hasTodayPendingWager = wagers.some(w => w.date === todayStr && historicalTotals[w.date] === undefined);
+    const activeWagersCount = hasTodayPendingWager ? 1 : 0;
+    const totalDecided = wins + losses;
+    const winRate = totalDecided > 0 ? Math.round((wins / totalDecided) * 100) : 0;
+
+    return {
+      wins,
+      losses,
+      pushes,
+      graded,
+      activeWagersCount,
+      winRate
+    };
+  }, [wagers, historicalTotals]);
+
   const handleDelete = async (wagerId: string, date: string) => {
     if (!user) return;
     
@@ -78,25 +119,25 @@ export function WagerHistory({
           >
             <div className="stitching-top" />
             
-            <div className="px-6 py-5 border-b border-slate-800 bg-slate-900/50 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-salami-red/10 flex items-center justify-center border border-salami-red/20 text-salami-red">
-                  <History className="w-4 h-4" />
+            <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-slate-800 bg-slate-900/50 flex items-center justify-between">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-salami-red/10 flex items-center justify-center border border-salami-red/20 text-salami-red">
+                  <History className="w-3.5 h-3.5 sm:w-4 h-4" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-mono font-black text-white uppercase tracking-widest">Wager History</h2>
-                  <p className="text-[9px] font-mono text-slate-500 uppercase tracking-widest">Review your past performance</p>
+                  <h2 className="text-xs sm:text-sm font-mono font-black text-white uppercase tracking-widest">Wager History</h2>
+                  <p className="text-[8px] sm:text-[9px] font-mono text-slate-500 uppercase tracking-widest">Review your past performance</p>
                 </div>
               </div>
               <button 
                 onClick={onClose}
-                className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 transition-colors"
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 transition-colors"
               >
-                <ChevronRight className="w-5 h-5 rotate-90" />
+                <ChevronRight className="w-4.5 h-4.5 sm:w-5 h-5 rotate-90" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar">
               {/* Streak Header */}
               {currentStreak && !isLoading && (
                 <div className="mb-6 p-4 rounded-xl bg-slate-950 border border-slate-800 shadow-xl overflow-hidden relative group">
@@ -105,23 +146,23 @@ export function WagerHistory({
                     currentStreak.type === 'WIN' ? "bg-emerald-500" : currentStreak.type === 'LOSS' ? "bg-red-500" : "bg-blue-500"
                   )} />
                   
-                  <div className="flex items-center justify-between relative z-10">
-                    <div className="flex items-center gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+                    <div className="flex items-center gap-3">
                       <div className={cn(
-                        "w-12 h-12 rounded-xl flex items-center justify-center border-2 shadow-lg transition-transform group-hover:scale-110 duration-500",
+                        "w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center border-2 shadow-lg transition-transform group-hover:scale-110 duration-500",
                         currentStreak.type === 'WIN' ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" : 
                         currentStreak.type === 'LOSS' ? "bg-red-500/10 border-red-500/30 text-red-400" : 
                         "bg-blue-500/10 border-blue-500/30 text-blue-400"
                       )}>
-                        {currentStreak.type === 'WIN' ? <Flame className="w-6 h-6 animate-pulse" /> : 
-                         currentStreak.type === 'LOSS' ? <TrendingDown className="w-6 h-6" /> : 
-                         <RefreshCw className="w-6 h-6 rotate-180" />}
+                        {currentStreak.type === 'WIN' ? <Flame className="w-5 h-5 sm:w-6 sm:h-6 animate-pulse" /> : 
+                         currentStreak.type === 'LOSS' ? <TrendingDown className="w-5 h-5 sm:w-6 sm:h-6" /> : 
+                         <RefreshCw className="w-5 h-5 sm:w-6 sm:h-6 rotate-180" />}
                       </div>
                       <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-sm font-black text-white uppercase tracking-tighter">Salami Streak</h3>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <h3 className="text-xs sm:text-sm font-black text-white uppercase tracking-tighter">Salami Streak</h3>
                           <span className={cn(
-                            "px-2 py-0.5 rounded text-[8px] font-mono font-black uppercase tracking-widest border",
+                            "px-1.5 py-0.5 rounded text-[7px] font-mono font-black uppercase tracking-widest border",
                             currentStreak.type === 'WIN' ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" : 
                             currentStreak.type === 'LOSS' ? "bg-red-500/20 text-red-400 border-red-500/30" : 
                             "bg-blue-500/20 text-blue-400 border-blue-500/30"
@@ -129,24 +170,88 @@ export function WagerHistory({
                             {currentStreak.type === 'WIN' ? 'Hot' : currentStreak.type === 'LOSS' ? 'Cold' : 'Stable'}
                           </span>
                         </div>
-                        <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mt-0.5">
+                        <p className="text-[9px] sm:text-[10px] font-mono text-slate-500 uppercase tracking-widest mt-0.5">
                           {currentStreak.count} {currentStreak.type}{currentStreak.count > 1 ? (currentStreak.type === 'PUSH' ? 'ES' : 'S') : ''} IN A ROW
                         </p>
                       </div>
                     </div>
                     
-                    <div className="text-right">
-                      <div className="flex items-baseline justify-end gap-1">
-                        <span className={cn(
-                          "text-3xl font-mono font-black tracking-tighter",
-                          currentStreak.type === 'WIN' ? "text-emerald-400" : currentStreak.type === 'LOSS' ? "text-red-400" : "text-blue-400"
-                        )}>
-                          {currentStreak.count}
-                        </span>
-                        <Zap className={cn("w-4 h-4 mb-1", currentStreak.type === 'WIN' ? "text-emerald-500" : "text-slate-700")} />
+                    <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 w-full sm:w-auto border-t border-slate-900/60 pt-3 sm:border-0 sm:pt-0">
+                      <a
+                        href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
+                          `I am currently on a ${currentStreak.count}-game ${currentStreak.type} streak on Grand Salami Tracker! ${currentStreak.type === 'WIN' ? '🔥🏆' : currentStreak.type === 'LOSS' ? '📉' : '🔄'} Track daily Grand Salami total runs line in real-time https://grandsalami.bet via @Salamipace #GrandSalami #SalamiStreak`
+                        )}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-blue-500/20 bg-blue-500/15 hover:bg-blue-600/25 text-[#1DA1F2] transition-colors text-[8px] sm:text-[9px] font-mono font-black uppercase tracking-widest"
+                      >
+                        <Twitter className="w-3 h-3" />
+                        <span>Share Streak</span>
+                      </a>
+
+                      <div className="text-right">
+                        <div className="flex items-baseline justify-end gap-1">
+                          <span className={cn(
+                            "text-2xl sm:text-3xl font-mono font-black tracking-tighter",
+                            currentStreak.type === 'WIN' ? "text-emerald-400" : currentStreak.type === 'LOSS' ? "text-red-400" : "text-blue-400"
+                          )}>
+                            {currentStreak.count}
+                          </span>
+                          <Zap className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4 mb-1", currentStreak.type === 'WIN' ? "text-emerald-500" : "text-slate-700")} />
+                        </div>
+                        <span className="text-[8px] font-mono text-slate-600 uppercase tracking-widest block">Day Streak</span>
                       </div>
-                      <span className="text-[8px] font-mono text-slate-600 uppercase tracking-widest block">Day Streak</span>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Overall Statistics Row */}
+              {!isLoading && wagers.length > 0 && (
+                <div className="grid grid-cols-3 gap-3 mb-6">
+                  <div className="bg-slate-950/45 border border-slate-800/80 p-3 rounded-xl flex flex-col justify-between group">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[8px] sm:text-[9px] font-mono font-black text-slate-500 uppercase tracking-widest">RECORD</span>
+                      <Trophy className="w-3.5 h-3.5 text-emerald-500 opacity-60" />
+                    </div>
+                    <div className="mt-2.5">
+                      <span className="text-lg sm:text-xl font-mono font-black text-white tracking-tight">
+                        {stats.wins}W-{stats.losses}L{stats.pushes > 0 ? `-${stats.pushes}P` : ''}
+                      </span>
+                    </div>
+                    <span className="text-[7px] sm:text-[8px] font-mono text-slate-600 uppercase tracking-widest mt-1 block">
+                      {stats.graded} / {wagers.length} GRADED
+                    </span>
+                  </div>
+
+                  <div className="bg-slate-950/45 border border-slate-800/80 p-3 rounded-xl flex flex-col justify-between group">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[8px] sm:text-[9px] font-mono font-black text-slate-500 uppercase tracking-widest">WIN RATE</span>
+                      <Activity className="w-3.5 h-3.5 text-blue-500 opacity-60" />
+                    </div>
+                    <div className="mt-2.5">
+                      <span className="text-lg sm:text-xl font-mono font-black text-blue-400 tracking-tight">
+                        {stats.winRate}%
+                      </span>
+                    </div>
+                    <span className="text-[7px] sm:text-[8px] font-mono text-slate-600 uppercase tracking-widest mt-1 block">
+                      DECIDED GAMES
+                    </span>
+                  </div>
+
+                  <div className="bg-slate-950/45 border border-slate-800/80 p-3 rounded-xl flex flex-col justify-between group">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[8px] sm:text-[9px] font-mono font-black text-slate-500 uppercase tracking-widest">PENDING</span>
+                      <Calendar className="w-3.5 h-3.5 text-orange-500 opacity-60 animate-pulse" />
+                    </div>
+                    <div className="mt-2.5">
+                      <span className="text-lg sm:text-xl font-mono font-black text-slate-200 tracking-tight">
+                        {stats.activeWagersCount}
+                      </span>
+                    </div>
+                    <span className="text-[7px] sm:text-[8px] font-mono text-slate-600 uppercase tracking-widest mt-1 block">
+                      AWAITING RESULT
+                    </span>
                   </div>
                 </div>
               )}
@@ -187,7 +292,7 @@ export function WagerHistory({
                         {/* Delete Button - Floating */}
                         <button 
                           onClick={() => handleDelete(wager.id, wager.date)}
-                          className="absolute top-2 right-2 p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-600 hover:text-red-500 hover:border-red-500/30 transition-all opacity-0 group-hover:opacity-100 z-20"
+                          className="absolute top-2 right-2 p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-500 hover:text-red-500 hover:border-red-500/30 transition-all opacity-100 sm:opacity-0 sm:group-hover:opacity-100 z-20"
                           title="Delete record"
                         >
                           <Trash2 className="w-3 h-3" />
@@ -291,7 +396,7 @@ export function WagerHistory({
               )}
             </div>
 
-            <div className="p-4 bg-slate-900/80 border-t border-slate-800 flex items-center justify-between text-[9px] font-mono text-slate-500 uppercase tracking-widest px-8">
+            <div className="p-4 bg-slate-900/80 border-t border-slate-800 flex items-center justify-between text-[9px] font-mono text-slate-500 uppercase tracking-widest px-4 sm:px-8">
               <span>Showing last {wagers.length} entries</span>
               <button 
                 onClick={onClose}

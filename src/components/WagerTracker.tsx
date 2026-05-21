@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Target, TrendingUp, TrendingDown, AlertCircle, CheckCircle2, XCircle, Bell, BellOff, Save, Cloud, RefreshCw, Activity, Trophy, Frown, Sparkles, History, Flame } from 'lucide-react';
+import { Target, TrendingUp, TrendingDown, AlertCircle, CheckCircle2, XCircle, Bell, BellOff, Save, Cloud, RefreshCw, Activity, Trophy, Frown, Sparkles, History, Flame, Twitter } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { toast } from 'sonner';
@@ -517,9 +517,9 @@ export function WagerTracker({
         )}
       </AnimatePresence>
 
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex flex-col">
+      <div className="p-4 sm:p-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 border-b border-slate-800/40 pb-4 min-w-0">
+          <div className="flex flex-col min-w-0">
             <h3 className="font-mono font-black text-white flex items-center gap-2 uppercase tracking-tighter">
               <Target className="w-4 h-4 text-salami-red" />
               Wager Tracker
@@ -527,40 +527,55 @@ export function WagerTracker({
             {user && (
               <div className="flex items-center gap-1 mt-1">
                 <Cloud className={cn("w-2.5 h-2.5", isSyncing ? "text-blue-500 animate-pulse" : "text-green-500")} />
-                <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest">
+                <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest truncate">
                   {isSyncing ? 'Syncing...' : lastSynced ? `Synced ${format(lastSynced, 'HH:mm')}` : 'Cloud Active'}
                 </span>
               </div>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-between md:justify-end">
             {user && (
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-1.5">
                 {currentStreak && (
-                  <motion.div 
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className={cn(
-                      "flex items-center gap-1 px-2 py-1 rounded-lg border font-mono font-black text-[8px] uppercase tracking-widest",
-                      currentStreak.type === 'WIN' ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" :
-                      currentStreak.type === 'LOSS' ? "bg-red-500/10 border-red-500/30 text-red-400" :
-                      "bg-blue-500/10 border-blue-500/30 text-blue-400"
-                    )}
-                  >
-                    {currentStreak.type === 'WIN' ? <Flame className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
-                    {currentStreak.count} {currentStreak.type}
-                  </motion.div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className={cn(
+                        "flex items-center gap-1 px-2 py-1 rounded-lg border font-mono font-black text-[8px] uppercase tracking-widest",
+                        currentStreak.type === 'WIN' ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" :
+                        currentStreak.type === 'LOSS' ? "bg-red-500/10 border-red-500/30 text-red-400" :
+                        "bg-blue-500/10 border-blue-500/30 text-blue-400"
+                      )}
+                    >
+                      {currentStreak.type === 'WIN' ? <Flame className="w-2.5 h-2.5 text-emerald-400" /> : <TrendingDown className="w-2.5 h-2.5 text-red-400" />}
+                      <span>{currentStreak.count} {currentStreak.type}</span>
+                    </motion.div>
+                    
+                    <a
+                      href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
+                        `I am currently on a ${currentStreak.count}-game ${currentStreak.type} streak on Grand Salami Tracker! ${currentStreak.type === 'WIN' ? '🔥🏆' : currentStreak.type === 'LOSS' ? '📉' : '🔄'} Track daily Grand Salami total runs line in real-time https://grandsalami.bet via @Salamipace #GrandSalami #SalamiStreak`
+                      )}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="p-1 px-1.5 bg-[#1DA1F2]/10 hover:bg-[#1DA1F2]/20 border border-[#1DA1F2]/20 rounded-lg text-white hover:text-[#1DA1F2] transition-colors flex items-center justify-center gap-1 text-[8px] font-mono font-black uppercase tracking-widest"
+                      title="Share streak on Twitter / X"
+                    >
+                      <Twitter className="w-2.5 h-2.5 text-[#1DA1F2]" />
+                      <span className="hidden xs:inline">Share</span>
+                    </a>
+                  </div>
                 )}
                 <button 
                   onClick={onOpenHistory}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900/50 text-slate-400 hover:text-white hover:border-slate-700 transition-all group"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900/50 text-slate-400 hover:text-white hover:border-slate-700 transition-all group shrink-0"
                 >
                   <History className="w-3.5 h-3.5 text-blue-500 group-hover:scale-110 transition-transform" />
                   <span className="text-[9px] font-mono font-black uppercase tracking-widest">History</span>
                 </button>
               </div>
             )}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 ml-auto md:ml-0 shrink-0">
               <button 
                 onClick={toggleNotifications}
                 className={cn(
@@ -838,8 +853,8 @@ export function WagerTracker({
               </p>
               {!user && (
                 <div className="pt-4 border-t border-slate-800/50">
-                  <p className="text-[9px] font-mono text-slate-400 uppercase tracking-tighter mb-3">
-                    Sign in to track your <span className="text-blue-400 font-black italic">Historical Salami Streak</span> and get notified as soon as wagers settle.
+                  <p className="text-[9px] font-mono text-slate-400 uppercase tracking-tighter mb-3 animate-pulse">
+                    Sign in to track your <span className="text-blue-400 font-black italic">Historical Salami Streak</span>, share active streaks to Twitter / X, and get notified as soon as wagers settle.
                   </p>
                   <button 
                     onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}

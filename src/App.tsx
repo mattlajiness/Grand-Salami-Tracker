@@ -66,6 +66,8 @@ export default function App() {
   
   const isLogoMode = new URLSearchParams(window.location.search).get('logo') === 'true';
   const isFetchingRef = useRef(false);
+  const prevMlbScoresRef = useRef<Record<number, { away: number; home: number }>>({});
+  const isInitialMlbLoadRef = useRef(true);
 
   useEffect(() => {
     const q = collection(db, 'gameLines');
@@ -235,6 +237,82 @@ export default function App() {
     // Initialize standard scheduled games
     setNhlGames(JSON.parse(JSON.stringify(PRE_SLATE_GAMES)));
   }, [selectedNhlDate]);
+
+  // MLB Run Scored Alerts System
+  useEffect(() => {
+    if (!games || games.length === 0) return;
+
+    if (isInitialMlbLoadRef.current) {
+      const initialScores: Record<number, { away: number; home: number }> = {};
+      games.forEach(g => {
+        initialScores[g.gamePk] = {
+          away: g.teams?.away?.score || 0,
+          home: g.teams?.home?.score || 0
+        };
+      });
+      prevMlbScoresRef.current = initialScores;
+      isInitialMlbLoadRef.current = false;
+      return;
+    }
+
+    games.forEach(g => {
+      const prev = prevMlbScoresRef.current[g.gamePk];
+      if (prev) {
+        const currentAway = g.teams?.away?.score || 0;
+        const currentHome = g.teams?.home?.score || 0;
+
+        const awayDiff = currentAway - prev.away;
+        const homeDiff = currentHome - prev.home;
+
+        if (awayDiff > 0 || homeDiff > 0) {
+          try {
+            const enabledNotifs = JSON.parse(localStorage.getItem('salami_individual_game_notifs') || '{}');
+            if (enabledNotifs[g.gamePk]) {
+              let scoringTeam = '';
+              let scoreMsg = '';
+
+              if (awayDiff > 0 && homeDiff > 0) {
+                scoringTeam = 'Both teams';
+                scoreMsg = `scored runs! Now ${g.teams?.away?.team?.name || 'Away'} ${currentAway} - ${currentHome} ${g.teams?.home?.team?.name || 'Home'}`;
+              } else if (awayDiff > 0) {
+                scoringTeam = g.teams?.away?.team?.name || 'Away Team';
+                scoreMsg = `scored a run! Now ${g.teams?.away?.team?.name || 'Away'} ${currentAway} - ${currentHome} ${g.teams?.home?.team?.name || 'Home'}`;
+              } else {
+                scoringTeam = g.teams?.home?.team?.name || 'Home Team';
+                scoreMsg = `scored a run! Now ${g.teams?.away?.team?.name || 'Away'} ${currentAway} - ${currentHome} ${g.teams?.home?.team?.name || 'Home'}`;
+              }
+
+              const title = `⚾ MLB Run Scored: ${g.venue?.name || 'Salami Tracker'}`;
+              const body = `${scoringTeam} ${scoreMsg}`;
+
+              // 1. In-App Toast
+              toast.success(body, {
+                icon: '⚾',
+                duration: 6000
+              });
+
+              // 2. Real Browser Notification
+              if ("Notification" in window && Notification.permission === "granted") {
+                new Notification(title, {
+                  body,
+                  icon: 'https://cdn-icons-png.flaticon.com/512/3515/3515320.png',
+                  tag: `salami-run-scored-${g.gamePk}-${Date.now()}`
+                });
+              }
+            }
+          } catch (e) {
+            console.error('Error handling game scored notification:', e);
+          }
+        }
+      }
+
+      // Update current score ref
+      prevMlbScoresRef.current[g.gamePk] = {
+        away: g.teams?.away?.score || 0,
+        home: g.teams?.home?.score || 0
+      };
+    });
+  }, [games]);
 
   const [todayStr] = useState(() => format(new Date(), 'yyyy-MM-dd'));
 

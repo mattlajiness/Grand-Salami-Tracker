@@ -2,7 +2,7 @@ import { useState, Fragment, useEffect, useMemo } from 'react';
 import { MLBGame } from '../services/mlbService';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
-import { Activity, RefreshCw, ChevronDown, ChevronUp, User, Info, Wind, Thermometer, Cloud, Sun, CloudRain, CloudLightning, MapPin, AlertTriangle, Droplets, Zap, ShieldCheck, Target, Edit2, Save, Scale, Flame, ExternalLink, ThermometerSun, Clock } from 'lucide-react';
+import { Activity, RefreshCw, ChevronDown, ChevronUp, User, Info, Wind, Thermometer, Cloud, Sun, CloudRain, CloudLightning, MapPin, AlertTriangle, Droplets, Zap, ShieldCheck, Target, Edit2, Save, Scale, Flame, ExternalLink, ThermometerSun, Clock, Bell, BellOff } from 'lucide-react';
 import { calculateLiveThreat } from '../lib/projectionEngine';
 import { getUmpireTendency, getGenericTendency } from '../lib/umpireEngine';
 import { BallparkPalLogo } from './BallparkPalLogo';
@@ -527,6 +527,41 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
   const [expandedGameId, setExpandedGameId] = useState<number | null>(null);
   const [filter, setFilter] = useState<'All' | 'Live' | 'Final' | 'Preview'>('All');
 
+  const [subscribedGameIds, setSubscribedGameIds] = useState<Record<number, boolean>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('salami_individual_game_notifs') || '{}');
+    } catch {
+      return {};
+    }
+  });
+
+  const handleToggleNotification = (gamePk: number, event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+    
+    setSubscribedGameIds(prev => {
+      const next = { ...prev, [gamePk]: !prev[gamePk] };
+      localStorage.setItem('salami_individual_game_notifs', JSON.stringify(next));
+      
+      if (next[gamePk]) {
+        toast.success('Runs Scored Alerts Enabled! 🔔', {
+          description: 'You will receive real-time push notifications when runs are scored in this game.',
+          duration: 3500
+        });
+      } else {
+        toast('Alerts Disabled', {
+          description: 'You will no longer receive run alerts for this game.',
+          duration: 3000
+        });
+      }
+      return next;
+    });
+  };
+
   const apexGamePk = useMemo(() => {
     if (!games.length) return null;
     const sorted = [...games].sort((a, b) => {
@@ -707,7 +742,7 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                             </div>
                           )}
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 sm:gap-2">
                           {game.status.abstractGameState === 'Live' && getThreatLevel(game) > 0.25 && (
                              <button
                                type="button" 
@@ -854,6 +889,23 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                             <span className="font-mono font-black text-sm text-white">
                               {game.teams.home.score ?? '-'}
                             </span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 pt-1.5 border-t border-slate-800/20 w-fit" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              className={cn(
+                                "flex items-center gap-1 px-1.5 py-0.5 rounded shadow-sm cursor-pointer select-none touch-manipulation appearance-none outline-none transition-all text-[7px] font-mono font-black uppercase tracking-widest",
+                                subscribedGameIds[game.gamePk] 
+                                  ? "bg-blue-500/20 border-blue-500/40 text-blue-400 font-bold" 
+                                  : "bg-slate-800 border-slate-700/50 text-slate-500"
+                              )}
+                              title={subscribedGameIds[game.gamePk] ? "Runs alert enabled (Click to disable)" : "Enable run scored alerts"}
+                              onClick={(e) => handleToggleNotification(game.gamePk, e)}
+                            >
+                              {subscribedGameIds[game.gamePk] ? <Bell className="w-2.5 h-2.5 text-blue-400 animate-pulse" /> : <BellOff className="w-2.5 h-2.5 text-slate-500" />}
+                              <span>{subscribedGameIds[game.gamePk] ? 'ALERT ON' : 'ALERT OFF'}</span>
+                            </button>
                           </div>
                         </div>
 
@@ -1112,6 +1164,24 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                                 )}>
                                   {(game.teams.home.score ?? 0).toString().padStart(2, '0')}
                                 </span>
+                              </div>
+
+                              {/* Live Alerts Button in Matchup Column layout */}
+                              <div className="flex items-center gap-1.5 pt-1.5 border-t border-slate-800/10 w-fit" onClick={(e) => e.stopPropagation()}>
+                                <button
+                                  type="button"
+                                  className={cn(
+                                    "flex items-center gap-1.5 border px-2 py-0.5 rounded cursor-pointer shadow-sm select-none touch-manipulation appearance-none outline-none transition-all text-[7px] font-mono font-black uppercase tracking-widest leading-none",
+                                    subscribedGameIds[game.gamePk] 
+                                      ? "bg-blue-500/20 border-blue-500/40 text-blue-400 font-bold" 
+                                      : "bg-slate-800/40 border-slate-700/50 text-slate-500 hover:text-slate-300 hover:bg-slate-800"
+                                  )}
+                                  title={subscribedGameIds[game.gamePk] ? "Runs alert enabled (Click to disable)" : "Enable run scored alerts"}
+                                  onClick={(e) => handleToggleNotification(game.gamePk, e)}
+                                >
+                                  {subscribedGameIds[game.gamePk] ? <Bell className="w-2.5 h-2.5 text-blue-400 animate-pulse" /> : <BellOff className="w-2.5 h-2.5 text-slate-500" />}
+                                  <span>{subscribedGameIds[game.gamePk] ? 'ALERT ON' : 'ALERT OFF'}</span>
+                                </button>
                               </div>
                             </div>
                           </td>
