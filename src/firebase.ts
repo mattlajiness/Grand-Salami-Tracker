@@ -7,9 +7,12 @@ import firebaseConfig from '../firebase-applet-config.json';
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
-// Initialize Firestore with specific settings to improve connectivity
+// Initialize Firestore with offline persistence enablement
 export const db = initializeFirestore(app, {
   experimentalForceLongPolling: true,
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager()
+  })
 }, firebaseConfig.firestoreDatabaseId || '(default)');
 export const googleProvider = new GoogleAuthProvider();
 
@@ -54,6 +57,13 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     console.error('Firebase Auth Network Failure: The application is unable to reach Google Authentication services. This may be due to a strict network environment or blocked requests. Please try refreshing or opening in a new tab.');
   }
 
+  const isOfflineError = errorMessage.toLowerCase().includes('offline') || 
+                         errorMessage.toLowerCase().includes('unavailable') || 
+                         errorMessage.toLowerCase().includes('could not reach cloud firestore backend') ||
+                         errorMessage.toLowerCase().includes('network') ||
+                         errorMessage.toLowerCase().includes('connection failed') ||
+                         errorMessage.toLowerCase().includes('failed to get document');
+
   const errInfo: FirestoreErrorInfo = {
     error: errorMessage,
     authInfo: {
@@ -71,7 +81,14 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     },
     operationType,
     path
+  };
+
+  if (isOfflineError) {
+    console.warn('Firestore is running in Offline Mode for operation:', operationType, 'at path:', path, '. Details:', errorMessage);
+    // Do not throw for offline/network issues to prevent app crashes; allow clients to use cached data
+    return;
   }
+
   console.error('Firestore Error: ', JSON.stringify(errInfo));
   throw new Error(JSON.stringify(errInfo));
 }

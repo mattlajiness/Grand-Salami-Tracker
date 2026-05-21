@@ -122,29 +122,67 @@ export const DetailedVenueFactors: Record<string, DetailedParkFactor> = {
   "Progressive Field": { hr: 0.93, extraBase: 1.04, single: 0.97, runs: 0.99 },
 };
 
-export function getDetailedParkFactor(venueName: string, weatherCondition?: string): DetailedParkFactor | null {
+export function isRetractableRoofOpen(venueName: string, weatherCondition?: string, temp?: number | string): boolean {
   const normalized = venueName.toLowerCase();
-  const lowerCondition = (weatherCondition || '').toLowerCase();
-  
-  // Explicit Roof Detection
-  const roofOpen = lowerCondition.includes('open') || lowerCondition.includes('outdoor');
-  const roofClosed = lowerCondition.includes('closed') || lowerCondition.includes('indoor') || lowerCondition.includes('dome');
+  const condition = (weatherCondition || '').toLowerCase();
+  const tempF = temp !== undefined ? (typeof temp === 'string' ? parseInt(temp, 10) : temp) : 72;
 
-  // Specialized retractable logic - Return the correct state factor
-  function getRetractableFactor(baseKey: string) {
-    if (roofOpen) return DetailedVenueFactors[`${baseKey} (Open)`] || DetailedVenueFactors[baseKey];
-    if (roofClosed) return DetailedVenueFactors[`${baseKey} (Closed)`] || DetailedVenueFactors[baseKey];
-    // Default to closed for some, open for others depending on historic norms
-    return DetailedVenueFactors[baseKey];
+  const isRainy = ['rain', 'shower', 'storm', 'drizzle', 'precip', 'thunder', 'lightning', 'mist'].some(k => condition.includes(k));
+  if (isRainy) return false;
+
+  // Explicit overrides
+  if (condition.includes('open') || condition.includes('outdoor')) return true;
+  if (condition.includes('closed') || condition.includes('indoor') || condition.includes('dome')) return false;
+
+  // Smart inferred defaults for retractable roofs when no explicit instruction is provided
+  if (normalized.includes('chase field')) {
+    // Chase Field: Open if temperature is pleasant (50°F to 86°F) and not rainy
+    return tempF >= 50 && tempF <= 86;
+  }
+  if (normalized.includes('minute maid') || normalized.includes('daikin')) {
+    return tempF >= 50 && tempF <= 80;
+  }
+  if (normalized.includes('loandepot')) {
+    return tempF >= 50 && tempF <= 78;
+  }
+  if (normalized.includes('globe life')) {
+    return tempF >= 50 && tempF <= 82;
+  }
+  if (normalized.includes('rogers centre') || normalized.includes('skydome')) {
+    return tempF >= 55;
+  }
+  if (normalized.includes('american family')) {
+    return tempF >= 60;
+  }
+  if (normalized.includes('t-mobile') || normalized.includes('safeco')) {
+    return tempF >= 48;
   }
 
-  if (normalized.includes('chase field')) return getRetractableFactor("Chase Field");
-  if (normalized.includes('american family')) return getRetractableFactor("American Family Field");
-  if (normalized.includes('rogers centre')) return getRetractableFactor("Rogers Centre");
-  if (normalized.includes('globe life')) return getRetractableFactor("Globe Life Field");
-  if (normalized.includes('minute maid') || normalized.includes('daikin')) return getRetractableFactor("Minute Maid Park");
-  if (normalized.includes('loandepot')) return getRetractableFactor("LoanDepot Park");
-  if (normalized.includes('t-mobile')) return getRetractableFactor("T-Mobile Park");
+  // If not a retractable stadium, it doesn't have an openable roof
+  return false;
+}
+
+export function getDetailedParkFactor(venueName: string, weatherCondition?: string, temp?: number | string, roofOpenOverride?: boolean): DetailedParkFactor | null {
+  const normalized = venueName.toLowerCase();
+  
+  const isRetractable = normalized.includes('loandepot') || normalized.includes('globe life') || normalized.includes('minute maid') || normalized.includes('daikin') || normalized.includes('american family') || normalized.includes('rogers centre') || normalized.includes('skydome') || normalized.includes('chase field') || normalized.includes('t-mobile') || normalized.includes('safeco');
+
+  if (isRetractable) {
+    const isOpen = roofOpenOverride !== undefined ? roofOpenOverride : isRetractableRoofOpen(venueName, weatherCondition, temp);
+    let baseKey = "";
+    if (normalized.includes('chase field')) baseKey = "Chase Field";
+    else if (normalized.includes('american family')) baseKey = "American Family Field";
+    else if (normalized.includes('rogers centre') || normalized.includes('skydome')) baseKey = "Rogers Centre";
+    else if (normalized.includes('globe life')) baseKey = "Globe Life Field";
+    else if (normalized.includes('minute maid') || normalized.includes('daikin')) baseKey = "Minute Maid Park";
+    else if (normalized.includes('loandepot')) baseKey = "LoanDepot Park";
+    else if (normalized.includes('t-mobile') || normalized.includes('safeco')) baseKey = "T-Mobile Park";
+
+    if (baseKey) {
+      const stateKey = isOpen ? `${baseKey} (Open)` : `${baseKey} (Closed)`;
+      return DetailedVenueFactors[stateKey] || DetailedVenueFactors[baseKey];
+    }
+  }
 
   // Try exact match first
   if (DetailedVenueFactors[venueName]) return DetailedVenueFactors[venueName];

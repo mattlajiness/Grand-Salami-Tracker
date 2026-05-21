@@ -12,7 +12,7 @@ import { Timestamp, collection, doc, setDoc, onSnapshot, query, orderBy, limit }
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
-import { VenueParkFactors, getDetailedParkFactor, DetailedParkFactor } from '../lib/leagueConstants';
+import { VenueParkFactors, getDetailedParkFactor, DetailedParkFactor, isRetractableRoofOpen } from '../lib/leagueConstants';
 import { BallparkPalFactor, findGameFactor } from '../services/ballparkPalService';
 
 const parseWind = (windStr: string = '', homeId?: number, venue: string = '') => {
@@ -70,18 +70,15 @@ const getSpecialIntelligence = (game: MLBGame, parkFactors: BallparkPalFactor[] 
   const livePalFactor = findGameFactor(parkFactors, awayAbbr, homeAbbr, awayName, homeName);
 
   const isRetractable = venue.includes('loandepot') || venue.includes('globe life') || venue.includes('minute maid') || venue.includes('daikin') || venue.includes('american family') || venue.includes('rogers centre') || venue.includes('skydome') || venue.includes('chase field') || venue.includes('t-mobile') || venue.includes('safeco');
-  const isExplicitlyOpen = condition.includes('open') || condition.includes('outdoor');
-  const isExplicitlyClosed = (condition.includes('closed') || condition.includes('indoor') || condition.includes('dome'));
-  
-  const venueIsFlexibleRetractable = venue.includes('chase field') || venue.includes('minute maid') || venue.includes('daikin');
   const isTropicana = venue.includes('tropicana');
   const isTMobile = venue.includes('t-mobile') || venue.includes('safeco') || homeId === 136;
 
-  // A dome game is considered closed if it is Tropicana, or closed is explicitly reported, or by live factors,
-  // excluding T-Mobile which is not a fully enclosed dome.
-  const isClosed = !isTMobile && (isTropicana || isExplicitlyClosed || livePalFactor?.isClosed || (livePalFactor?.receptive && livePalFactor.receptive.toLowerCase().includes('close')) || (!isExplicitlyOpen && !venueIsFlexibleRetractable));
+  const tempF = game.weather?.temp !== undefined ? (typeof game.weather.temp === 'string' ? parseInt(game.weather.temp, 10) : game.weather.temp) : 72;
+  const liveClosed = livePalFactor && livePalFactor.isClosed !== undefined ? livePalFactor.isClosed : undefined;
+  const isRoofOpen = isRetractable && (liveClosed !== undefined ? !liveClosed : isRetractableRoofOpen(game.venue?.name || '', game.weather?.condition, tempF));
+  const isClosed = !isTMobile && (isTropicana || !isRoofOpen);
 
-  const detailedFactor = getDetailedParkFactor(game.venue?.name || '', game.weather?.condition);
+  const detailedFactor = getDetailedParkFactor(game.venue?.name || '', game.weather?.condition, tempF, isRoofOpen);
 
   // 1. Core Environmental Badge (Live or Static Fallback) - always shown as requested
   if (livePalFactor) {
@@ -130,21 +127,17 @@ HR: ${hrChange > 0 ? '+' : ''}${hrChange}%`;
       113: { label: 'LAUNCH PAD', color: 'bg-teal-500/10 text-teal-400 border-teal-500/10', icon: Activity, title: 'Great American BP: +5% scoring environment with +12% HR boost. Sourced via BallparkPal.com' },
       142: { label: 'TARGET CARRY', color: 'bg-teal-500/10 text-teal-400 border-teal-500/10', icon: Activity, title: 'Target Field: +5% scoring environment driven by +6% single-base carry. Sourced via BallparkPal.com' },
       111: { label: 'MONSTER SHIELD', color: 'bg-slate-500/10 text-slate-400 border-slate-500/20', icon: ShieldCheck, title: 'Fenway Park: Neutral runs (0%) but heavy -25% Home Run suppression. Sourced via BallparkPal.com' },
-      114: { label: 'CLE SHIELD', color: 'bg-slate-700/30 text-slate-400 border-slate-700/50', icon: ShieldCheck, title: 'Progressive Field: Stable -1% scoring environment with -7% HR suppression. Sourced via BallparkPal.com' },
-      117: { label: 'DAIKIN SHIELD', color: 'bg-blue-900/20 text-blue-300 border-blue-800/30', icon: ShieldCheck, title: 'Daikin Park: -4% runs with heavy -11% extra-base suppression. Sourced via BallparkPal.com' },
-      158: { label: 'DAIRY SHIELD', color: 'bg-blue-900/20 text-blue-300 border-blue-800/30', icon: ShieldCheck, title: 'American Family Field: -5% runs with -13% extra-base appeal. Sourced via BallparkPal.com' },
-      110: { label: 'BIRD LAND', color: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20', icon: ShieldCheck, title: 'Oriole Park: -5% runs with -17% Home Run suppression. Sourced via BallparkPal.com' },
       134: { label: 'PNC SHIELD', color: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20', icon: ShieldCheck, title: 'PNC Park: -5% runs with drastic -22% Home Run reduction. Sourced via BallparkPal.com' },
+      110: { label: 'BIRD LAND', color: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20', icon: ShieldCheck, title: 'Oriole Park: -5% runs with -17% Home Run suppression. Sourced via BallparkPal.com' },
       119: { label: 'LA COOL', color: 'bg-indigo-900/20 text-indigo-400 border-indigo-900/20', icon: ShieldCheck, title: 'Dodger Stadium: -6% Run environment despite +8% HR carry. Sourced via BallparkPal.com' },
-      141: { label: 'NORTHERN LID', color: 'bg-slate-800/50 text-slate-500 border-slate-700/50', icon: ShieldCheck, title: 'Rogers Centre: -6% run environment with stable HR conditions. Sourced via BallparkPal.com' },
-      140: { label: 'TEXAS TURF', color: 'bg-slate-800/50 text-slate-500 border-slate-700/50', icon: ShieldCheck, title: 'Globe Life Field: -7% overall scoring production projected today. Sourced via BallparkPal.com' },
       144: { label: 'TRUIST TRAP', color: 'bg-red-900/20 text-red-400 border-red-900/20', icon: ShieldCheck, title: 'Truist Park: Significant -11% scoring environment with -16% HR boost. Sourced via BallparkPal.com' },
-      121: { label: 'CITI COLD', color: 'bg-red-500/10 text-red-400 border-red-500/20', icon: ShieldCheck, title: 'Citi Field: Massive -15% scoring environment with -29% extra-base suppression. Sourced via BallparkPal.com' },
-      109: { label: 'SNAKE PIT', color: 'bg-slate-700/30 text-slate-400 border-slate-700/50', icon: Activity, title: 'Chase Field: Climate controlled state active. Sourced via BallparkPal.com' }
+      121: { label: 'CITI COLD', color: 'bg-red-500/10 text-red-400 border-red-500/20', icon: ShieldCheck, title: 'Citi Field: Massive -15% scoring environment with -29% extra-base suppression. Sourced via BallparkPal.com' }
     };
 
     const tid = Number(homeId);
-    if (intelligenceParks[tid]) {
+    const isRetractableTeam = [109, 117, 140, 141, 158].includes(tid);
+
+    if (intelligenceParks[tid] && !isRetractableTeam) {
       badges.push(intelligenceParks[tid]);
     } else if (detailedFactor) {
       const runVal = detailedFactor.runs;
@@ -163,7 +156,7 @@ HR: ${hrChange > 0 ? '+' : ''}${hrChange}%`;
                runVal > 1 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10' : 
                'bg-slate-500/10 text-slate-400 border-white/5', 
         icon: runVal >= 1.10 ? Zap : (runVal <= 0.90 ? ShieldCheck : Activity), 
-        title: `${game.venue?.name}: Daily environment factor. Sourced via daily updates.`
+        title: `${game.venue?.name} (${isRoofOpen ? 'Open' : 'Closed'}): Daily environment factor. Sourced via daily updates.`
       });
     }
   }
@@ -240,18 +233,23 @@ interface GameLogProps {
   parkFactors?: BallparkPalFactor[];
 }
 
-const getParkIntelligence = (game: MLBGame) => {
+const getParkIntelligence = (game: MLBGame, parkFactors: BallparkPalFactor[] = []) => {
   const tempStr = game.weather?.temp?.toString() || "";
   const temp = parseInt(tempStr.match(/\d+/)?.[0] || "72");
   const windStr = game.weather?.wind || "";
   const windDirRaw = windStr.toLowerCase();
   const homeId = game.teams.home.team.id;
   const venue = (game.venue?.name || '').toLowerCase();
+  const isChase = venue.includes('chase field');
   
   const wind = parseWind(windStr, homeId, venue);
   const windSpeed = wind.speed;
   const condition = (game.weather?.condition || '').toLowerCase();
   
+  const rainKeywords = ['rain', 'shower', 'storm', 'drizzle', 'precip', 'thunder', 'lightning', 'mist'];
+  const isRainy = rainKeywords.some(k => condition.includes(k));
+  const isExplicitlyOpen = condition.includes('open') || condition.includes('outdoor') || ['clear', 'sunny', 'fair', 'partly', 'night'].some(k => condition.includes(k));
+
   let impulse: 'positive' | 'negative' | 'neutral' = 'neutral';
   
   // Directional Detection
@@ -260,28 +258,30 @@ const getParkIntelligence = (game: MLBGame) => {
   const isToRight = windDirRaw.includes('to rf') || windDirRaw.includes('from lf') || (windDirRaw.includes('r to l') && isIn) || (windDirRaw.includes('l to r') && isOut);
   const isToLeft = windDirRaw.includes('to lf') || windDirRaw.includes('from rf') || (windDirRaw.includes('l to r') && isIn) || (windDirRaw.includes('r to l') && isOut);
 
-  const rainKeywords = ['rain', 'shower', 'storm', 'drizzle', 'precip', 'thunder', 'lightning', 'mist'];
-  const isRainy = rainKeywords.some(k => condition.includes(k));
-  const isExplicitlyOpen = condition.includes('open') || condition.includes('outdoor') || ['clear', 'sunny', 'fair', 'partly', 'night'].some(k => condition.includes(k));
-  const isExplicitlyClosed = (condition.includes('closed') || condition.includes('indoor') || condition.includes('dome')) && !isExplicitlyOpen;
-  const isRetractable = venue.includes('loandepot') || venue.includes('globe life') || venue.includes('minute maid') || venue.includes('american family') || venue.includes('rogers centre') || venue.includes('skydome') || venue.includes('chase field') || venue.includes('t-mobile') || venue.includes('safeco');
-  const venueIsFlexibleRetractable = venue.includes('chase field') || venue.includes('minute maid') || venue.includes('daikin');
+  const isRetractable = venue.includes('loandepot') || venue.includes('globe life') || venue.includes('minute maid') || venue.includes('daikin') || venue.includes('american family') || venue.includes('rogers centre') || venue.includes('skydome') || venue.includes('chase field') || venue.includes('t-mobile') || venue.includes('safeco');
   const isRetractableSeattle = venue.includes('t-mobile');
-  const isStrictDome = !isRetractableSeattle && (venue.includes('tropicana') || (isRetractable && isExplicitlyClosed) || (isRetractable && !isExplicitlyOpen && !venueIsFlexibleRetractable));
+  const isTropicana = venue.includes('tropicana');
+
+  const awayAbbr = game.teams.away.team.abbreviation || '';
+  const homeAbbr = game.teams.home.team.abbreviation || '';
+  const awayName = game.teams.away.team.name || '';
+  const homeName = game.teams.home.team.name || '';
+  const livePalFactor = findGameFactor(parkFactors, awayAbbr, homeAbbr, awayName, homeName);
+  const liveClosed = livePalFactor && livePalFactor.isClosed !== undefined ? livePalFactor.isClosed : undefined;
+
+  const isRoofOpen = isRetractable && (liveClosed !== undefined ? !liveClosed : isRetractableRoofOpen(game.venue?.name || '', game.weather?.condition, temp));
+  const isStrictDome = !isRetractableSeattle && (isTropicana || (isRetractable && !isRoofOpen));
 
   if (isStrictDome) {
     const domeName = venue.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-    // Tropicana is the primary focus but this covers others too
-    const isTropicana = venue.includes('tropicana');
-    const isChase = venue.includes('chase field');
     
     return { 
       impulse: 'neutral', 
       isDome: true,
-      isHumidor: isChase && (condition.includes('closed') || condition.includes('indoor')),
+      isHumidor: isChase && !isRoofOpen,
       message: isTropicana 
         ? `Tropicana Field: DOME CONTROL. Atmospheric conditions are precisely regulated; outside weather is irrelevant to play dynamics.`
-        : (isChase && (condition.includes('closed') || condition.includes('indoor')))
+        : (isChase && !isRoofOpen)
         ? `Chase Field (Closed): HUMIDOR REGULATED. Climate control and humidor storage negate desert atmospheric thinning.`
         : isChase 
         ? `Chase Field (Open): DESERT ENVIRONMENT. Atmospheric thinning and dry heat are active today.`
@@ -313,7 +313,45 @@ const getParkIntelligence = (game: MLBGame) => {
     109: { impulse: 'neutral', tech: "Chase Field (Snake Pit): +12% extra-base carry is the primary driver in a strictly neutral scoring environment (+1%). " }
   };
 
-  const currentIntel = intelligenceReports[Number(homeId)];
+  let currentIntel = intelligenceReports[Number(homeId)];
+  const isPlanetHustle = venue.includes('minute maid') || venue.includes('daikin');
+  const isLoanDepot = venue.includes('loandepot');
+  const isGlobeLife = venue.includes('globe life');
+  const isRogers = venue.includes('rogers centre') || venue.includes('skydome');
+  const isAmericanFamily = venue.includes('american family');
+
+  if (isChase && isRoofOpen) {
+    currentIntel = {
+      impulse: 'positive',
+      tech: "Chase Field (Open): DESERT ENHANCEMENT. Opening the roof exposes play to thin, dry desert air, accelerating fly ball carry for a +7% scoring boost and +8% HR potential. "
+    };
+  } else if (isPlanetHustle && isRoofOpen) {
+    currentIntel = {
+      impulse: 'positive',
+      tech: "Minute Maid Park (Open): OUTDOOR HUMIDITY carry. Opening the roof introduces warm Texas air, providing a +3% overall boost with +12% Home Run potential. "
+    };
+  } else if (isLoanDepot && isRoofOpen) {
+    currentIntel = {
+      impulse: 'positive',
+      tech: "LoanDepot Park (Open): MIAMI AIRFLOW. The opened roof negates typical indoor stagnation, boosting scoring to +2% with +13% HR improvement. "
+    };
+  } else if (isGlobeLife && isRoofOpen) {
+    currentIntel = {
+      impulse: 'positive',
+      tech: "Globe Life Field (Open): BRIGHT SUN & wind flow. Bypassing climate control allows outfield currents, raising scoring to +1% of baseline. "
+    };
+  } else if (isRogers && isRoofOpen) {
+    currentIntel = {
+      impulse: 'neutral',
+      tech: "Rogers Centre (Open): SEASIDE AIR exposure. Roof open conditions lift run suppressions slightly to a near-neutral -2%, with a +5% HR bump. "
+    };
+  } else if (isAmericanFamily && isRoofOpen) {
+    currentIntel = {
+      impulse: 'neutral',
+      tech: "American Family Field (Open): WISCONSIN BREEZE. Opening the roof raises HR expectations by +8%, settling run projection to -2%. "
+    };
+  }
+
   if (currentIntel && !isStrictDome) {
     hasSpecificClimateIntel = true;
     impulse = currentIntel.impulse;
@@ -456,8 +494,6 @@ const getParkIntelligence = (game: MLBGame) => {
     techReport += "Visibility Factor: Optimal contrast and lighting should benefit hitters' reaction times. ";
   }
 
-  const isChase = venue.includes('chase field');
-  
   return { 
     impulse, 
     message: techReport.trim(), 
@@ -805,7 +841,7 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                                );
                               }
                               // 2. Park Intelligence 
-                              const climate = getParkIntelligence(game);
+                              const climate = getParkIntelligence(game, parkFactors);
                               
                               // 2. Intelligence Badges
                               const intelBadges = getSpecialIntelligence(game, parkFactors);
@@ -1402,7 +1438,7 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                                    }
  
                                    // 2. Park Intelligence 
-                                   const climate = getParkIntelligence(game);
+                                   const climate = getParkIntelligence(game, parkFactors);
  
                                    // 2. Intelligence Badges
                                    const intelBadges = getSpecialIntelligence(game, parkFactors);
