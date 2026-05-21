@@ -30,6 +30,8 @@ interface WagerTrackerProps {
   sport?: 'MLB' | 'NHL';
   historicalTotals?: Record<string, number>;
   userWagers?: any[];
+  onSaveWager?: (wager: any) => void;
+  onClearWager?: (wagerId: string) => void;
 }
 
 export function WagerTracker({ 
@@ -50,7 +52,9 @@ export function WagerTracker({
   currentStreak,
   sport = 'MLB',
   historicalTotals = {},
-  userWagers = []
+  userWagers = [],
+  onSaveWager,
+  onClearWager
 }: WagerTrackerProps) {
   const isMLB = sport === 'MLB';
   const unitName = isMLB ? 'runs' : 'goals';
@@ -96,24 +100,39 @@ export function WagerTracker({
       trackEvent('manual_save_wager', { line: betLine, side: betType, sport });
       if (user) {
         const wagerDoc = doc(db, 'users', user.uid, 'wagers', `${sport}_${today}`);
-        await setDoc(wagerDoc, {
+        const savedData = {
           userId: user.uid,
           line: betLine,
-          side: betType.toUpperCase(),
+          side: betType.toUpperCase() as 'OVER' | 'UNDER',
           date: today,
           sport,
           createdAt: Timestamp.now()
-        });
+        };
+        await setDoc(wagerDoc, savedData);
         setLastSynced(new Date());
         toast.success('WAGER SAVED TO CLOUD ☁️', {
           description: `Tracking ${betType.toUpperCase()} ${betLine} for today.`
         });
+        if (onSaveWager) {
+          onSaveWager({ id: `${sport}_${today}`, ...savedData });
+        }
       } else {
-        localStorage.setItem('salami_bet_line', betLine.toString());
-        localStorage.setItem('salami_bet_type', betType);
+        localStorage.setItem(`${sport}_salami_bet_line`, betLine.toString());
+        localStorage.setItem(`${sport}_salami_bet_type`, betType);
+        localStorage.setItem(`${sport}_salami_bet_date`, today);
         toast.success('WAGER SAVED LOCALLY 💾', {
           description: 'Sign in to build your Salami Streak and sync across devices!'
         });
+        if (onSaveWager) {
+          onSaveWager({
+            id: `${sport}_${today}`,
+            line: betLine,
+            side: betType.toUpperCase() as 'OVER' | 'UNDER',
+            date: today,
+            sport,
+            createdAt: new Date().toISOString()
+          });
+        }
       }
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `users/${user.uid}/wagers/${today}`);
@@ -133,6 +152,9 @@ export function WagerTracker({
         await deleteDoc(wagerDoc);
         setLastSynced(null);
         toast.info('WAGER REMOVED FROM CLOUD 🗑️');
+        if (onClearWager) {
+          onClearWager(`${sport}_${today}`);
+        }
       } catch (error) {
         handleFirestoreError(error, OperationType.DELETE, `users/${user.uid}/wagers/${today}`);
       } finally {
@@ -143,6 +165,9 @@ export function WagerTracker({
       localStorage.removeItem(`${sport}_salami_bet_type`);
       localStorage.removeItem(`${sport}_salami_bet_date`);
       toast.info('WAGER CLEARED');
+      if (onClearWager) {
+        onClearWager(`${sport}_${today}`);
+      }
     }
   };
 

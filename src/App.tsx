@@ -574,10 +574,24 @@ export default function App() {
           // It's a past wager, WagerTracker will handle settlement notification
           // but we shouldn't show it as today's active wager
           setBetLine('');
+          setUserWagers([]);
         } else {
-          if (savedLine) setBetLine(parseFloat(savedLine));
-          else setBetLine('');
-          if (savedType) setBetType(savedType as 'over' | 'under');
+          if (savedLine) {
+            const lineVal = parseFloat(savedLine);
+            setBetLine(lineVal);
+            if (savedType) setBetType(savedType as 'over' | 'under');
+            setUserWagers([{
+              id: `${activeSport}_${today}`,
+              line: lineVal,
+              side: (savedType || 'over').toUpperCase() as 'OVER' | 'UNDER',
+              date: today,
+              sport: activeSport,
+              createdAt: new Date().toISOString()
+            }]);
+          } else {
+            setBetLine('');
+            setUserWagers([]);
+          }
         }
       }
     };
@@ -587,6 +601,17 @@ export default function App() {
   const activeUserWagers = useMemo(() => {
     return userWagers.filter(w => (w.sport || 'MLB').toUpperCase() === activeSport.toUpperCase());
   }, [userWagers, activeSport]);
+
+  const handleSaveWager = useCallback((savedWager: any) => {
+    setUserWagers(prev => {
+      const filtered = prev.filter(w => w.id !== savedWager.id);
+      return [savedWager, ...filtered];
+    });
+  }, []);
+
+  const handleClearWager = useCallback((wagerId: string) => {
+    setUserWagers(prev => prev.filter(w => w.id !== wagerId));
+  }, []);
 
   const handleDeleteWager = useCallback((wagerId: string) => {
     setUserWagers(prev => prev.filter(w => w.id !== wagerId));
@@ -976,6 +1001,8 @@ export default function App() {
                       currentStreak={currentStreak}
                       historicalTotals={historicalTotals}
                       userWagers={activeUserWagers}
+                      onSaveWager={handleSaveWager}
+                      onClearWager={handleClearWager}
                     />
 
                     {activeSport === 'MLB' && <DailyApex games={games} />}
