@@ -3,21 +3,21 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { readFile } from 'fs/promises';
 
 const parkFactors = [
-  { game: "TEX @ COL", runs: 14, hr: -8, park: "Coors Field", condition: "Hum: 69% | Pres: 1020 | Low Carry" },
-  { game: "CIN @ PHI", runs: 12, hr: 37, park: "Citizens Bank Park", condition: "Hum: 39% | Pres: 1017 | Very High" },
-  { game: "NYM @ WAS", runs: 7, hr: 5, park: "Nationals Park", condition: "Hum: 26% | Pres: 1017 | Med-High" },
-  { game: "TOR @ NYY", runs: 4, hr: 18, park: "Yankee Stadium", condition: "Hum: 42% | Pres: 1015 | High Carry" },
-  { game: "SF @ ARI", runs: 3, hr: -7, park: "Chase Field", condition: "Hum: 8% | Pres: 1009 | Medium" },
-  { game: "ATH @ LAA", runs: 1, hr: 5, park: "Angel Stadium", condition: "Hum: 38% | Pres: 1012 | Consistent" },
-  { game: "CLE @ DET", runs: -1, hr: -2, park: "Comerica Park", condition: "Hum: 72% | Pres: 1012 | High Density" },
-  { game: "ATL @ MIA", runs: -6, hr: -15, park: "LoanDepot Park", condition: "ROOF CLOSED" },
-  { game: "BAL @ TB", runs: -6, hr: -3, park: "Tropicana Field", condition: "ROOF CLOSED" },
-  { game: "LAD @ SD", runs: -10, hr: -6, park: "Petco Park", condition: "Hum: 59% | Pres: 1013 | Low Carry" },
-  { game: "HOU @ MIN", runs: -11, hr: -25, park: "Target Field", condition: "Hum: 57% | Pres: 1021 | Medium Carry" },
-  { game: "MIL @ CHC", runs: -11, hr: -6, park: "Wrigley Field", condition: "Hum: 76% | Pres: 1016 | Extreme Air Edge" },
-  { game: "PIT @ STL", runs: -13, hr: -20, park: "Busch Stadium", condition: "Hum: 89% | Pres: 1017 | Med-High Density" },
-  { game: "CHW @ SEA", runs: -15, hr: -10, park: "T-Mobile Park", condition: "Hum: 69% | Pres: 1021 | Medium Carry" },
-  { game: "BOS @ KC", runs: -16, hr: -21, park: "Kauffman Stadium", condition: "Hum: 66% | Pres: 1020 | High Density" }
+  { game: "STL @ CIN", runs: 6, hr: 6, park: "Great American BP", condition: "Hum: 99% | Pres: 1015 | Low" },
+  { game: "COL @ ARI", runs: 3, hr: -10, park: "Chase Field", condition: "Hum: 9% | Pres: 1004 | Medium" },
+  { game: "MIN @ BOS", runs: 0, hr: -38, park: "Fenway Park", condition: "Hum: 38% | Pres: 1029 | High" },
+  { game: "TEX @ LAA", runs: -1, hr: 4, park: "Angel Stadium", condition: "Hum: 45% | Pres: 1010 | Consistent" },
+  { game: "SEA @ KC", runs: -5, hr: 1, park: "Kauffman Stadium", condition: "Hum: 88% | Pres: 1012 | High" },
+  { game: "NYM @ MIA", runs: -5, hr: -13, park: "LoanDepot Park", condition: "ROOF CLOSED" },
+  { game: "PIT @ TOR", runs: -5, hr: 2, park: "Rogers Centre", condition: "ROOF CLOSED" },
+  { game: "LAD @ MIL", runs: -6, hr: 4, park: "American Family Fld", condition: "ROOF CLOSED" },
+  { game: "DET @ BAL", runs: -9, hr: -27, park: "Oriole Park", condition: "Hum: 95% | Pres: 1025 | Med-High" },
+  { game: "CLE @ PHI", runs: -9, hr: -13, park: "Citizens Bank Park", condition: "Hum: 77% | Pres: 1026 | Very High" },
+  { game: "ATH @ SD", runs: -10, hr: -4, park: "Petco Park", condition: "Hum: 59% | Pres: 1010 | Low" },
+  { game: "CHW @ SF", runs: -10, hr: -28, park: "Oracle Park", condition: "Hum: 77% | Pres: 1009 | Consistent" },
+  { game: "WAS @ ATL", runs: -10, hr: -10, park: "Truist Park", condition: "Hum: 86% | Pres: 1016 | Medium" },
+  { game: "HOU @ CHC", runs: -15, hr: -16, park: "Wrigley Field", condition: "Hum: 60% | Pres: 1019 | Extreme" },
+  { game: "TB @ NYY", runs: -20, hr: -28, park: "Yankee Stadium", condition: "Hum: 45% | Pres: 1027 | High" }
 ];
 
 async function run() {

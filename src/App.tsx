@@ -293,11 +293,37 @@ export default function App() {
 
               // 2. Real Browser Notification
               if ("Notification" in window && Notification.permission === "granted") {
-                new Notification(title, {
+                const options = {
                   body,
                   icon: 'https://cdn-icons-png.flaticon.com/512/3515/3515320.png',
                   tag: `salami-run-scored-${g.gamePk}-${Date.now()}`
-                });
+                };
+
+                if ('serviceWorker' in navigator) {
+                  navigator.serviceWorker.getRegistration().then(reg => {
+                    if (reg && 'showNotification' in reg) {
+                      reg.showNotification(title, options);
+                    } else {
+                      try {
+                        new Notification(title, options);
+                      } catch (err) {
+                        console.warn('App Notification standard constructor fallback failed:', err);
+                      }
+                    }
+                  }).catch(() => {
+                    try {
+                      new Notification(title, options);
+                    } catch (err) {
+                      console.warn('App Notification standard constructor fallback catch failed:', err);
+                    }
+                  });
+                } else {
+                  try {
+                    new Notification(title, options);
+                  } catch (err) {
+                    console.warn('App Notification constructor failed:', err);
+                  }
+                }
               }
             }
           } catch (e) {

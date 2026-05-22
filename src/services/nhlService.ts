@@ -63,6 +63,23 @@ export interface NHLScoreResponse {
   games: NHLGame[];
 }
 
+const safeLocalStorage = {
+  getItem(key: string): string | null {
+    try {
+      return typeof window !== 'undefined' && window.localStorage ? localStorage.getItem(key) : null;
+    } catch {
+      return null;
+    }
+  },
+  setItem(key: string, value: string): void {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.setItem(key, value);
+      }
+    } catch {}
+  }
+};
+
 export async function fetchNHLGames(date?: string): Promise<NHLGame[]> {
   const targetDate = date || format(new Date(), 'yyyy-MM-dd');
   const url = `/api/nhl/scores?date=${targetDate}`;
@@ -80,12 +97,32 @@ export async function fetchNHLGames(date?: string): Promise<NHLGame[]> {
     }
 
     const data: NHLScoreResponse = await response.json();
-    return data.games || [];
+    const games = data.games || [];
+    
+    if (games.length > 0) {
+      try {
+        safeLocalStorage.setItem(`nhl_games_cache_${targetDate}`, JSON.stringify({
+          data: games,
+          timestamp: Date.now()
+        }));
+      } catch (e) {}
+    }
+    
+    return games;
   } catch (error: any) {
-    console.error('Error fetching NHL games:', {
+    const cacheKey = `nhl_games_cache_${targetDate}`;
+    const stored = safeLocalStorage.getItem(cacheKey);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        console.warn(`Fetch NHL games failed, using persistent localStorage cache from ${new Date(parsed.timestamp).toISOString()}:`, error.message);
+        return parsed.data;
+      } catch (e) {}
+    }
+
+    console.warn('Error fetching NHL games (returning empty array):', {
       message: error.message,
-      url: url,
-      stack: error.stack
+      url: url
     });
     return [];
   }

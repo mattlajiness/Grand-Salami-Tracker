@@ -430,14 +430,36 @@ export function WagerTracker({
     
     try {
       if (Notification.permission === "granted") {
-        new Notification(title, { 
-          body, 
+        const options = {
+          body,
           icon: 'https://cdn-icons-png.flaticon.com/512/3515/3515320.png',
           tag: 'salami-pace-alert'
-        });
+        };
+
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistration().then(reg => {
+            if (reg && 'showNotification' in reg) {
+              reg.showNotification(title, options);
+            } else {
+              try {
+                new Notification(title, options);
+              } catch (e) {
+                console.warn('Wager Notification standard constructor fallback failed:', e);
+              }
+            }
+          }).catch(() => {
+            try {
+              new Notification(title, options);
+            } catch (e) {
+              console.warn('Wager Notification standard constructor fallback catch failed:', e);
+            }
+          });
+        } else {
+          new Notification(title, options);
+        }
       }
     } catch (e) {
-      console.error('Notification error:', e);
+      console.warn('Wager Notification error handled gracefully:', e);
     }
   };
 

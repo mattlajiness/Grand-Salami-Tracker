@@ -133,6 +133,23 @@ let scheduleCache: {
 
 const SCHEDULE_CACHE_TTL = 60 * 1000; // 1 minute fallback cache
 
+const safeLocalStorage = {
+  getItem(key: string): string | null {
+    try {
+      return typeof window !== 'undefined' && window.localStorage ? localStorage.getItem(key) : null;
+    } catch {
+      return null;
+    }
+  },
+  setItem(key: string, value: string): void {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.setItem(key, value);
+      }
+    } catch {}
+  }
+};
+
 import { fetchWeatherForecast } from './weatherService';
 
 export async function fetchMLBGames(date?: string, startDate?: string, endDate?: string): Promise<MLBGame[]> {
@@ -328,19 +345,37 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
         data: resultGames,
         timestamp: Date.now()
       };
+      
+      try {
+        const cacheKey = `mlb_games_cache_${date || startDate || 'default'}`;
+        safeLocalStorage.setItem(cacheKey, JSON.stringify({
+          data: resultGames,
+          timestamp: Date.now()
+        }));
+      } catch (e) {}
     }
 
     return resultGames;
   } catch (error) {
+    const cacheKey = `mlb_games_cache_${date || startDate || 'default'}`;
+    const stored = safeLocalStorage.getItem(cacheKey);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        console.warn(`Fetch MLB games failed, using persistent localStorage cache from ${new Date(parsed.timestamp).toISOString()}:`, error);
+        return parsed.data;
+      } catch (e) {}
+    }
+
     if (scheduleCache && (Date.now() - scheduleCache.timestamp < SCHEDULE_CACHE_TTL * 30)) {
       console.warn('Fetch failed, returning cached data:', error);
       return scheduleCache.data;
     }
     
     if (error instanceof Error && error.name === 'AbortError') {
-      console.error('MLB API Request timed out');
+      console.warn('MLB API Request timed out');
     } else {
-      console.error('Error fetching MLB games:', error);
+      console.warn('Error fetching MLB games (returning empty array):', error);
     }
     return [];
   }
