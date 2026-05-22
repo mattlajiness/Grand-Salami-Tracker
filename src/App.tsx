@@ -1051,8 +1051,6 @@ export default function App() {
                     <WagerTracker 
                       sport={activeSport as 'MLB' | 'NHL'}
                       currentTotal={currentTotal}
-                      homeTotal={homeTotal}
-                      awayTotal={awayTotal}
                       playedInnings={activeSport === 'MLB' ? stats.playedInnings : (nhlStats?.playedPeriods || 0)}
                       totalExpectedInnings={activeSport === 'MLB' ? stats.totalExpectedInnings : (nhlStats?.totalExpectedPeriods || 0)}
                       isFinished={activeSport === 'MLB' ? stats.isFinished : (nhlStats?.isFinished || false)}

@@ -13,8 +13,6 @@ import confetti from 'canvas-confetti';
 
 interface WagerTrackerProps {
   currentTotal: number;
-  homeTotal?: number;
-  awayTotal?: number;
   playedInnings: number;
   totalExpectedInnings: number;
   isFinished: boolean;
@@ -38,8 +36,6 @@ interface WagerTrackerProps {
 
 export function WagerTracker({ 
   currentTotal, 
-  homeTotal = 0,
-  awayTotal = 0,
   playedInnings, 
   totalExpectedInnings, 
   isFinished,
@@ -709,51 +705,6 @@ export function WagerTracker({
             >
               Clear
             </button>
-          </div>
-
-          {/* Home vs Away Team Run/Goal Tracker */}
-          <div className="bg-slate-950 rounded-xl p-4 border border-slate-800 space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-800/60 pb-2">
-              <span className="text-[10px] font-mono font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                <Target className="w-3.5 h-3.5 text-blue-400" />
-                Home vs Away {isMLB ? 'Runs' : 'Goals'}
-              </span>
-              <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest bg-slate-900 border border-slate-800 px-2 py-0.5 rounded">
-                Side Bet Tracker
-              </span>
-            </div>
-            
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div>
-                <span className="text-[9px] font-mono text-slate-500 uppercase tracking-wide block mb-0.5">Away Teams</span>
-                <span className="text-2xl font-mono font-black text-rose-400">{awayTotal}</span>
-                {playedInnings > 0 && (
-                  <span className="text-[8px] font-mono text-slate-500 block mt-0.5">
-                    Pace: {((awayTotal / playedInnings) * gameStandard).toFixed(1)} <br className="hidden sm:inline" /> Proj: {projectedTotal !== null && currentTotal > 0 ? Math.round((awayTotal / currentTotal) * projectedTotal) : Math.round(((awayTotal / playedInnings) * gameStandard) * gameCount)}
-                  </span>
-                )}
-              </div>
-              
-              <div className="flex flex-col items-center justify-center border-x border-slate-800">
-                <span className="text-[9px] font-mono text-slate-500 uppercase tracking-wide block mb-0.5">Spread Diff</span>
-                <span className="text-sm font-mono font-black text-blue-400">
-                  {homeTotal === awayTotal ? 'EVEN' : homeTotal > awayTotal ? `H +${homeTotal - awayTotal}` : `A +${awayTotal - homeTotal}`}
-                </span>
-                <span className="text-[8px] font-mono text-slate-500 block mt-0.5">
-                  Spread
-                </span>
-              </div>
-              
-              <div>
-                <span className="text-[9px] font-mono text-slate-500 uppercase tracking-wide block mb-0.5">Home Teams</span>
-                <span className="text-2xl font-mono font-black text-emerald-400">{homeTotal}</span>
-                {playedInnings > 0 && (
-                  <span className="text-[8px] font-mono text-slate-500 block mt-0.5">
-                    Pace: {((homeTotal / playedInnings) * gameStandard).toFixed(1)} <br className="hidden sm:inline" /> Proj: {projectedTotal !== null && currentTotal > 0 ? Math.round((homeTotal / currentTotal) * projectedTotal) : Math.round(((homeTotal / playedInnings) * gameStandard) * gameCount)}
-                  </span>
-                )}
-              </div>
-            </div>
           </div>
 
           {/* Status Display */}
