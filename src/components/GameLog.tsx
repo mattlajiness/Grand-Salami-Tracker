@@ -44,7 +44,7 @@ const getWeatherIcon = (condition: string = '') => {
   if (c.includes('thunder') || c.includes('lightning') || c.includes('storm')) {
     return { icon: CloudLightning, color: 'text-yellow-400' };
   }
-  if (c.includes('rain') || c.includes('shower') || c.includes('drizzle') || c.includes('mist')) {
+  if (c.includes('rain') || c.includes('shower') || c.includes('drizzle') || c.includes('mist') || c.includes('sprinkle') || c.includes('precip') || c.includes('wet') || c.includes('pour')) {
     return { icon: CloudRain, color: 'text-blue-400' };
   }
   if (c.includes('overcast') || c.includes('cloud') || c.includes('gloomy') || c.includes('fog')) {

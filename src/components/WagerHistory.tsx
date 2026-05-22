@@ -40,6 +40,7 @@ export function WagerHistory({
 }: WagerHistoryProps) {
   const { user } = useAuth();
   const [wagers, setWagers] = useState<WagerRecord[]>(userWagers);
+  const [deletingWagerId, setDeletingWagerId] = useState<string | null>(null);
 
   useEffect(() => {
     setWagers(userWagers);
@@ -86,24 +87,27 @@ export function WagerHistory({
     };
   }, [wagers, historicalTotals]);
 
-  const handleDelete = async (wagerId: string, date: string) => {
+  const handleDelete = (wagerId: string) => {
+    setDeletingWagerId(wagerId);
+  };
+
+  const executeDelete = async (wagerId: string, date: string) => {
     if (!user) return;
-    
-    if (confirm(`Are you sure you want to remove the wager for ${date}?`)) {
-      try {
-        const wagerDocRef = doc(db, 'users', user.uid, 'wagers', wagerId);
-        await deleteDoc(wagerDocRef);
-        setWagers(prev => prev.filter(w => w.id !== wagerId));
-        if (onDeleteWager) {
-          onDeleteWager(wagerId);
-        }
-        toast.info('WAGER REMOVED FROM HISTORY 🗑️', {
-          description: `Wager for ${date} has been deleted.`
-        });
-      } catch (error) {
-        console.error("Error deleting wager:", error);
-        toast.error('Failed to delete wager. Please try again.');
+    try {
+      const wagerDocRef = doc(db, 'users', user.uid, 'wagers', wagerId);
+      await deleteDoc(wagerDocRef);
+      setWagers(prev => prev.filter(w => w.id !== wagerId));
+      if (onDeleteWager) {
+        onDeleteWager(wagerId);
       }
+      toast.info('WAGER REMOVED FROM HISTORY 🗑️', {
+        description: `Wager for ${date} has been deleted.`
+      });
+    } catch (error) {
+      console.error("Error deleting wager:", error);
+      toast.error('Failed to delete wager. Please try again.');
+    } finally {
+      setDeletingWagerId(null);
     }
   };
 
@@ -291,12 +295,45 @@ export function WagerHistory({
                       >
                         {/* Delete Button - Floating */}
                         <button 
-                          onClick={() => handleDelete(wager.id, wager.date)}
+                          onClick={() => handleDelete(wager.id)}
                           className="absolute top-2 right-2 p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-500 hover:text-red-500 hover:border-red-500/30 transition-all opacity-100 sm:opacity-0 sm:group-hover:opacity-100 z-20"
                           title="Delete record"
                         >
                           <Trash2 className="w-3 h-3" />
                         </button>
+
+                        {/* Inline Delete Confirmation Overlay */}
+                        {deletingWagerId === wager.id && (
+                          <div className="absolute inset-0 bg-slate-950/95 border border-red-500/20 rounded-xl z-30 flex flex-col sm:flex-row items-center justify-between p-4 gap-3">
+                            <div className="flex items-center gap-2">
+                              <Trash2 className="w-4 h-4 text-red-500 animate-pulse" />
+                              <div>
+                                <span className="text-[10px] font-mono font-black text-red-500 uppercase tracking-widest block leading-3">Delete This Wager?</span>
+                                <span className="text-[7px] font-mono text-slate-500 uppercase tracking-wider block mt-0.5">This action is irreversible</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeletingWagerId(null);
+                                }}
+                                className="px-2.5 py-1 rounded bg-slate-900 hover:bg-slate-800 hover:text-white border border-slate-800 text-slate-400 font-mono text-[8px] uppercase tracking-widest transition-colors font-black"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  executeDelete(wager.id, wager.date);
+                                }}
+                                className="px-2.5 py-1 rounded bg-red-950/40 border border-red-900/40 text-red-500 hover:bg-red-950/70 hover:text-red-300 font-mono text-[8px] uppercase tracking-widest transition-colors font-black"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        )}
 
                         {/* Background Indicator */}
                         {hasData && (
