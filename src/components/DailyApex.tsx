@@ -62,6 +62,9 @@ export function DailyApex({ games }: DailyApexProps) {
             <h3 className="text-sm font-black text-white uppercase tracking-tight">
               {apexGame.teams.away.team.abbreviation} @ {apexGame.teams.home.team.abbreviation}
             </h3>
+            <span className="text-[9px] text-slate-400 font-medium block leading-none mt-0.5">
+              Highest scoring game of the day
+            </span>
           </div>
         </div>
 

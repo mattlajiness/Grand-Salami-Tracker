@@ -772,7 +772,10 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                           ) : <div />}
                           
                           {game.gamePk === apexGamePk && (
-                            <div className="bg-orange-500/20 border border-orange-500/30 px-2 py-0.5 rounded flex items-center gap-1 shadow-sm">
+                            <div 
+                              title="Highest scoring game of the day" 
+                              className="bg-orange-500/20 border border-orange-500/30 px-2 py-0.5 rounded flex items-center gap-1 shadow-sm cursor-help"
+                            >
                               <Flame className="w-2.5 h-2.5 text-orange-400" />
                               <span className="text-[7px] font-mono font-black text-orange-400 uppercase tracking-tighter">Daily Apex</span>
                             </div>
@@ -1364,7 +1367,10 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                             <div className="flex flex-col items-end gap-2">
                               <div className="flex items-center justify-end flex-wrap gap-2 mb-1">
                                 {game.gamePk === apexGamePk && (
-                                  <div className="bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 rounded flex items-center gap-1.5 shadow-sm">
+                                  <div 
+                                    title="Highest scoring game of the day" 
+                                    className="bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 rounded flex items-center gap-1.5 shadow-sm cursor-help"
+                                  >
                                     <Flame className="w-3 h-3 text-orange-400" />
                                     <span className="text-[8px] font-mono font-black text-orange-400 uppercase tracking-tighter">Daily Apex</span>
                                   </div>
