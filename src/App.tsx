@@ -364,6 +364,42 @@ export default function App() {
     }
   }, [games, nhlGames, activeSport, todayStr]);
 
+  const homeTotal = useMemo(() => {
+    if (activeSport === 'MLB') {
+      if (!Array.isArray(games)) return 0;
+      return games.reduce((acc, game) => {
+        if (game.officialDate && game.officialDate !== todayStr) return acc;
+        const isPostponed = (game.status?.detailedState || '').toLowerCase().includes('postponed') || 
+                           (game.status?.detailedState || '').toLowerCase().includes('canceled');
+        if (isPostponed) return acc;
+        return acc + (game?.teams?.home?.score || 0);
+      }, 0);
+    } else {
+      if (!Array.isArray(nhlGames)) return 0;
+      return nhlGames.reduce((acc, game) => {
+        return acc + (game.homeTeam?.score || 0);
+      }, 0);
+    }
+  }, [games, nhlGames, activeSport, todayStr]);
+
+  const awayTotal = useMemo(() => {
+    if (activeSport === 'MLB') {
+      if (!Array.isArray(games)) return 0;
+      return games.reduce((acc, game) => {
+        if (game.officialDate && game.officialDate !== todayStr) return acc;
+        const isPostponed = (game.status?.detailedState || '').toLowerCase().includes('postponed') || 
+                           (game.status?.detailedState || '').toLowerCase().includes('canceled');
+        if (isPostponed) return acc;
+        return acc + (game?.teams?.away?.score || 0);
+      }, 0);
+    } else {
+      if (!Array.isArray(nhlGames)) return 0;
+      return nhlGames.reduce((acc, game) => {
+        return acc + (game.awayTeam?.score || 0);
+      }, 0);
+    }
+  }, [games, nhlGames, activeSport, todayStr]);
+
   const nhlStats = useMemo(() => {
     if (activeSport !== 'NHL' || !Array.isArray(nhlGames)) return null;
     const final = nhlGames.filter(g => g.gameState === 'FINAL' || g.gameState === 'OFF').length;
@@ -899,6 +935,8 @@ export default function App() {
               {activeSport === 'MLB' ? (
                 <GrandSalamiHeader 
                   currentTotal={currentTotal}
+                  homeTotal={homeTotal}
+                  awayTotal={awayTotal}
                   gameCount={games.length}
                   finalCount={stats.finalCount}
                   liveCount={stats.liveCount}
@@ -915,6 +953,8 @@ export default function App() {
               ) : nhlStats && (
                 <NHLGrandSalamiHeader 
                   currentTotal={currentTotal}
+                  homeTotal={homeTotal}
+                  awayTotal={awayTotal}
                   gameCount={nhlStats.gameCount}
                   finalCount={nhlStats.finalCount}
                   liveCount={nhlStats.liveCount}
@@ -1011,6 +1051,8 @@ export default function App() {
                     <WagerTracker 
                       sport={activeSport as 'MLB' | 'NHL'}
                       currentTotal={currentTotal}
+                      homeTotal={homeTotal}
+                      awayTotal={awayTotal}
                       playedInnings={activeSport === 'MLB' ? stats.playedInnings : (nhlStats?.playedPeriods || 0)}
                       totalExpectedInnings={activeSport === 'MLB' ? stats.totalExpectedInnings : (nhlStats?.totalExpectedPeriods || 0)}
                       isFinished={activeSport === 'MLB' ? stats.isFinished : (nhlStats?.isFinished || false)}

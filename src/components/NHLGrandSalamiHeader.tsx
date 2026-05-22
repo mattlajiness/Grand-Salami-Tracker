@@ -11,6 +11,8 @@ import { SalamiLogo } from './SalamiLogo';
 
 interface NHLGrandSalamiHeaderProps {
   currentTotal: number;
+  homeTotal?: number;
+  awayTotal?: number;
   gameCount: number;
   finalCount: number;
   liveCount: number;
@@ -26,6 +28,8 @@ interface NHLGrandSalamiHeaderProps {
 
 export function NHLGrandSalamiHeader({ 
   currentTotal, 
+  homeTotal = 0,
+  awayTotal = 0,
   gameCount, 
   finalCount, 
   liveCount,
@@ -277,6 +281,26 @@ export function NHLGrandSalamiHeader({
               <div className="pb-2">
                 <span className="text-blue-500 font-mono font-black text-2xl block leading-none tracking-tighter">GOALS</span>
                 <span className="text-slate-500 font-mono text-[10px] block mt-1 uppercase">Total Scored</span>
+              </div>
+            </div>
+
+            {/* Split Scorecard Widget for Home/Away Tracker */}
+            <div className="flex items-center gap-3 mt-4 px-3 py-2 rounded-xl border border-slate-800 bg-slate-950/60 max-w-[280px]">
+              <div className="flex-1 text-center">
+                <span className="text-[8px] font-mono text-slate-500 uppercase tracking-wider block mb-0.5">Away Goals</span>
+                <span className="text-lg font-mono font-black text-rose-400">{awayTotal}</span>
+              </div>
+              <div className="w-[1px] h-8 bg-slate-800" />
+              <div className="flex-1 text-center">
+                <span className="text-[8px] font-mono text-slate-500 uppercase tracking-wider block mb-0.5">Home Goals</span>
+                <span className="text-lg font-mono font-black text-emerald-400">{homeTotal}</span>
+              </div>
+              <div className="w-[1px] h-8 bg-slate-800" />
+              <div className="flex-1 text-center">
+                <span className="text-[8px] font-mono text-slate-500 uppercase tracking-wider block mb-0.5">Spread</span>
+                <span className="text-xs font-mono font-black text-blue-400 block mt-0.5">
+                  {homeTotal === awayTotal ? 'EVEN' : homeTotal > awayTotal ? `H +${homeTotal - awayTotal}` : `A +${awayTotal - homeTotal}`}
+                </span>
               </div>
             </div>
           </div>
