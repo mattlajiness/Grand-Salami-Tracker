@@ -5,9 +5,13 @@ import './index.css';
 import { AuthProvider } from './contexts/AuthContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { initGA } from './lib/analytics';
+import { registerServiceWorker } from './services/pushNotificationService';
 
 // Initialize Analytics
 initGA();
+
+// Register PWA Service Worker for Push Alerts
+registerServiceWorker();
 
 console.log('MLB Grand Salami Tracker v1.1.0 Initialized');
 

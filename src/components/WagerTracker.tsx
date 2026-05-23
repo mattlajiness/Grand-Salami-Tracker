@@ -10,6 +10,7 @@ import { format, parseISO } from 'date-fns';
 import { trackEvent } from '../lib/analytics';
 import { calculateSmartProjection, getConfidenceScore } from '../lib/projectionEngine';
 import confetti from 'canvas-confetti';
+import { subscribeUserToPush, unsubscribeUserFromPush } from '../services/pushNotificationService';
 
 interface WagerTrackerProps {
   currentTotal: number;
@@ -88,6 +89,15 @@ export function WagerTracker({
       localStorage.setItem(`${sport}_salami_bet_date`, today);
     }
   }, [betLine, betType, user, sport, today]);
+
+  // Synchronize Push Subscription with User Notification Status in the background
+  useEffect(() => {
+    if (notificationsEnabled) {
+      subscribeUserToPush(user?.uid || undefined);
+    } else {
+      unsubscribeUserFromPush(user?.uid || undefined);
+    }
+  }, [notificationsEnabled, user?.uid]);
 
   const handleSave = async () => {
     if (betLine === '') {

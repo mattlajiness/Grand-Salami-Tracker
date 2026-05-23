@@ -1,0 +1,141 @@
+import { doc, setDoc, Timestamp } from 'firebase/firestore';
+import { db } from '../firebase';
+
+// Standard VAPID public key
+const VAPID_PUBLIC_KEY = 'BInaZqckVfeKtJQagbrCl-tWTWvcyPG-oAm_JAOXEgvlaAzYnZiAFd5A7fPMPaEbB0-Qwge-mXZUvDf9ffWpT8k';
+
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/\-/g, '+')
+    .replace(/_/g, '/');
+
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+/**
+ * Registers the Service Worker and sets up the active push subscriptions
+ */
+export async function registerServiceWorker() {
+  if ('serviceWorker' in navigator) {
+    try {
+      const registration = await navigator.serviceWorker.register('/sw.js');
+      console.log('Salami SW Registered successfully. Scope:', registration.scope);
+      return registration;
+    } catch (error) {
+      console.error('Salami SW Registration failed:', error);
+      return null;
+    }
+  }
+  return null;
+}
+
+/**
+ * Subscribes the current user or guest to Push Notifications
+ */
+export async function subscribeUserToPush(userId?: string) {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    console.warn('Push Notifications not supported in this browser.');
+    return null;
+  }
+
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    
+    // Check if permission is already granted, if default we can't subscribe
+    if (Notification.permission === 'denied') {
+      console.warn('Notification permission denied by user.');
+      return null;
+    }
+
+    if (Notification.permission === 'default') {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        console.warn('Notification permission not granted.');
+        return null;
+      }
+    }
+
+    const applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+    const subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: applicationServerKey
+    });
+
+    console.log('User successfully subscribed to Salami Tracker Push API:', subscription);
+
+    // Save Subscription info
+    if (userId) {
+      await saveSubscriptionToFirestore(userId, subscription);
+    } else {
+      localStorage.setItem('salami_push_subscription', JSON.stringify(subscription));
+    }
+
+    return subscription;
+  } catch (error) {
+    console.error('Failed to subscribe user to Push Notifications:', error);
+    return null;
+  }
+}
+
+/**
+ * Saves subscription details to Firestore under the user profile
+ */
+async function saveSubscriptionToFirestore(userId: string, subscription: PushSubscription) {
+  try {
+    const rawSub = JSON.parse(JSON.stringify(subscription));
+    const endpointHash = btoa(subscription.endpoint).replace(/[^a-zA-Z0-9]/g, '').substring(0, 50);
+    const subDocRef = doc(db, 'users', userId, 'push_subscriptions', endpointHash);
+    
+    await setDoc(subDocRef, {
+      endpoint: subscription.endpoint,
+      keys: rawSub.keys || {},
+      status: 'active',
+      subscribedAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+      platform: navigator.userAgent
+    }, { merge: true });
+
+    console.log('Successfully synchronized push subscription configuration in Cloud.');
+  } catch (error) {
+    console.error('Cloud Sync failed for push subscription:', error);
+  }
+}
+
+/**
+ * Unsubscribes the current user from push notifications
+ */
+export async function unsubscribeUserFromPush(userId?: string) {
+  if (!('serviceWorker' in navigator)) return;
+
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.getSubscription();
+    
+    if (subscription) {
+      const rawSub = JSON.parse(JSON.stringify(subscription));
+      await subscription.unsubscribe();
+      console.log('Successfully unsubscribed from Push Manager.');
+
+      if (userId) {
+        const endpointHash = btoa(subscription.endpoint).replace(/[^a-zA-Z0-9]/g, '').substring(0, 50);
+        const subDocRef = doc(db, 'users', userId, 'push_subscriptions', endpointHash);
+        await setDoc(subDocRef, {
+          status: 'inactive',
+          unsubscribedAt: Timestamp.now(),
+          updatedAt: Timestamp.now()
+        }, { merge: true });
+      } else {
+        localStorage.removeItem('salami_push_subscription');
+      }
+    }
+  } catch (error) {
+    console.error('Error unsubscribing customer from push:', error);
+  }
+}
