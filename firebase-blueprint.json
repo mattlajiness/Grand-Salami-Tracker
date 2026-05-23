@@ -26,6 +26,21 @@
       },
       "required": ["userId", "line", "side", "date"]
     },
+    "PushSubscriptionDetails": {
+      "title": "Push Subscription Details",
+      "description": "Details for push notification subscription.",
+      "type": "object",
+      "properties": {
+        "endpoint": { "type": "string" },
+        "keys": { "type": "object" },
+        "status": { "type": "string", "enum": ["active", "inactive"] },
+        "subscribedAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "unsubscribedAt": { "type": "string", "format": "date-time" },
+        "platform": { "type": "string" }
+      },
+      "required": ["status"]
+    },
     "GameLine": {
       "title": "MLB Game Over/Under Line",
       "description": "Official betting total for a single game.",
@@ -100,6 +115,10 @@
     "/users/{userId}/wagers/{wagerId}": {
       "schema": "Wager",
       "description": "User's saved wagers"
+    },
+    "/users/{userId}/push_subscriptions/{endpointHash}": {
+      "schema": "PushSubscriptionDetails",
+      "description": "User's push notifications token/registrations"
     },
     "/gameLines/{gamePk}": {
       "schema": "GameLine",

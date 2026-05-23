@@ -112,6 +112,15 @@ service cloud.firestore {
              (data.get('updatedAt', request.time) is timestamp);
     }
 
+    function isValidPushSubscription(data) {
+      return data.status in ['active', 'inactive'] &&
+             (data.get('endpoint', '') is string && data.get('endpoint', '').size() <= 2000) &&
+             (data.get('platform', '') is string && data.get('platform', '').size() <= 500) &&
+             (data.get('subscribedAt', request.time) is timestamp) &&
+             (data.get('updatedAt', request.time) is timestamp) &&
+             (data.get('unsubscribedAt', request.time) is timestamp);
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
@@ -144,6 +153,12 @@ service cloud.firestore {
         allow read: if isOwner(userId);
         allow create: if isOwner(userId) && isValidWager(request.resource.data, userId);
         allow update: if isOwner(userId) && isValidWager(request.resource.data, userId);
+        allow delete: if isOwner(userId);
+      }
+
+      match /push_subscriptions/{endpointHash} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create, update: if isOwner(userId) && isValidPushSubscription(request.resource.data);
         allow delete: if isOwner(userId);
       }
     }

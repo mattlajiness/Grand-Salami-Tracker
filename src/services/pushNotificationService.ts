@@ -1,5 +1,5 @@
 import { doc, setDoc, Timestamp } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, handleFirestoreError, OperationType } from '../firebase';
 
 // Standard VAPID public key
 const VAPID_PUBLIC_KEY = 'BInaZqckVfeKtJQagbrCl-tWTWvcyPG-oAm_JAOXEgvlaAzYnZiAFd5A7fPMPaEbB0-Qwge-mXZUvDf9ffWpT8k';
@@ -88,9 +88,10 @@ export async function subscribeUserToPush(userId?: string) {
  * Saves subscription details to Firestore under the user profile
  */
 async function saveSubscriptionToFirestore(userId: string, subscription: PushSubscription) {
+  const rawSub = JSON.parse(JSON.stringify(subscription));
+  const endpointHash = btoa(subscription.endpoint).replace(/[^a-zA-Z0-9]/g, '').substring(0, 50);
+  const path = `users/${userId}/push_subscriptions/${endpointHash}`;
   try {
-    const rawSub = JSON.parse(JSON.stringify(subscription));
-    const endpointHash = btoa(subscription.endpoint).replace(/[^a-zA-Z0-9]/g, '').substring(0, 50);
     const subDocRef = doc(db, 'users', userId, 'push_subscriptions', endpointHash);
     
     await setDoc(subDocRef, {
@@ -105,6 +106,7 @@ async function saveSubscriptionToFirestore(userId: string, subscription: PushSub
     console.log('Successfully synchronized push subscription configuration in Cloud.');
   } catch (error) {
     console.error('Cloud Sync failed for push subscription:', error);
+    handleFirestoreError(error, OperationType.WRITE, path);
   }
 }
 
@@ -119,18 +121,23 @@ export async function unsubscribeUserFromPush(userId?: string) {
     const subscription = await registration.pushManager.getSubscription();
     
     if (subscription) {
-      const rawSub = JSON.parse(JSON.stringify(subscription));
       await subscription.unsubscribe();
       console.log('Successfully unsubscribed from Push Manager.');
 
       if (userId) {
         const endpointHash = btoa(subscription.endpoint).replace(/[^a-zA-Z0-9]/g, '').substring(0, 50);
-        const subDocRef = doc(db, 'users', userId, 'push_subscriptions', endpointHash);
-        await setDoc(subDocRef, {
-          status: 'inactive',
-          unsubscribedAt: Timestamp.now(),
-          updatedAt: Timestamp.now()
-        }, { merge: true });
+        const path = `users/${userId}/push_subscriptions/${endpointHash}`;
+        try {
+          const subDocRef = doc(db, 'users', userId, 'push_subscriptions', endpointHash);
+          await setDoc(subDocRef, {
+            status: 'inactive',
+            unsubscribedAt: Timestamp.now(),
+            updatedAt: Timestamp.now()
+          }, { merge: true });
+        } catch (error) {
+          console.error('Error unsubscribing customer from push in Cloud:', error);
+          handleFirestoreError(error, OperationType.WRITE, path);
+        }
       } else {
         localStorage.removeItem('salami_push_subscription');
       }

@@ -81,15 +81,6 @@ export function WagerTracker({
   } | null>(null);
   const today = todayStr || format(new Date(), 'yyyy-MM-dd');
 
-  // Save to LocalStorage ONLY (for non-logged in persistence between sessions)
-  useEffect(() => {
-    if (!user && betLine !== '') {
-      localStorage.setItem(`${sport}_salami_bet_line`, betLine.toString());
-      localStorage.setItem(`${sport}_salami_bet_type`, betType);
-      localStorage.setItem(`${sport}_salami_bet_date`, today);
-    }
-  }, [betLine, betType, user, sport, today]);
-
   // Synchronize Push Subscription with User Notification Status in the background
   useEffect(() => {
     if (notificationsEnabled) {
@@ -224,6 +215,37 @@ export function WagerTracker({
 
   const status = getStatus();
 
+  const todayWager = useMemo(() => {
+    return userWagers.find(w => w.date === today && (w.sport || 'MLB').toUpperCase() === sport.toUpperCase());
+  }, [userWagers, today, sport]);
+
+  // Reset lastNotifiedStatus on saved wager changes
+  useEffect(() => {
+    lastNotifiedStatus.current = null;
+  }, [todayWager?.line, todayWager?.side]);
+
+  const savedWagerStatus = useMemo(() => {
+    if (!todayWager) return null;
+    const line = todayWager.line;
+    const side = todayWager.side.toLowerCase() as 'over' | 'under';
+
+    if (isFinished) {
+      if (currentTotal === line) return 'PUSH';
+      const won = side === 'over' ? currentTotal > line : currentTotal < line;
+      return won ? 'WON' : 'LOST';
+    }
+
+    if (projectedTotal === null) return 'CALIBRATING';
+
+    if (side === 'over') {
+      if (currentTotal > line) return 'WON';
+      return projectedTotal > line ? 'ON TRACK' : 'BEHIND';
+    } else {
+      if (currentTotal > line) return 'LOST';
+      return projectedTotal < line ? 'ON TRACK' : 'DANGER';
+    }
+  }, [todayWager, isFinished, currentTotal, projectedTotal]);
+
   const playSound = (type: 'win' | 'loss') => {
     const audio = new Audio(
       type === 'win' 
@@ -270,21 +292,24 @@ export function WagerTracker({
     }, 250);
   };
 
-  // Notification Logic
+  // Notification Logic (triggers only on the officially saved wager's status)
   useEffect(() => {
-    // We allow WON/LOST mid-game (settled), but PUSH requires isFinished
-    if (!notificationsEnabled || !status || betLine === '') return;
+    if (!todayWager || !savedWagerStatus || !notificationsEnabled) return;
     
-    // If not finished, we only notify if it's already WON or LOST (early settlement)
-    if (!isFinished && status !== 'WON' && status !== 'LOST') return;
+    // We allow WON/LOST mid-game (settled), but PUSH requires isFinished
+    const lineVal = todayWager.line;
+    const sideVal = todayWager.side.toLowerCase() as 'over' | 'under';
 
-    const notificationKey = `notified_${sport}_${today}_${betLine}_${betType}_${status}`;
+    // If not finished, we only notify if it's already WON or LOST (early settlement)
+    if (!isFinished && savedWagerStatus !== 'WON' && savedWagerStatus !== 'LOST') return;
+
+    const notificationKey = `notified_${sport}_${today}_${lineVal}_${sideVal}_${savedWagerStatus}`;
     const alreadyNotified = localStorage.getItem(notificationKey) || notifiedKeys.current.has(notificationKey);
 
     if (alreadyNotified) return;
 
     // 1. Terminal States (WON/LOST/PUSH) - Wager is notified when settled either mid-game or at end
-    if (status === 'WON' && lastNotifiedStatus.current !== 'WON') {
+    if (savedWagerStatus === 'WON' && lastNotifiedStatus.current !== 'WON') {
       playSound('win');
       triggerWinCelebration();
       setShowResultModal(true);
@@ -292,42 +317,42 @@ export function WagerTracker({
       const toastId = `wager-won-${sport}-${today}`;
       toast.success(`${sport} WAGER WON! 🏆`, {
         id: toastId,
-        description: `${msg} - Total: ${currentTotal} (Line: ${betLine})`,
+        description: `${msg} - Total: ${currentTotal} (Line: ${lineVal})`,
         duration: 15000,
       });
-      sendBrowserNotification(`${sport} WAGER WON! 🏆`, `Status: ${msg}. Final Total: ${currentTotal} (Line: ${betLine})`);
+      sendBrowserNotification(`${sport} WAGER WON! 🏆`, `Status: ${msg}. Final Total: ${currentTotal} (Line: ${lineVal})`);
       lastNotifiedStatus.current = 'WON';
       notifiedKeys.current.add(notificationKey);
       localStorage.setItem(notificationKey, 'true');
-    } else if (status === 'PUSH' && isFinished && lastNotifiedStatus.current !== 'PUSH') {
+    } else if (savedWagerStatus === 'PUSH' && isFinished && lastNotifiedStatus.current !== 'PUSH') {
       playSound('win');
       setShowResultModal(true);
       const toastId = `wager-push-${sport}-${today}`;
       toast.info(`${sport} WAGER PUSHED 🤝`, {
         id: toastId,
-        description: `Total: ${currentTotal} (Line: ${betLine})`,
+        description: `Total: ${currentTotal} (Line: ${lineVal})`,
         duration: 15000,
       });
-      sendBrowserNotification(`${sport} WAGER PUSHED 🤝`, `Final Total: ${currentTotal} (Line: ${betLine})`);
+      sendBrowserNotification(`${sport} WAGER PUSHED 🤝`, `Final Total: ${currentTotal} (Line: ${lineVal})`);
       lastNotifiedStatus.current = 'PUSH';
       notifiedKeys.current.add(notificationKey);
       localStorage.setItem(notificationKey, 'true');
-    } else if (status === 'LOST' && lastNotifiedStatus.current !== 'LOST') {
+    } else if (savedWagerStatus === 'LOST' && lastNotifiedStatus.current !== 'LOST') {
       playSound('loss');
       setShowResultModal(true);
       const msg = isFinished ? "SLATE FINAL" : "LINE EXCEEDED";
       const toastId = `wager-lost-${sport}-${today}`;
       toast.error(`${sport} WAGER LOST ❌`, {
         id: toastId,
-        description: `${msg} - Total: ${currentTotal} (Line: ${betLine})`,
+        description: `${msg} - Total: ${currentTotal} (Line: ${lineVal})`,
         duration: 15000,
       });
-      sendBrowserNotification(`${sport} WAGER LOST ❌`, `Status: ${msg}. Total: ${currentTotal} (Line: ${betLine})`);
+      sendBrowserNotification(`${sport} WAGER LOST ❌`, `Status: ${msg}. Total: ${currentTotal} (Line: ${lineVal})`);
       lastNotifiedStatus.current = 'LOST';
       notifiedKeys.current.add(notificationKey);
       localStorage.setItem(notificationKey, 'true');
     } 
-  }, [status, notificationsEnabled, currentTotal, betLine, projectedTotal, betType, isFinished, today, sport]);
+  }, [savedWagerStatus, todayWager, notificationsEnabled, currentTotal, isFinished, today, sport]);
 
   // Historical Settlement Check (Handles "Next Day" notifications)
   useEffect(() => {
