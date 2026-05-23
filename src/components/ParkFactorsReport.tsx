@@ -160,12 +160,13 @@ export function ParkFactorsReport({ factors, onHide }: ParkFactorsReportProps) {
               <AnimatePresence mode="popLayout">
                 {highReceptivity.map((f, idx) => {
                   const labelLine = assembleSubline(f);
-                  const hovered = hoveredItem === f.game;
+                  const hoveredItemKey = `${f.game}-${f.time}`;
+                  const hovered = hoveredItem === hoveredItemKey;
 
                   return (
                     <motion.div
-                      key={f.game}
-                      onMouseEnter={() => setHoveredItem(f.game)}
+                      key={hoveredItemKey}
+                      onMouseEnter={() => setHoveredItem(hoveredItemKey)}
                       onMouseLeave={() => setHoveredItem(null)}
                       className={cn(
                         "flex items-center justify-between p-3 rounded-xl border transition-all duration-200",
@@ -223,12 +224,13 @@ export function ParkFactorsReport({ factors, onHide }: ParkFactorsReportProps) {
               <AnimatePresence mode="popLayout">
                 {lowReceptivity.map((f, idx) => {
                   const labelLine = assembleSubline(f);
-                  const hovered = hoveredItem === f.game;
+                  const hoveredItemKey = `${f.game}-${f.time}`;
+                  const hovered = hoveredItem === hoveredItemKey;
 
                   return (
                     <motion.div
-                      key={f.game}
-                      onMouseEnter={() => setHoveredItem(f.game)}
+                      key={hoveredItemKey}
+                      onMouseEnter={() => setHoveredItem(hoveredItemKey)}
                       onMouseLeave={() => setHoveredItem(null)}
                       className={cn(
                         "flex items-center justify-between p-3 rounded-xl border transition-all duration-200",

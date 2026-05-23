@@ -3,37 +3,37 @@
   "name": "MLB & NHL Grand Salami Tracker",
   "icons": [
     {
-      "src": "/icon-192.png?v=5",
+      "src": "/icon-192.png?v=6",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "any"
     },
     {
-      "src": "/icon-512.png?v=5",
+      "src": "/icon-512.png?v=6",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any"
     },
     {
-      "src": "/icon-192.png?v=5",
+      "src": "/icon-192.png?v=6",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "maskable"
     },
     {
-      "src": "/icon-512.png?v=5",
+      "src": "/icon-512.png?v=6",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "maskable"
     },
     {
-      "src": "/favicon.svg?v=4",
+      "src": "/favicon.svg?v=6",
       "type": "image/svg+xml",
       "sizes": "192x192",
       "purpose": "any"
     },
     {
-      "src": "/favicon.svg?v=4",
+      "src": "/favicon.svg?v=6",
       "type": "image/svg+xml",
       "sizes": "512x512",
       "purpose": "any"
