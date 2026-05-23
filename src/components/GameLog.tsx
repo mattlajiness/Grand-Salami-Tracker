@@ -56,6 +56,11 @@ const getWeatherIcon = (condition: string = '') => {
 
 
 const getSpecialIntelligence = (game: MLBGame, parkFactors: BallparkPalFactor[] = []) => {
+  const isPostponed = (game.status?.detailedState || '').toLowerCase().includes('postponed') || 
+                       (game.status?.detailedState || '').toLowerCase().includes('canceled') ||
+                       (game.status?.detailedState || '').toLowerCase().includes('cancelled');
+  if (isPostponed) return [];
+
   const homeId = game.teams.home.team.id;
   const venue = (game.venue?.name || '').toLowerCase();
   const condition = (game.weather?.condition || '').toLowerCase();
@@ -805,6 +810,8 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                              const badges = [];
                              
                              // 1. Weather/Risk
+                             const isPostponed = (game.status?.detailedState || '').toLowerCase().includes('postponed') || (game.status?.detailedState || '').toLowerCase().includes('canceled') || (game.status?.detailedState || '').toLowerCase().includes('cancelled');
+                             if (isPostponed) return [];
                              const risk = getRainRisk(game);
                              const isDelay = (game.status?.detailedState || '').toLowerCase().includes('delay') || 
                                              ['D', 'DR', 'DI'].includes((game.status?.statusCode || '').toUpperCase());
@@ -1399,6 +1406,8 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                                 )}
                                 
                                 {(() => {
+                                   const isPostponed = (game.status?.detailedState || '').toLowerCase().includes('postponed') || (game.status?.detailedState || '').toLowerCase().includes('canceled') || (game.status?.detailedState || '').toLowerCase().includes('cancelled');
+                                   if (isPostponed) return [];
                                    const badges = [];
                                    
                                    const isDelay = (game.status?.detailedState || '').toLowerCase().includes('delay') || 

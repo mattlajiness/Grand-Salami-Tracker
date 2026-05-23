@@ -128,6 +128,13 @@ export function GrandSalamiHeader({
 
   const status = getStatus();
 
+  const postponedGames = useMemo(() => {
+    return games.filter(g => {
+      const detailedState = (g.status?.detailedState || '').toLowerCase();
+      return detailedState.includes('postponed') || detailedState.includes('canceled') || detailedState.includes('cancelled');
+    });
+  }, [games]);
+
   return (
     <div className="space-y-4">
       <div className="dashboard-card p-4 sm:p-6 mb-6 border-none shadow-2xl transition-colors duration-300 bg-slate-900 text-white">
@@ -263,26 +270,50 @@ export function GrandSalamiHeader({
             </div>
           )}
 
-          {weatherSummary && (
+          {(weatherSummary || postponedGames.length > 0) && (
             <div className="flex flex-col items-start sm:items-end gap-1">
               <div className="flex items-center gap-1 opacity-50 px-1">
                 <div className="w-1 h-1 rounded-full bg-salami-red" />
                 <span className="text-[7px] font-mono font-bold uppercase tracking-[0.2em] text-slate-400">Daily Conditions</span>
               </div>
               <div className="flex items-center gap-1.5 sm:gap-3 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border border-slate-700 bg-slate-800/50 shadow-lg shadow-black/20">
-                <div className="flex items-center gap-1.5">
-                  <Thermometer className="w-3 h-3 text-salami-red" />
-                  <div className="flex flex-col">
-                    <span className="text-[8px] sm:text-[10px] font-mono font-black text-white leading-none">{weatherSummary.avgTemp}°</span>
-                    <span className="text-[6px] font-mono text-slate-500 font-bold uppercase tracking-tighter">AVG TMP</span>
+                {weatherSummary && (
+                  <div className="flex items-center gap-1.5">
+                    <Thermometer className="w-3 h-3 text-salami-red" />
+                    <div className="flex flex-col">
+                      <span className="text-[8px] sm:text-[10px] font-mono font-black text-white leading-none">{weatherSummary.avgTemp}°</span>
+                      <span className="text-[6px] font-mono text-slate-500 font-bold uppercase tracking-tighter">AVG TMP</span>
+                    </div>
                   </div>
-                </div>
-                {weatherSummary.highWindGames > 0 && (
+                )}
+                {weatherSummary && weatherSummary.highWindGames > 0 && (
                   <div className="flex items-center gap-1.5 border-l border-slate-700 pl-1.5 sm:pl-3">
                     <Wind className="w-3 h-3 text-blue-400" />
                     <div className="flex flex-col">
                       <span className="text-[8px] sm:text-[10px] font-mono font-black text-white leading-none">{weatherSummary.highWindGames}</span>
                       <span className="text-[6px] font-mono text-slate-500 font-bold uppercase tracking-tighter">WINDY</span>
+                    </div>
+                  </div>
+                )}
+                {postponedGames.length > 0 && (
+                  <div className={cn(
+                    "flex items-center gap-1.5 pl-1.5 sm:pl-3",
+                    weatherSummary ? "border-l border-slate-700" : ""
+                  )}>
+                    <AlertTriangle className="w-3 h-3 text-amber-500 animate-pulse" />
+                    <div className="flex flex-col">
+                      <span className="text-[8px] sm:text-[10px] font-mono font-black text-amber-500 leading-none">
+                        {postponedGames.length}
+                      </span>
+                      <span 
+                        className="text-[6px] font-mono text-slate-500 font-bold uppercase tracking-tighter"
+                        title={postponedGames.map(g => `${g.teams.away.team.name} @ ${g.teams.home.team.name}`).join(', ')}
+                      >
+                        {postponedGames.length === 1 
+                          ? `${(postponedGames[0].teams.away.team.abbreviation || postponedGames[0].teams.away.team.name.split(' ').pop() || '').substring(0, 3)}@${(postponedGames[0].teams.home.team.abbreviation || postponedGames[0].teams.home.team.name.split(' ').pop() || '').substring(0, 3)} PPD`
+                          : 'PPD'
+                        }
+                      </span>
                     </div>
                   </div>
                 )}
