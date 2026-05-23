@@ -93,8 +93,8 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   throw new Error(JSON.stringify(errInfo));
 }
 
-// Test connection strictly against the server to verify config
-async function testConnection() {
+// Test connection strictly against the server to verify config if manually invoked
+export async function testConnection() {
   try {
     const testDoc = doc(db, 'test', 'connection');
     // Using getDocFromServer forces a network round-trip instead of using cached data
@@ -107,17 +107,11 @@ async function testConnection() {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (message.includes('the client is offline') || message.includes('unavailable')) {
-      console.error("Firebase Connectivity Issue Identified:");
-      console.error("- Message:", message);
-      console.warn("- Configuration:", {
-        projectId: firebaseConfig.projectId,
-        databaseId: firebaseConfig.firestoreDatabaseId,
-        forceLongPolling: true
-      });
-      console.warn("- Suggestion: Ensure the database is provisioned in the Firebase console and that your network allows long polling requests.");
+      console.warn("Firestore running in offline mode. Local caching active.");
     } else {
-      console.error("Firestore connectivity test failed with unexpected error:", message);
+      console.warn("Firestore connectivity test noted unexpected state:", message);
     }
   }
 }
-testConnection();
+// Removed immediate testConnection() call on load to stay completely offline-friendly
+
