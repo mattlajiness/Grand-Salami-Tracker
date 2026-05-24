@@ -1,5 +1,5 @@
 // Service Worker for MLB & NHL Grand Salami Tracker
-const CACHE_NAME = 'salami-tracker-v1';
+const CACHE_NAME = 'salami-tracker-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -68,13 +68,36 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   
+  const url = new URL(event.request.url);
+  const isHtmlRequest = url.pathname === '/' || url.pathname === '/index.html' || event.request.mode === 'navigate';
+
+  if (isHtmlRequest) {
+    // Network-First for index/navigation to prevent stale cached hashes from loading deleted scripts
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response && response.status === 200) {
+            const responseClone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseClone);
+            });
+          }
+          return response;
+        })
+        .catch(() => {
+          return caches.match(event.request);
+        })
+    );
+    return;
+  }
+  
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
         return cachedResponse;
       }
       return fetch(event.request).catch(() => {
-        // Fallback or ignore for dynamic APIs
+        // Safe fallback for offline static assets, return null for failed dynamic APIs
         return null;
       });
     })
