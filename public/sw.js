@@ -26,8 +26,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   const isDev = self.location.hostname === 'localhost' ||
                 self.location.hostname === '127.0.0.1' ||
-                self.location.hostname.includes('run.app') ||
-                self.location.hostname.includes('vercel.app');
+                self.location.hostname.includes('run.app');
 
   if (isDev) {
     event.waitUntil(
@@ -62,8 +61,7 @@ self.addEventListener('fetch', (event) => {
   
   const isDev = self.location.hostname === 'localhost' ||
                 self.location.hostname === '127.0.0.1' ||
-                self.location.hostname.includes('run.app') ||
-                self.location.hostname.includes('vercel.app');
+                self.location.hostname.includes('run.app');
 
   if (isDev) {
     // In dev/preview, completely bypass the Service Worker cache and fetch fresh from network

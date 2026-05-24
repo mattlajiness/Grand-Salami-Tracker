@@ -27,11 +27,12 @@ export async function registerServiceWorker() {
     const isDev = typeof window !== 'undefined' && (
       window.location.hostname === 'localhost' ||
       window.location.hostname === '127.0.0.1' ||
-      window.location.hostname.includes('run.app') ||
-      window.location.hostname.includes('vercel.app')
+      window.location.hostname.includes('run.app')
     );
 
-    if (isDev) {
+    const isIframe = typeof window !== 'undefined' && window.self !== window.top;
+
+    if (isDev || isIframe) {
       try {
         const registrations = await navigator.serviceWorker.getRegistrations();
         for (const registration of registrations) {
@@ -62,6 +63,19 @@ export async function registerServiceWorker() {
 export async function subscribeUserToPush(userId?: string) {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
     console.warn('Push Notifications not supported in this browser.');
+    return null;
+  }
+
+  const isDev = typeof window !== 'undefined' && (
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1' ||
+    window.location.hostname.includes('run.app')
+  );
+
+  const isIframe = typeof window !== 'undefined' && window.self !== window.top;
+
+  if (isDev || isIframe) {
+    console.log('Skipping push subscription active registration in dev/preview/iframe environment.');
     return null;
   }
 
