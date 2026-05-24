@@ -30,6 +30,7 @@ import { db, handleFirestoreError, OperationType } from './firebase';
 import { collection, onSnapshot, doc, getDoc, query, orderBy, getDocs } from 'firebase/firestore';
 import { format, subDays } from 'date-fns';
 import { AnimatePresence, motion } from 'motion/react';
+import { safeStorage } from './lib/safeStorage';
 
 export default function App() {
   const { user, loading: authLoading } = useAuth();
@@ -53,13 +54,13 @@ export default function App() {
   const [isWagerLoading, setIsWagerLoading] = useState(false);
   const [userWagers, setUserWagers] = useState<any[]>([]);
   const [showParkFactors, setShowParkFactors] = useState<boolean>(() => {
-    const saved = localStorage.getItem('salami_show_park_factors');
+    const saved = safeStorage.getItem('salami_show_park_factors');
     return saved !== 'false';
   });
 
   const handleToggleParkFactors = () => {
     setShowParkFactors(prev => {
-      localStorage.setItem('salami_show_park_factors', String(!prev));
+      safeStorage.setItem('salami_show_park_factors', String(!prev));
       return !prev;
     });
   };
@@ -266,7 +267,7 @@ export default function App() {
 
         if (awayDiff > 0 || homeDiff > 0) {
           try {
-            const enabledNotifs = JSON.parse(localStorage.getItem('salami_individual_game_notifs') || '{}');
+            const enabledNotifs = JSON.parse(safeStorage.getItem('salami_individual_game_notifs') || '{}');
             if (enabledNotifs[g.gamePk]) {
               let scoringTeam = '';
               let scoreMsg = '';
@@ -628,9 +629,9 @@ export default function App() {
           setIsWagerLoading(false);
         }
       } else {
-        const savedLine = localStorage.getItem(`${activeSport}_salami_bet_line`);
-        const savedType = localStorage.getItem(`${activeSport}_salami_bet_type`);
-        const savedDate = localStorage.getItem(`${activeSport}_salami_bet_date`);
+        const savedLine = safeStorage.getItem(`${activeSport}_salami_bet_line`);
+        const savedType = safeStorage.getItem(`${activeSport}_salami_bet_type`);
+        const savedDate = safeStorage.getItem(`${activeSport}_salami_bet_date`);
         
         if (savedDate && savedDate !== today) {
           // It's a past wager, WagerTracker will handle settlement notification

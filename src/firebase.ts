@@ -7,13 +7,21 @@ import firebaseConfig from '../firebase-applet-config.json';
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
-// Initialize Firestore with offline persistence enablement
-export const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true,
-  localCache: persistentLocalCache({
-    tabManager: persistentMultipleTabManager()
-  })
-}, firebaseConfig.firestoreDatabaseId || '(default)');
+// Initialize Firestore with offline persistence enablement, falling back to standard if blocked
+let dbInstance;
+try {
+  dbInstance = initializeFirestore(app, {
+    experimentalForceLongPolling: true,
+    localCache: persistentLocalCache({
+      tabManager: persistentMultipleTabManager()
+    })
+  }, firebaseConfig.firestoreDatabaseId || '(default)');
+} catch (error) {
+  console.warn("Firestore offline persistence initialization failed, falling back to standard Firestore client:", error);
+  dbInstance = getFirestore(app);
+}
+
+export const db = dbInstance;
 export const googleProvider = new GoogleAuthProvider();
 
 // Auth Helpers

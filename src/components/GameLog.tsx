@@ -11,6 +11,7 @@ import { db, handleFirestoreError, OperationType } from '../firebase';
 import { Timestamp, collection, doc, setDoc, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { safeStorage } from '../lib/safeStorage';
 
 import { VenueParkFactors, getDetailedParkFactor, DetailedParkFactor, isRetractableRoofOpen } from '../lib/leagueConstants';
 import { BallparkPalFactor, findGameFactor } from '../services/ballparkPalService';
@@ -570,7 +571,7 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
 
   const [subscribedGameIds, setSubscribedGameIds] = useState<Record<number, boolean>>(() => {
     try {
-      return JSON.parse(localStorage.getItem('salami_individual_game_notifs') || '{}');
+      return JSON.parse(safeStorage.getItem('salami_individual_game_notifs') || '{}');
     } catch {
       return {};
     }
@@ -586,7 +587,7 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
     
     setSubscribedGameIds(prev => {
       const next = { ...prev, [gamePk]: !prev[gamePk] };
-      localStorage.setItem('salami_individual_game_notifs', JSON.stringify(next));
+      safeStorage.setItem('salami_individual_game_notifs', JSON.stringify(next));
       
       if (next[gamePk]) {
         toast.success('Runs Scored Alerts Enabled! 🔔', {

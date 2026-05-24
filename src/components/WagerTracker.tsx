@@ -10,6 +10,7 @@ import { format, parseISO } from 'date-fns';
 import { trackEvent } from '../lib/analytics';
 import { calculateSmartProjection, getConfidenceScore } from '../lib/projectionEngine';
 import confetti from 'canvas-confetti';
+import { safeStorage } from '../lib/safeStorage';
 import { subscribeUserToPush, unsubscribeUserFromPush } from '../services/pushNotificationService';
 
 interface WagerTrackerProps {
@@ -118,9 +119,9 @@ export function WagerTracker({
           onSaveWager({ id: `${sport}_${today}`, ...savedData });
         }
       } else {
-        localStorage.setItem(`${sport}_salami_bet_line`, betLine.toString());
-        localStorage.setItem(`${sport}_salami_bet_type`, betType);
-        localStorage.setItem(`${sport}_salami_bet_date`, today);
+        safeStorage.setItem(`${sport}_salami_bet_line`, betLine.toString());
+        safeStorage.setItem(`${sport}_salami_bet_type`, betType);
+        safeStorage.setItem(`${sport}_salami_bet_date`, today);
         toast.success('WAGER SAVED LOCALLY 💾', {
           description: 'Sign in to build your Salami Streak and sync across devices!'
         });
@@ -162,9 +163,9 @@ export function WagerTracker({
         setIsSyncing(false);
       }
     } else {
-      localStorage.removeItem(`${sport}_salami_bet_line`);
-      localStorage.removeItem(`${sport}_salami_bet_type`);
-      localStorage.removeItem(`${sport}_salami_bet_date`);
+      safeStorage.removeItem(`${sport}_salami_bet_line`);
+      safeStorage.removeItem(`${sport}_salami_bet_type`);
+      safeStorage.removeItem(`${sport}_salami_bet_date`);
       toast.info('WAGER CLEARED');
       if (onClearWager) {
         onClearWager(`${sport}_${today}`);
@@ -304,7 +305,7 @@ export function WagerTracker({
     if (!isFinished && savedWagerStatus !== 'WON' && savedWagerStatus !== 'LOST') return;
 
     const notificationKey = `notified_${sport}_${today}_${lineVal}_${sideVal}_${savedWagerStatus}`;
-    const alreadyNotified = localStorage.getItem(notificationKey) || notifiedKeys.current.has(notificationKey);
+    const alreadyNotified = safeStorage.getItem(notificationKey) || notifiedKeys.current.has(notificationKey);
 
     if (alreadyNotified) return;
 
@@ -323,7 +324,7 @@ export function WagerTracker({
       sendBrowserNotification(`${sport} WAGER WON! 🏆`, `Status: ${msg}. Final Total: ${currentTotal} (Line: ${lineVal})`);
       lastNotifiedStatus.current = 'WON';
       notifiedKeys.current.add(notificationKey);
-      localStorage.setItem(notificationKey, 'true');
+      safeStorage.setItem(notificationKey, 'true');
     } else if (savedWagerStatus === 'PUSH' && isFinished && lastNotifiedStatus.current !== 'PUSH') {
       playSound('win');
       setShowResultModal(true);
@@ -336,7 +337,7 @@ export function WagerTracker({
       sendBrowserNotification(`${sport} WAGER PUSHED 🤝`, `Final Total: ${currentTotal} (Line: ${lineVal})`);
       lastNotifiedStatus.current = 'PUSH';
       notifiedKeys.current.add(notificationKey);
-      localStorage.setItem(notificationKey, 'true');
+      safeStorage.setItem(notificationKey, 'true');
     } else if (savedWagerStatus === 'LOST' && lastNotifiedStatus.current !== 'LOST') {
       playSound('loss');
       setShowResultModal(true);
@@ -350,7 +351,7 @@ export function WagerTracker({
       sendBrowserNotification(`${sport} WAGER LOST ❌`, `Status: ${msg}. Total: ${currentTotal} (Line: ${lineVal})`);
       lastNotifiedStatus.current = 'LOST';
       notifiedKeys.current.add(notificationKey);
-      localStorage.setItem(notificationKey, 'true');
+      safeStorage.setItem(notificationKey, 'true');
     } 
   }, [savedWagerStatus, todayWager, notificationsEnabled, currentTotal, isFinished, today, sport]);
 
@@ -370,7 +371,7 @@ export function WagerTracker({
       const resStatus = isWin ? 'WON' : isPush ? 'PUSH' : 'LOST';
 
       const notificationKey = `notified_settlement_${sport}_${wager.date}_${wager.line}_${side}_${resStatus}`;
-      if (!localStorage.getItem(notificationKey) && !notifiedKeys.current.has(notificationKey)) {
+      if (!safeStorage.getItem(notificationKey) && !notifiedKeys.current.has(notificationKey)) {
         setHistoricalResult({
           line: wager.line,
           total: finalTotal,
@@ -390,7 +391,7 @@ export function WagerTracker({
 
         setShowResultModal(true);
         notifiedKeys.current.add(notificationKey);
-        localStorage.setItem(notificationKey, 'true');
+        safeStorage.setItem(notificationKey, 'true');
         
         const title = resStatus === 'WON' ? 'PAST WAGER WON! 🏆' : resStatus === 'PUSH' ? 'PAST WAGER PUSHED 🤝' : 'PAST WAGER LOST ❌';
         const body = `Your wager for ${wager.date} settled at ${finalTotal} (Line: ${wager.line})`;
@@ -416,9 +417,9 @@ export function WagerTracker({
         });
       }
     } else if (!user) {
-      const savedLine = localStorage.getItem(`${sport}_salami_bet_line`);
-      const savedType = localStorage.getItem(`${sport}_salami_bet_type`);
-      const savedDate = localStorage.getItem(`${sport}_salami_bet_date`);
+      const savedLine = safeStorage.getItem(`${sport}_salami_bet_line`);
+      const savedType = safeStorage.getItem(`${sport}_salami_bet_type`);
+      const savedDate = safeStorage.getItem(`${sport}_salami_bet_date`);
       
       if (savedLine && savedType && savedDate) {
         checkSettlement({
@@ -438,11 +439,22 @@ export function WagerTracker({
       } else if (Notification.permission === "denied") {
         // Only toast once per session if denied but feature is "on"
         const sessionKey = 'denied_notified';
-        if (!sessionStorage.getItem(sessionKey)) {
+        let alreadyNotified = false;
+        try {
+          alreadyNotified = !!(typeof window !== 'undefined' && window.sessionStorage && sessionStorage.getItem(sessionKey));
+        } catch (e) {
+          alreadyNotified = false;
+        }
+
+        if (!alreadyNotified) {
           toast.warning('NOTIFICATIONS BLOCKED 🚫', {
             description: 'Check your browser settings to allow SALAMI-PACE alerts.'
           });
-          sessionStorage.setItem(sessionKey, 'true');
+          try {
+            if (typeof window !== 'undefined' && window.sessionStorage) {
+              sessionStorage.setItem(sessionKey, 'true');
+            }
+          } catch (e) {}
         }
       }
     }
@@ -509,7 +521,7 @@ export function WagerTracker({
     if (user) {
       updateProfile({ notificationsEnabled: !notificationsEnabled });
     } else {
-      localStorage.setItem('salami_notifications', (!notificationsEnabled).toString());
+      safeStorage.setItem('salami_notifications', (!notificationsEnabled).toString());
       window.location.reload(); 
     }
   };
