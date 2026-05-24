@@ -58,7 +58,12 @@ export function NHLGrandSalamiHeader({
     if (isSigningIn) return;
     setIsSigningIn(true);
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    const isIframe = window.self !== window.top;
+    let isIframe = false;
+    try {
+      isIframe = window.self !== window.parent;
+    } catch (e) {
+      isIframe = true;
+    }
 
     const toastId = toast.loading('Connecting to Google...');
     

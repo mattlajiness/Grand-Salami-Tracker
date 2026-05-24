@@ -71,7 +71,7 @@ export async function registerServiceWorker() {
  */
 export async function subscribeUserToPush(userId?: string) {
   try {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
       console.warn('Push Notifications not supported in this browser.');
       return null;
     }

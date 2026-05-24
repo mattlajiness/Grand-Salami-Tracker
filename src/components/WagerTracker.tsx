@@ -464,7 +464,12 @@ export function WagerTracker({
     if (!("Notification" in window)) return;
     
     // Check if we are in an iframe
-    const isIframe = window.self !== window.top;
+    let isIframe = false;
+    try {
+      isIframe = window.self !== window.parent;
+    } catch (e) {
+      isIframe = true;
+    }
     if (isIframe && !hasShownIframeTip.current) {
       console.warn('Notifications typically blocked in iframes. Open app in new tab.');
       // Special instruction toast for iframe users - only show once per session
