@@ -32,6 +32,15 @@ import { format, subDays } from 'date-fns';
 import { AnimatePresence, motion } from 'motion/react';
 import { safeStorage } from './lib/safeStorage';
 
+const IS_IFRAME = (() => {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.self !== window.parent;
+  } catch (e) {
+    return true;
+  }
+})();
+
 export default function App() {
   const { user, loading: authLoading } = useAuth();
   const [activeSport, setActiveSport] = useState<'MLB' | 'NHL'>('MLB');
@@ -1197,7 +1206,7 @@ export default function App() {
 
       {/* Mobile Iframe Alert - Sticky Bottom Overlay */}
       <AnimatePresence>
-        {!user && window.self !== window.top && (
+        {!user && IS_IFRAME && (
           <motion.div 
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}

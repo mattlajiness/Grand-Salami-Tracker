@@ -23,36 +23,45 @@ function urlBase64ToUint8Array(base64String: string) {
  * Registers the Service Worker and sets up the active push subscriptions
  */
 export async function registerServiceWorker() {
-  if ('serviceWorker' in navigator) {
-    const isDev = typeof window !== 'undefined' && (
-      window.location.hostname === 'localhost' ||
-      window.location.hostname === '127.0.0.1' ||
-      window.location.hostname.includes('run.app')
-    );
+  try {
+    if ('serviceWorker' in navigator) {
+      const isDev = typeof window !== 'undefined' && (
+        window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1' ||
+        window.location.hostname.includes('run.app')
+      );
 
-    const isIframe = typeof window !== 'undefined' && window.self !== window.top;
-
-    if (isDev || isIframe) {
+      let isIframe = false;
       try {
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        for (const registration of registrations) {
-          await registration.unregister();
-          console.log('Successfully de-registered development/preview Service Worker scope:', registration.scope);
-        }
+        isIframe = typeof window !== 'undefined' && window.self !== window.parent;
       } catch (e) {
-        console.warn('Sandbox or browser policy blocked unregistering dev Service Workers:', e);
+        isIframe = true;
       }
-      return null;
-    }
 
-    try {
-      const registration = await navigator.serviceWorker.register('/sw.js');
-      console.log('Salami SW Registered successfully. Scope:', registration.scope);
-      return registration;
-    } catch (error) {
-      console.error('Salami SW Registration failed:', error);
-      return null;
+      if (isDev || isIframe) {
+        try {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          for (const registration of registrations) {
+            await registration.unregister();
+            console.log('Successfully de-registered development/preview Service Worker scope:', registration.scope);
+          }
+        } catch (e) {
+          console.warn('Sandbox or browser policy blocked unregistering dev Service Workers:', e);
+        }
+        return null;
+      }
+
+      try {
+        const registration = await navigator.serviceWorker.register('/sw.js');
+        console.log('Salami SW Registered successfully. Scope:', registration.scope);
+        return registration;
+      } catch (error) {
+        console.error('Salami SW Registration failed:', error);
+        return null;
+      }
     }
+  } catch (globalError) {
+    console.warn('Silent fallback: service worker registration caught top-level exception:', globalError);
   }
   return null;
 }
@@ -61,23 +70,29 @@ export async function registerServiceWorker() {
  * Subscribes the current user or guest to Push Notifications
  */
 export async function subscribeUserToPush(userId?: string) {
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-    console.warn('Push Notifications not supported in this browser.');
-    return null;
-  }
+  try {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      console.warn('Push Notifications not supported in this browser.');
+      return null;
+    }
 
-  const isDev = typeof window !== 'undefined' && (
-    window.location.hostname === 'localhost' ||
-    window.location.hostname === '127.0.0.1' ||
-    window.location.hostname.includes('run.app')
-  );
+    const isDev = typeof window !== 'undefined' && (
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1' ||
+      window.location.hostname.includes('run.app')
+    );
 
-  const isIframe = typeof window !== 'undefined' && window.self !== window.top;
+    let isIframe = false;
+    try {
+      isIframe = typeof window !== 'undefined' && window.self !== window.parent;
+    } catch (e) {
+      isIframe = true;
+    }
 
-  if (isDev || isIframe) {
-    console.log('Skipping push subscription active registration in dev/preview/iframe environment.');
-    return null;
-  }
+    if (isDev || isIframe) {
+      console.log('Skipping push subscription active registration in dev/preview/iframe environment.');
+      return null;
+    }
 
   try {
     const registration = await navigator.serviceWorker.ready;
@@ -114,6 +129,10 @@ export async function subscribeUserToPush(userId?: string) {
     return subscription;
   } catch (error) {
     console.error('Failed to subscribe user to Push Notifications:', error);
+    return null;
+  }
+  } catch (globalError) {
+    console.warn('Silent fallback: push subscription caught top-level exception:', globalError);
     return null;
   }
 }
