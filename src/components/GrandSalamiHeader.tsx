@@ -410,7 +410,7 @@ export function GrandSalamiHeader({
             <div className="flex-1 text-center">
               <span className="text-[8px] font-mono text-slate-500 uppercase tracking-wider block mb-0.5">Spread</span>
               <span className="text-xs font-mono font-black text-blue-400 block mt-0.5">
-                {homeTotal === awayTotal ? 'EVEN' : homeTotal > awayTotal ? `H +${homeTotal - awayTotal}` : `A +${awayTotal - homeTotal}`}
+                {homeTotal === awayTotal ? 'EVEN' : homeTotal > awayTotal ? `H -${homeTotal - awayTotal}` : `A -${awayTotal - homeTotal}`}
               </span>
             </div>
           </div>
