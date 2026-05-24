@@ -24,6 +24,26 @@ function urlBase64ToUint8Array(base64String: string) {
  */
 export async function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
+    const isDev = typeof window !== 'undefined' && (
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1' ||
+      window.location.hostname.includes('run.app') ||
+      window.location.hostname.includes('vercel.app')
+    );
+
+    if (isDev) {
+      try {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const registration of registrations) {
+          await registration.unregister();
+          console.log('Successfully de-registered development/preview Service Worker scope:', registration.scope);
+        }
+      } catch (e) {
+        console.warn('Sandbox or browser policy blocked unregistering dev Service Workers:', e);
+      }
+      return null;
+    }
+
     try {
       const registration = await navigator.serviceWorker.register('/sw.js');
       console.log('Salami SW Registered successfully. Scope:', registration.scope);

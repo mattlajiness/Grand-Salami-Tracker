@@ -24,6 +24,24 @@ self.addEventListener('install', (event) => {
 
 // Activate Event
 self.addEventListener('activate', (event) => {
+  const isDev = self.location.hostname === 'localhost' ||
+                self.location.hostname === '127.0.0.1' ||
+                self.location.hostname.includes('run.app') ||
+                self.location.hostname.includes('vercel.app');
+
+  if (isDev) {
+    event.waitUntil(
+      caches.keys().then((keys) => {
+        return Promise.all(keys.map(key => caches.delete(key)));
+      }).then(() => {
+        return self.registration.unregister();
+      }).then(() => {
+        console.log('SW successfully deactivated and unregistered in dev/preview.');
+      })
+    );
+    return;
+  }
+
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
@@ -41,6 +59,16 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   // Let the browser handle standard requests unless cached
   if (event.request.method !== 'GET') return;
+  
+  const isDev = self.location.hostname === 'localhost' ||
+                self.location.hostname === '127.0.0.1' ||
+                self.location.hostname.includes('run.app') ||
+                self.location.hostname.includes('vercel.app');
+
+  if (isDev) {
+    // In dev/preview, completely bypass the Service Worker cache and fetch fresh from network
+    return;
+  }
   
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
