@@ -622,8 +622,22 @@ export default function App() {
             const data = snap.data();
             setBetLine(data.line);
             setBetType(data.side.toLowerCase() as 'over' | 'under');
+            
+            // Sync/Cache to safeStorage so it is available immediately on reload
+            safeStorage.setItem(`${activeSport}_salami_bet_line`, data.line.toString());
+            safeStorage.setItem(`${activeSport}_salami_bet_type`, data.side.toLowerCase());
+            safeStorage.setItem(`${activeSport}_salami_bet_date`, today);
           } else {
-            setBetLine(''); // Reset if no wager today for this sport
+            // Keep the local betLine if there is one for today instead of blindly resetting to ''
+            const savedLine = safeStorage.getItem(`${activeSport}_salami_bet_line`);
+            const savedType = safeStorage.getItem(`${activeSport}_salami_bet_type`);
+            const savedDate = safeStorage.getItem(`${activeSport}_salami_bet_date`);
+            if (savedLine && savedDate === today) {
+              setBetLine(parseFloat(savedLine));
+              if (savedType) setBetType(savedType as 'over' | 'under');
+            } else {
+              setBetLine(''); // Reset if no local or cloud wager today for this sport
+            }
           }
 
           // Get all wagers for streak calculation

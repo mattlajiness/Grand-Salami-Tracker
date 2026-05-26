@@ -112,6 +112,12 @@ export function WagerTracker({
         };
         await setDoc(wagerDoc, savedData);
         setLastSynced(new Date());
+        
+        // Cache to safeStorage so it is available instantly on page reload before Auth resolves
+        safeStorage.setItem(`${sport}_salami_bet_line`, betLine.toString());
+        safeStorage.setItem(`${sport}_salami_bet_type`, betType);
+        safeStorage.setItem(`${sport}_salami_bet_date`, today);
+
         toast.success('WAGER SAVED TO CLOUD ☁️', {
           description: `Tracking ${betType.toUpperCase()} ${betLine} for today.`
         });
@@ -147,6 +153,11 @@ export function WagerTracker({
     setBetLine('');
     trackEvent('clear_wager', { platform: user ? 'cloud' : 'local' });
     
+    // Always clear from local storage caching to keep everything exactly in sync
+    safeStorage.removeItem(`${sport}_salami_bet_line`);
+    safeStorage.removeItem(`${sport}_salami_bet_type`);
+    safeStorage.removeItem(`${sport}_salami_bet_date`);
+
     if (user) {
       setIsSyncing(true);
       try {
@@ -163,9 +174,6 @@ export function WagerTracker({
         setIsSyncing(false);
       }
     } else {
-      safeStorage.removeItem(`${sport}_salami_bet_line`);
-      safeStorage.removeItem(`${sport}_salami_bet_type`);
-      safeStorage.removeItem(`${sport}_salami_bet_date`);
       toast.info('WAGER CLEARED');
       if (onClearWager) {
         onClearWager(`${sport}_${today}`);
@@ -703,7 +711,20 @@ export function WagerTracker({
                 type="number"
                 step="0.5"
                 value={betLine}
-                onChange={(e) => setBetLine(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                onChange={(e) => {
+                  const val = e.target.value === '' ? '' : parseFloat(e.target.value);
+                  setBetLine(val);
+                  const todayStrLocal = todayStr || format(new Date(), 'yyyy-MM-dd');
+                  if (val !== '') {
+                    safeStorage.setItem(`${sport}_salami_bet_line`, val.toString());
+                    safeStorage.setItem(`${sport}_salami_bet_type`, betType);
+                    safeStorage.setItem(`${sport}_salami_bet_date`, todayStrLocal);
+                  } else {
+                    safeStorage.removeItem(`${sport}_salami_bet_line`);
+                    safeStorage.removeItem(`${sport}_salami_bet_type`);
+                    safeStorage.removeItem(`${sport}_salami_bet_date`);
+                  }
+                }}
                 placeholder="e.g. 120.5"
                 className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 font-mono font-bold text-white focus:outline-none focus:ring-2 focus:ring-salami-red/20 focus:border-salami-red transition-all"
               />
@@ -712,7 +733,15 @@ export function WagerTracker({
               <label className="data-label">Option</label>
               <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800">
                 <button
-                  onClick={() => setBetType('over')}
+                  onClick={() => {
+                    setBetType('over');
+                    const todayStrLocal = todayStr || format(new Date(), 'yyyy-MM-dd');
+                    if (betLine !== '') {
+                      safeStorage.setItem(`${sport}_salami_bet_line`, betLine.toString());
+                      safeStorage.setItem(`${sport}_salami_bet_type`, 'over');
+                      safeStorage.setItem(`${sport}_salami_bet_date`, todayStrLocal);
+                    }
+                  }}
                   className={cn(
                     "flex-1 py-1.5 rounded-md text-[10px] font-black transition-all uppercase tracking-widest",
                     betType === 'over' ? "bg-slate-800 text-salami-red shadow-sm" : "text-slate-500 hover:text-slate-400"
@@ -721,7 +750,15 @@ export function WagerTracker({
                   Over
                 </button>
                 <button
-                  onClick={() => setBetType('under')}
+                  onClick={() => {
+                    setBetType('under');
+                    const todayStrLocal = todayStr || format(new Date(), 'yyyy-MM-dd');
+                    if (betLine !== '') {
+                      safeStorage.setItem(`${sport}_salami_bet_line`, betLine.toString());
+                      safeStorage.setItem(`${sport}_salami_bet_type`, 'under');
+                      safeStorage.setItem(`${sport}_salami_bet_date`, todayStrLocal);
+                    }
+                  }}
                   className={cn(
                     "flex-1 py-1.5 rounded-md text-[10px] font-black transition-all uppercase tracking-widest",
                     betType === 'under' ? "bg-slate-800 text-salami-red shadow-sm" : "text-slate-500 hover:text-slate-400"
