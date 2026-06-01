@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
-import { Users, Clock, Mail, ExternalLink, Send } from 'lucide-react';
+import { Users, Clock, Mail, ExternalLink, Send, Eye, EyeOff } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 interface UserData {
@@ -15,6 +15,7 @@ export function UserAdminPanel() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
   const [showEmailList, setShowEmailList] = useState(false);
+  const [isHidden, setIsHidden] = useState(() => localStorage.getItem('hide_user_directory') === 'true');
 
   useEffect(() => {
     const q = query(
@@ -39,11 +40,37 @@ export function UserAdminPanel() {
 
   const emailString = users.map(u => u.email).filter(Boolean).join('\n');
 
+  if (isHidden) {
+    return (
+      <div className="dashboard-card p-4 border-slate-800 bg-slate-900/60 backdrop-blur-md flex items-center justify-between animate-in fade-in duration-300">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
+            <Users className="w-4 h-4 text-blue-400" />
+          </div>
+          <div>
+            <h4 className="text-slate-300 font-bold text-xs uppercase tracking-widest">User Directory</h4>
+            <p className="text-[9px] font-mono text-slate-500 uppercase tracking-widest">Hidden • Total: {users.length}</p>
+          </div>
+        </div>
+        <button
+          onClick={() => {
+            setIsHidden(false);
+            localStorage.setItem('hide_user_directory', 'false');
+          }}
+          className="px-3 py-1.5 rounded-full border border-slate-700 hover:border-blue-500/50 text-slate-400 hover:text-blue-400 bg-slate-900 text-[8px] font-mono uppercase tracking-widest transition-all flex items-center gap-1.5 font-bold"
+        >
+          <Eye className="w-3 h-3" />
+          Show Directory
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {/* User Directory Section */}
       <div className="dashboard-card p-6 border-slate-800 bg-slate-900/80 backdrop-blur-md">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
               <Users className="w-5 h-5 text-blue-400" />
@@ -54,18 +81,32 @@ export function UserAdminPanel() {
             </div>
           </div>
           
-          <button 
-            onClick={() => setShowEmailList(!showEmailList)}
-            className={cn(
-              "px-4 py-2 rounded-full border transition-all duration-300 font-bold uppercase tracking-widest text-[9px] flex items-center gap-2",
-              showEmailList 
-                ? "bg-blue-500 border-blue-400 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]" 
-                : "bg-slate-900 border-slate-700 text-slate-400 hover:border-blue-500/50 hover:text-blue-400"
-            )}
-          >
-            <Mail className="w-3.5 h-3.5" />
-            {showEmailList ? "Show Cards" : "View Email List"}
-          </button>
+          <div className="flex gap-2">
+            <button 
+              onClick={() => setShowEmailList(!showEmailList)}
+              className={cn(
+                "px-4 py-2 rounded-full border transition-all duration-300 font-bold uppercase tracking-widest text-[9px] flex items-center gap-2",
+                showEmailList 
+                  ? "bg-blue-500 border-blue-400 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]" 
+                  : "bg-slate-900 border-slate-700 text-slate-400 hover:border-blue-500/50 hover:text-blue-400"
+              )}
+            >
+              <Mail className="w-3.5 h-3.5" />
+              {showEmailList ? "Show Cards" : "View Email List"}
+            </button>
+
+            <button
+              onClick={() => {
+                setIsHidden(true);
+                localStorage.setItem('hide_user_directory', 'true');
+              }}
+              className="px-4 py-2 rounded-full border border-slate-700 bg-slate-900 text-slate-450 hover:border-red-500/35 hover:text-red-400 font-bold uppercase tracking-widest text-[9px] transition-all flex items-center gap-1.5"
+              title="Hide user directory from view"
+            >
+              <EyeOff className="w-3.5 h-3.5" />
+              Hide Panel
+            </button>
+          </div>
         </div>
 
         {showEmailList ? (
