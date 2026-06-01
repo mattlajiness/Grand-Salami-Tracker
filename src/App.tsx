@@ -101,7 +101,7 @@ function calculateStreakStats(sportWagers: any[], totals: Record<string, number>
 }
 
 export default function App() {
-  const { user, profile, loading: authLoading } = useAuth();
+  const { user, profile, isOnline, loading: authLoading } = useAuth();
   const [activeSport, setActiveSport] = useState<'MLB' | 'NHL'>('MLB');
   const [games, setGames] = useState<MLBGame[]>([]);
   const [nhlGames, setNhlGames] = useState<NHLGame[]>([]);
@@ -1034,6 +1034,13 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-950 pb-12 transition-colors duration-300">
       <Toaster position="top-center" richColors theme="dark" />
+      
+      {!isOnline && (
+        <div className="bg-amber-500/10 border-b border-amber-500/20 text-amber-305 text-amber-400 px-4 py-2 text-center text-[9px] font-mono tracking-wider flex items-center justify-center gap-2 animate-in fade-in slide-in-from-top duration-350 relative z-50">
+          <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 animate-pulse" />
+          <span>OFFLINE SYNC ACTIVE • BUILDING SALAMI STREAKS SECURELY IN CACHE</span>
+        </div>
+      )}
       
       <main className="max-w-7xl mx-auto px-4 pt-8">
         {/* Sport Tab Switcher */}

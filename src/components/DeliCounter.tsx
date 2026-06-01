@@ -46,6 +46,9 @@ export function DeliCounter() {
         setLine(null);
       }
       setIsLoading(false);
+    }, (err) => {
+      console.warn("Deli settings onSnapshot error:", err);
+      setIsLoading(false);
     });
 
     // 2. Monitor All Votes for Today
@@ -64,6 +67,8 @@ export function DeliCounter() {
       } else {
         setUserVote(null);
       }
+    }, (err) => {
+      console.warn("Deli votes onSnapshot error:", err);
     });
 
     return () => {
