@@ -586,18 +586,31 @@ export default function App() {
     };
   }, [games, historicalGames]);
 
-  // Group historical games by date for results
-  // Group historical games by date for results
+  // Group historical games by date for results with robust de-duplication
   const historicalTotals = useMemo(() => {
     const totals: Record<string, number> = {};
     if (activeSport === 'MLB') {
-      historicalGames.forEach(game => {
+      const seenGames = new Set<number>();
+      const uniqueMlbGames = historicalGames.filter(g => {
+        if (!g.gamePk || seenGames.has(g.gamePk)) return false;
+        seenGames.add(g.gamePk);
+        return true;
+      });
+      
+      uniqueMlbGames.forEach(game => {
         const date = game.officialDate || format(new Date(game.gameDate), 'yyyy-MM-dd');
         if (!totals[date]) totals[date] = 0;
         totals[date] += (game.teams.away.score || 0) + (game.teams.home.score || 0);
       });
     } else {
-      historicalNhlGames.forEach(game => {
+      const seenGames = new Set<number>();
+      const uniqueNhlGames = historicalNhlGames.filter(g => {
+        if (!g.id || seenGames.has(g.id)) return false;
+        seenGames.add(g.id);
+        return true;
+      });
+
+      uniqueNhlGames.forEach(game => {
         const date = game.gameDate ? game.gameDate.split('T')[0] : '';
         if (date) {
           if (!totals[date]) totals[date] = 0;
@@ -607,6 +620,77 @@ export default function App() {
     }
     return totals;
   }, [historicalGames, historicalNhlGames, activeSport]);
+
+  // Dynamic prefetch of older historical wagers' dates to ensure historical totals are complete
+  const fetchedDatesRef = useRef<Set<string>>(new Set());
+
+  // Populate fetchedDatesRef with the standard last 7 days since those are fetched initially
+  useEffect(() => {
+    const dates = [1, 2, 3, 4, 5, 6, 7].map(d => format(subDays(new Date(), d), 'yyyy-MM-dd'));
+    dates.forEach(d => {
+      fetchedDatesRef.current.add(`MLB_${d}`);
+      fetchedDatesRef.current.add(`NHL_${d}`);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (userWagers.length === 0) return;
+
+    const fetchUniqueWagerDates = async () => {
+      const mlbDatesToFetch: string[] = [];
+      const nhlDatesToFetch: string[] = [];
+
+      userWagers.forEach(wager => {
+        const sport = (wager.sport || 'MLB').toUpperCase();
+        const dateKey = `${sport}_${wager.date}`;
+        
+        if (!fetchedDatesRef.current.has(dateKey)) {
+          fetchedDatesRef.current.add(dateKey);
+          if (sport === 'MLB') {
+            mlbDatesToFetch.push(wager.date);
+          } else if (sport === 'NHL') {
+            nhlDatesToFetch.push(wager.date);
+          }
+        }
+      });
+
+      if (mlbDatesToFetch.length === 0 && nhlDatesToFetch.length === 0) return;
+
+      try {
+        if (mlbDatesToFetch.length > 0) {
+          const results = await Promise.all(
+            mlbDatesToFetch.map(date => fetchMLBGames(date))
+          );
+          const newGames = results.flat().filter(Boolean);
+          if (newGames.length > 0) {
+            setHistoricalGames(prev => {
+              const combined = [...prev, ...newGames];
+              const unique = Array.from(new Map(combined.map(g => [g.gamePk, g])).values());
+              return unique;
+            });
+          }
+        }
+
+        if (nhlDatesToFetch.length > 0) {
+          const results = await Promise.all(
+            nhlDatesToFetch.map(date => fetchNHLGames(date))
+          );
+          const newGames = results.flat().filter(Boolean);
+          if (newGames.length > 0) {
+            setHistoricalNhlGames(prev => {
+              const combined = [...prev, ...newGames];
+              const unique = Array.from(new Map(combined.map(g => [g.id, g])).values());
+              return unique;
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching older wager historical scores:', error);
+      }
+    };
+
+    fetchUniqueWagerDates();
+  }, [userWagers]);
 
   // Load Wager Data for global access
   useEffect(() => {
