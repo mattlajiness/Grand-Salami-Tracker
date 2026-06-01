@@ -1,4 +1,4 @@
-import { HelpCircle, Info, Calculator, Target, Zap, Bell, History, UserPlus, CloudRain, ArrowRight, RefreshCw } from 'lucide-react';
+import { HelpCircle, Info, Calculator, Target, Zap, Bell, History, UserPlus, CloudRain, ArrowRight, RefreshCw, Trophy } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
 import { useState } from 'react';
@@ -99,12 +99,12 @@ export function InfoSection({ sport = 'MLB' }: { sport?: 'MLB' | 'NHL' }) {
 
             <div className="space-y-3">
               <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center border border-green-500/20">
-                <History className="w-5 h-5 text-green-400" />
+                <Trophy className="w-5 h-5 text-green-400" />
               </div>
               <div>
-                <h4 className="text-sm font-black text-white uppercase tracking-widest mb-1">Salami Streak History</h4>
+                <h4 className="text-sm font-black text-white uppercase tracking-widest mb-1">Streak Leaderboard</h4>
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  Join the official Grand Salami Streak. Registered users get their history tracked automatically to build long-term winning streaks and unlock live streak sharing on Twitter / X!
+                  Join the official Grand Salami Streak. Build consecutive correct bets to climb the live Salami Streak Leaderboard, top the global rankings, and unlock instant streak sharing!
                 </p>
               </div>
             </div>

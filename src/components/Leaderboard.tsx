@@ -240,7 +240,11 @@ export function Leaderboard({ currentUserId, activeSport: initialSport }: Leader
                       </div>
                       
                       <div className="flex items-center gap-1.5 text-[8px] font-mono text-slate-500 mt-0.5">
-                        <span>BEST: {maxVal} WINS</span>
+                        {sortBy === 'active' ? (
+                          <span>BEST ALL-TIME: {maxVal} WINS</span>
+                        ) : (
+                          <span>ACTIVE STREAK: {activeVal > 0 ? `${activeVal}W` : 'NONE'}</span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -248,17 +252,32 @@ export function Leaderboard({ currentUserId, activeSport: initialSport }: Leader
                   {/* Right: Streak Values */}
                   <div className="flex items-center gap-3 shrink-0">
                     <div className="text-right">
-                      {activeVal > 0 ? (
-                        <div className="flex items-center gap-1 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded-full shadow-[0_0_10px_rgba(239,68,68,0.05)]">
-                          <Flame className="w-3.5 h-3.5 text-red-500 fill-red-500 animate-pulse animate-duration-1000" />
-                          <span className="text-xs font-black text-red-400 font-mono italic">
-                            {activeVal}W
-                          </span>
-                        </div>
+                      {sortBy === 'active' ? (
+                        activeVal > 0 ? (
+                          <div className="flex items-center gap-1 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded-full shadow-[0_0_10px_rgba(239,68,68,0.05)]">
+                            <Flame className="w-3.5 h-3.5 text-red-500 fill-red-500 animate-pulse animate-duration-1000" />
+                            <span className="text-xs font-black text-red-400 font-mono italic">
+                              {activeVal}W
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="text-[10px] font-bold text-slate-500 font-mono uppercase bg-slate-950 border border-slate-800 px-2 py-0.5 rounded-full select-none">
+                            0-0
+                          </div>
+                        )
                       ) : (
-                        <div className="text-[10px] font-bold text-slate-500 font-mono uppercase bg-slate-950 border border-slate-800 px-2 py-0.5 rounded-full select-none">
-                          0-0
-                        </div>
+                        maxVal > 0 ? (
+                          <div className="flex items-center gap-1 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full shadow-[0_0_10px_rgba(245,158,11,0.05)]">
+                            <Award className="w-3.5 h-3.5 text-amber-500 fill-amber-500/10" />
+                            <span className="text-xs font-black text-amber-400 font-mono italic">
+                              {maxVal}W
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="text-[10px] font-bold text-slate-500 font-mono uppercase bg-slate-950 border border-slate-800 px-2 py-0.5 rounded-full select-none">
+                            0-0
+                          </div>
+                        )
                       )}
                     </div>
                   </div>
