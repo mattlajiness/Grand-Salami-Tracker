@@ -655,11 +655,38 @@ export default function App() {
       return true;
     });
     
+    // Group games by date first
+    const gamesByDate: Record<string, typeof uniqueMlbGames> = {};
     uniqueMlbGames.forEach(game => {
       const date = game.officialDate || format(new Date(game.gameDate), 'yyyy-MM-dd');
-      if (!totals[date]) totals[date] = 0;
-      totals[date] += (game.teams.away.score || 0) + (game.teams.home.score || 0);
+      if (!gamesByDate[date]) {
+        gamesByDate[date] = [];
+      }
+      gamesByDate[date].push(game);
     });
+
+    // Populate total runs for a date only if there is at least one game, 
+    // and all of them are finished (not active or preview)
+    Object.entries(gamesByDate).forEach(([date, dateGames]) => {
+      const hasPreviewOrLive = dateGames.some(g => {
+        const state = g.status?.abstractGameState;
+        return state === 'Preview' || state === 'Live';
+      });
+
+      const hasFinal = dateGames.some(g => {
+        const state = g.status?.abstractGameState;
+        return state === 'Final';
+      });
+
+      if (hasFinal && !hasPreviewOrLive) {
+        let totalRuns = 0;
+        dateGames.forEach(g => {
+          totalRuns += (g.teams.away.score || 0) + (g.teams.home.score || 0);
+        });
+        totals[date] = totalRuns;
+      }
+    });
+
     return totals;
   }, [historicalGames]);
 
@@ -672,13 +699,40 @@ export default function App() {
       return true;
     });
 
+    // Group games by date first
+    const gamesByDate: Record<string, typeof uniqueNhlGames> = {};
     uniqueNhlGames.forEach(game => {
       const date = game.gameDate ? game.gameDate.split('T')[0] : '';
       if (date) {
-        if (!totals[date]) totals[date] = 0;
-        totals[date] += (game.awayTeam?.score || 0) + (game.homeTeam?.score || 0);
+        if (!gamesByDate[date]) {
+          gamesByDate[date] = [];
+        }
+        gamesByDate[date].push(game);
       }
     });
+
+    // Populate total goals for a date only if there is at least one game,
+    // and all of them are finished (not PRE, LIVE, or CRIT)
+    Object.entries(gamesByDate).forEach(([date, dateGames]) => {
+      const hasPreviewOrLive = dateGames.some(g => {
+        const state = g.gameState;
+        return state === 'PRE' || state === 'LIVE' || state === 'CRIT';
+      });
+
+      const hasFinalOrOff = dateGames.some(g => {
+        const state = g.gameState;
+        return state === 'FINAL' || state === 'OFF';
+      });
+
+      if (hasFinalOrOff && !hasPreviewOrLive) {
+        let totalGoals = 0;
+        dateGames.forEach(g => {
+          totalGoals += (g.awayTeam?.score || 0) + (g.homeTeam?.score || 0);
+        });
+        totals[date] = totalGoals;
+      }
+    });
+
     return totals;
   }, [historicalNhlGames]);
 
