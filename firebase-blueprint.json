@@ -101,6 +101,21 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["title", "content"]
+    },
+    "LeaderboardRecord": {
+      "title": "User Leaderboard Record",
+      "description": "Stores public streak statistics for a user's Grand Salami wagers.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "The UID of the user" },
+        "displayName": { "type": "string", "description": "The public name of the user" },
+        "mlbStreak": { "type": "number", "description": "Active MLB winning streak" },
+        "mlbMaxStreak": { "type": "number", "description": "All-time maximum MLB winning streak" },
+        "nhlStreak": { "type": "number", "description": "Active NHL winning streak" },
+        "nhlMaxStreak": { "type": "number", "description": "All-time maximum NHL winning streak" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "displayName", "mlbStreak", "mlbMaxStreak", "nhlStreak", "nhlMaxStreak"]
     }
   },
   "firestore": {
@@ -119,6 +134,10 @@
     "/users/{userId}/push_subscriptions/{endpointHash}": {
       "schema": "PushSubscriptionDetails",
       "description": "User's push notifications token/registrations"
+    },
+    "/leaderboard/{userId}": {
+      "schema": "LeaderboardRecord",
+      "description": "Public streak leaderboard records"
     },
     "/gameLines/{gamePk}": {
       "schema": "GameLine",
