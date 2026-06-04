@@ -129,9 +129,9 @@ export function NHLGrandSalamiHeader({
         
         <div className="flex items-center justify-between gap-4 mb-4">
           <div className="flex items-center gap-3">
-            <div className="relative">
+            <div className="relative flex-shrink-0">
               <div className="absolute inset-0 bg-blue-500/20 blur-md rounded-full" />
-              <SalamiLogo className="w-12 h-12 relative z-10" sport="NHL" />
+              <SalamiLogo className="w-14 h-14 sm:w-16 sm:h-16 relative z-10 transition-transform hover:scale-105 duration-300" sport="NHL" />
             </div>
             <div className="flex flex-col">
               <div className="flex items-center gap-2">

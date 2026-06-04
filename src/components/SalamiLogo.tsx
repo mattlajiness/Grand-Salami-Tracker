@@ -1,6 +1,6 @@
 import React from 'react';
 
-export function SalamiLogo({ className = "w-8 h-8", sport = 'MLB' }: { className?: string; sport?: 'MLB' | 'NHL' }) {
+export function SalamiLogo({ className = "w-16 h-16", sport = 'MLB' }: { className?: string; sport?: 'MLB' | 'NHL' }) {
   const isMLB = sport === 'MLB';
   const themeColor = isMLB ? "#22c55e" : "#3b82f6"; // Green for MLB, Blue for NHL
   
@@ -29,13 +29,13 @@ export function SalamiLogo({ className = "w-8 h-8", sport = 'MLB' }: { className
         cy="50" 
         r="44" 
         stroke={themeColor} 
-        strokeWidth="2" 
-        opacity="0.8"
-        style={{ filter: `drop-shadow(0 0 4px ${themeColor})` }}
+        strokeWidth="2.5" 
+        opacity="0.85"
+        style={{ filter: `drop-shadow(0 0 5px ${themeColor})` }}
       />
 
-      {/* Salami Shape Group - Adjusted translation to center perfectly at (50, 50) */}
-      <g transform="translate(15, 29) scale(0.14)">
+      {/* Salami Shape Group - Scaled up from 0.14 to 0.17 to make it significantly larger and more prominent */}
+      <g transform="translate(9.5, 24.5) scale(0.17)">
         {/* Salami Outline */}
         <path d="M100,50 L400,50 C450,50 480,100 480,150 C480,200 450,250 400,250 L100,250 C50,250 20,200 20,150 C20,100 50,50 100,50 Z" fill="none" stroke="white" strokeWidth="15" strokeLinecap="round" />
         {/* End Detail */}
