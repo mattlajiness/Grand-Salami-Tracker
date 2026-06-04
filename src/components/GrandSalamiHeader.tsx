@@ -150,9 +150,9 @@ export function GrandSalamiHeader({
       <div className="flex items-center justify-between gap-4 mb-4">
         {/* Logo & Title */}
         <div className="flex items-center gap-3">
-          <div className="relative flex-shrink-0">
+          <div className="relative">
             <div className="absolute inset-0 bg-green-500/20 blur-md rounded-full" />
-            <SalamiLogo className="w-14 h-14 sm:w-16 sm:h-16 relative z-10 transition-transform hover:scale-105 duration-300" />
+            <SalamiLogo className="w-12 h-12 relative z-10" />
           </div>
           <div className="flex flex-col">
             <h1 className="font-mono font-black tracking-tighter text-sm sm:text-xl leading-none text-white whitespace-nowrap uppercase">
