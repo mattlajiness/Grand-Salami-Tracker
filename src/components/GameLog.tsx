@@ -911,7 +911,7 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                       </div>
 
                       <div className="grid grid-cols-12 gap-2 items-center">
-                        <div className="col-span-8 space-y-2">
+                        <div className="col-span-9 space-y-2">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <img 
@@ -927,7 +927,7 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                                 {getMLBTeamRecordStr(game.teams.away)}
                               </span>
                               {game.teams.away.probablePitcher && (
-                                <span className="text-[8px] font-mono text-slate-500 truncate max-w-[65px]">
+                                <span className="text-[8px] font-mono text-slate-500 truncate max-w-[120px]">
                                   {game.teams.away.probablePitcher.fullName.split(' ').pop()}
                                   {game.teams.away.probablePitcher.era && ` (${game.teams.away.probablePitcher.era})`}
                                 </span>
@@ -952,7 +952,7 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                                 {getMLBTeamRecordStr(game.teams.home)}
                               </span>
                               {game.teams.home.probablePitcher && (
-                                <span className="text-[8px] font-mono text-slate-500 truncate max-w-[65px]">
+                                <span className="text-[8px] font-mono text-slate-500 truncate max-w-[120px]">
                                   {game.teams.home.probablePitcher.fullName.split(' ').pop()}
                                   {game.teams.home.probablePitcher.era && ` (${game.teams.home.probablePitcher.era})`}
                                 </span>
@@ -981,7 +981,7 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                           </div>
                         </div>
 
-                        <div className="col-span-4 flex flex-col items-center border-l border-slate-800 justify-center gap-2">
+                        <div className="col-span-3 flex flex-col items-center border-l border-slate-800 justify-center gap-2">
                           <div className="flex flex-col items-center">
                             <span className="text-lg font-mono font-black text-salami-red leading-none">{total}</span>
                             <span className="text-[7px] font-mono text-slate-500 font-black mt-1 uppercase tracking-tighter">Total</span>
