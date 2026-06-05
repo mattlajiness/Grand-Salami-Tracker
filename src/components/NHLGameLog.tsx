@@ -12,6 +12,52 @@ import { NHLPeriodGoalsChart } from './NHLPeriodGoalsChart';
 import { NHLPowerPlayTracker } from './NHLPowerPlayTracker';
 import { NHLGoalieStatsCard } from './NHLGoalieStatsCard';
 
+export const renderNHLStatusBadge = (game: NHLGame) => {
+  const scheduleState = (game as any).gameScheduleState || '';
+  const isPostponed = scheduleState === 'PPD';
+  const isCancelled = scheduleState === 'CNCL';
+
+  const baseClasses = "text-[9px] font-mono font-black px-2 py-1 rounded inline-flex items-center gap-1 shadow-sm whitespace-nowrap transition-all duration-300";
+
+  if (isCancelled) {
+    return (
+      <div className={cn(baseClasses, "bg-slate-800 text-slate-400 border border-slate-700")}>
+        <span>CANCELLED</span>
+      </div>
+    );
+  }
+
+  if (isPostponed) {
+    return (
+      <div className={cn(baseClasses, "bg-amber-500 text-slate-950 border border-amber-400 animate-pulse")}>
+        <Clock className="w-2.5 h-2.5 text-slate-950" />
+        <span>POSTPONED</span>
+      </div>
+    );
+  }
+
+  // Normal gameStates
+  return (
+    <div className={cn(
+      baseClasses,
+      game.gameState === 'LIVE' ? "bg-red-600 text-white border border-red-500/30" :
+      game.gameState === 'CRIT' ? "bg-red-700 text-white border border-red-400 animate-pulse shadow-[0_0_12px_rgba(220,38,38,0.6)]" :
+      game.gameState === 'OFF' ? "bg-amber-600/20 text-amber-400 border border-amber-500/50" :
+      game.gameState === 'FINAL' ? "bg-emerald-600 text-white border border-emerald-500/30" :
+      "bg-slate-800 text-slate-400 border border-slate-700"
+    )}>
+      {game.gameState === 'CRIT' && (
+        <AlertTriangle className="w-2.5 h-2.5 text-white animate-bounce" />
+      )}
+      {game.gameState === 'OFF' && (
+        <Clock className="w-2.5 h-2.5 text-amber-400" />
+      )}
+      {game.gameState === 'CRIT' ? 'CRIT' : game.gameState === 'OFF' ? 'OFF-ICE' : game.gameState}
+    </div>
+  );
+};
+
+
 interface TeamProfile {
   trend: string;
   gpg: string;
@@ -723,9 +769,12 @@ export function NHLGameLog({
                               <div className="inline-flex flex-col items-center">
                                 <span className={cn(
                                   "text-[10px] font-mono uppercase tracking-widest font-black",
+                                  ((game as any).gameScheduleState === 'PPD' || (game as any).gameScheduleState === 'CNCL') ? "text-amber-500 animate-pulse font-extrabold" :
                                   game.gameState === 'OFF' ? "text-amber-500 animate-pulse" : "text-slate-500"
                                 )}>
-                                  {game.gameState === 'OFF' ? 'End on Ice' :
+                                  {(game as any).gameScheduleState === 'PPD' ? 'Postponed' :
+                                   (game as any).gameScheduleState === 'CNCL' ? 'Cancelled' :
+                                   game.gameState === 'OFF' ? 'End on Ice' :
                                    game.gameState === 'FINAL' ? 'Complete' : 'Scheduled'}
                                 </span>
                                 
@@ -813,7 +862,8 @@ export function NHLGameLog({
                           </td>
                           <td className="px-6 py-5 text-right">
                             <div className="flex flex-col items-end gap-2">
-                               <div className={cn(
+                               {renderNHLStatusBadge(game)}
+                               <div style={{ display: 'none' }} className={cn(
                                   "text-[9px] font-mono font-black px-2 py-1 rounded inline-flex items-center gap-1 shadow-sm whitespace-nowrap transition-all duration-300",
                                   game.gameState === 'LIVE' ? "bg-red-600 text-white border border-red-500/30" :
                                   game.gameState === 'CRIT' ? "bg-red-700 text-white border border-red-400 animate-pulse shadow-[0_0_12px_rgba(220,38,38,0.6)]" :

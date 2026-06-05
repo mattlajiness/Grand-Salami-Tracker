@@ -75,6 +75,50 @@ export const getMLBTeamRecordStr = (teamObj: any) => {
 
 
 
+export const renderMLBStatusBadge = (game: any, size: 'sm' | 'md' = 'sm') => {
+  const detailedState = (game.status?.detailedState || '').toLowerCase();
+  const statusCode = (game.status?.statusCode || '').toUpperCase();
+  const isPostponed = detailedState.includes('postponed') || detailedState.includes('canceled') || detailedState.includes('cancelled') || statusCode === 'C' || statusCode === 'O' || statusCode === 'P' || statusCode === 'Z';
+  const isDelay = detailedState.includes('delay') || ['D', 'DR', 'DI', 'DELAYED'].includes(statusCode) || detailedState.includes('delayed');
+  
+  const baseClasses = size === 'sm' 
+    ? "text-[8px] font-mono font-black px-2 py-0.5 rounded shadow-sm flex items-center gap-1"
+    : "text-[9px] font-mono font-black px-2 py-1 rounded inline-flex items-center gap-1 shadow-sm transition-all duration-300";
+
+  if (isPostponed) {
+    return (
+      <div className={cn(baseClasses, "bg-slate-800 text-slate-400 border border-slate-700")}>
+        <span>{(game.status?.detailedState || 'POSTPONED').toUpperCase()}</span>
+      </div>
+    );
+  }
+
+  if (isDelay) {
+    return (
+      <div className={cn(baseClasses, "bg-amber-500 text-slate-950 border border-amber-400 animate-pulse")}>
+        <Clock className="w-2.5 h-2.5 text-slate-950" />
+        <span>{(game.status?.detailedState || 'DELAYED').toUpperCase()}</span>
+      </div>
+    );
+  }
+
+  // Normal rendering
+  return (
+    <div className={cn(
+      baseClasses,
+      game.status.abstractGameState === 'Live' ? "bg-red-600 text-white" :
+      game.status.abstractGameState === 'Final' ? "bg-green-600 text-white" :
+      "bg-slate-800 text-slate-400 border border-slate-705"
+    )}>
+      {game.status.abstractGameState === 'Live' && game.linescore?.currentInningOrdinal 
+        ? `${game.linescore.isTopInning ? 'TOP' : 'BOT'} ${game.linescore.currentInningOrdinal}`.toUpperCase()
+        : (game.status?.detailedState || '').toUpperCase()}
+    </div>
+  );
+};
+
+
+
 const getSpecialIntelligence = (game: MLBGame, parkFactors: BallparkPalFactor[] = []) => {
   const isPostponed = (game.status?.detailedState || '').toLowerCase().includes('postponed') || 
                        (game.status?.detailedState || '').toLowerCase().includes('canceled') ||
@@ -783,18 +827,7 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          {game.status?.detailedState !== 'Delayed Start' ? (
-                            <div className={cn(
-                              "text-[8px] font-mono font-black px-2 py-0.5 rounded shadow-sm",
-                              game.status.abstractGameState === 'Live' ? "bg-red-600 text-white" :
-                              game.status.abstractGameState === 'Final' ? "bg-green-600 text-white" :
-                              "bg-slate-800 text-slate-400"
-                            )}>
-                              {game.status.abstractGameState === 'Live' && game.linescore?.currentInningOrdinal 
-                                ? `${game.linescore.isTopInning ? 'TOP' : 'BOT'} ${game.linescore.currentInningOrdinal}`.toUpperCase()
-                                : (game.status?.detailedState || '').toUpperCase()}
-                            </div>
-                          ) : <div />}
+                          {renderMLBStatusBadge(game, 'sm')}
                           
                           {game.gamePk === apexGamePk && (
                             <div 
@@ -902,9 +935,19 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                              return badges;
                           })()}
                           <span className="text-[9px] font-mono text-slate-400 font-bold whitespace-nowrap ml-1">
-                            {game.status.abstractGameState === 'Preview' 
-                              ? new Date(game.gameDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                              : game.status.abstractGameState === 'Live' ? "LIVE" : "FINAL"}
+                            {(() => {
+                              const detailedState = (game.status?.detailedState || '').toLowerCase();
+                              const statusCode = (game.status?.statusCode || '').toUpperCase();
+                              const isPostponed = detailedState.includes('postponed') || detailedState.includes('canceled') || detailedState.includes('cancelled') || statusCode === 'C' || statusCode === 'O' || statusCode === 'P';
+                              const isDelay = detailedState.includes('delay') || ['D', 'DR', 'DI'].includes(statusCode);
+                              
+                              if (isPostponed) return "PPD";
+                              if (isDelay) return "DELAYED";
+                              
+                              return game.status.abstractGameState === 'Preview' 
+                                ? new Date(game.gameDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                : game.status.abstractGameState === 'Live' ? "LIVE" : "FINAL";
+                            })()}
                           </span>
                           {isExpanded ? <ChevronUp className="w-3 h-3 text-slate-400" /> : <ChevronDown className="w-3 h-3 text-slate-400" />}
                         </div>
@@ -1526,24 +1569,23 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                               </div>
                               
                               <div className="flex items-center justify-end gap-3">
-                                {game.status?.detailedState !== 'Delayed Start' ? (
-                                  <div className={cn(
-                                    "text-[9px] font-mono font-black px-2 py-1 rounded inline-block shadow-sm",
-                                    game.status.abstractGameState === 'Live' ? "bg-red-600 text-white" :
-                                    game.status.abstractGameState === 'Final' ? "bg-green-600 text-white" :
-                                    "bg-slate-800 text-slate-400"
-                                  )}>
-                                    {game.status.abstractGameState === 'Live' && game.linescore?.currentInningOrdinal 
-                                      ? `${game.linescore.isTopInning ? 'TOP' : 'BOT'} ${game.linescore.currentInningOrdinal}`.toUpperCase()
-                                      : (game.status?.detailedState || '').toUpperCase()}
-                                  </div>
-                                ) : <div />}
+                                {renderMLBStatusBadge(game, 'md')}
 
                                 <div className="flex items-center gap-3">
                                   <div className="text-[9px] font-mono text-slate-400 font-bold whitespace-nowrap">
-                                    {game.status.abstractGameState === 'Preview' 
-                                      ? new Date(game.gameDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                                      : game.status.abstractGameState === 'Live' ? "LIVE" : "FINAL"}
+                                    {(() => {
+                                      const detailedState = (game.status?.detailedState || '').toLowerCase();
+                                      const statusCode = (game.status?.statusCode || '').toUpperCase();
+                                      const isPostponed = detailedState.includes('postponed') || detailedState.includes('canceled') || detailedState.includes('cancelled') || statusCode === 'C' || statusCode === 'O' || statusCode === 'P';
+                                      const isDelay = detailedState.includes('delay') || ['D', 'DR', 'DI'].includes(statusCode);
+                                      
+                                      if (isPostponed) return "PPD";
+                                      if (isDelay) return "DELAYED";
+                                      
+                                      return game.status.abstractGameState === 'Preview' 
+                                        ? new Date(game.gameDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                        : game.status.abstractGameState === 'Live' ? "LIVE" : "FINAL";
+                                    })()}
                                   </div>
                                   <div className="flex items-center gap-1 group-hover:text-salami-red transition-colors whitespace-nowrap">
                                     <span className="text-[8px] font-mono text-slate-500 font-black uppercase tracking-widest">Details</span>
