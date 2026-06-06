@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/auth';
-import { getFirestore, doc, setDoc, getDoc, collection, query, where, onSnapshot, Timestamp, addDoc, deleteDoc, updateDoc, getDocFromServer, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, setLogLevel } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc, collection, query, where, onSnapshot, Timestamp, addDoc, deleteDoc, updateDoc, getDocFromServer, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, setLogLevel, memoryLocalCache } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 
 // Initialize Firebase
@@ -14,18 +14,42 @@ try {
   console.warn("Could not adjust Firestore log level:", e);
 }
 
-// Initialize Firestore with offline persistence enablement, falling back to standard if blocked
+// Helper to detect if local persistence / IndexedDB is supported and accessible in the current browser/iframe context
+function isPersistenceSupported(): boolean {
+  try {
+    if (typeof window === 'undefined' || !window.indexedDB) {
+      return false;
+    }
+    // Attempting to evaluate window.indexedDB will throw a SecurityError in sandboxed cross-origin iframes
+    const test = window.indexedDB;
+    return !!test;
+  } catch (e) {
+    return false;
+  }
+}
+
+// Initialize Firestore with offline persistence enablement, falling back to standard or memory if blocked
 let dbInstance;
+const databaseId = firebaseConfig.firestoreDatabaseId || '(default)';
+
 try {
+  const cacheSettings = isPersistenceSupported()
+    ? {
+        localCache: persistentLocalCache({
+          tabManager: persistentMultipleTabManager()
+        })
+      }
+    : {
+        localCache: memoryLocalCache()
+      };
+
   dbInstance = initializeFirestore(app, {
     experimentalForceLongPolling: true,
-    localCache: persistentLocalCache({
-      tabManager: persistentMultipleTabManager()
-    })
-  }, firebaseConfig.firestoreDatabaseId || '(default)');
+    ...cacheSettings
+  }, databaseId);
 } catch (error) {
-  console.warn("Firestore offline persistence initialization failed, falling back to standard Firestore client:", error);
-  dbInstance = getFirestore(app);
+  console.warn("Firestore custom initialization failed, falling back to standard Firestore client with DB ID:", error);
+  dbInstance = getFirestore(app, databaseId);
 }
 
 export const db = dbInstance;
