@@ -868,7 +868,7 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                              const risk = getRainRisk(game);
                              const isDelay = (game.status?.detailedState || '').toLowerCase().includes('delay') || 
                                              ['D', 'DR', 'DI'].includes((game.status?.statusCode || '').toUpperCase());
-                             if (isDelay) {
+                             if (false) {
                                badges.push(
                                  <button 
                                    key="delayed-badge"
@@ -1491,7 +1491,7 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                                    
                                    const isDelay = (game.status?.detailedState || '').toLowerCase().includes('delay') || 
                                                    ['D', 'DR', 'DI'].includes((game.status?.statusCode || '').toUpperCase());
-                                   if (isDelay) {
+                                   if (false) {
                                      badges.push(
                                        <button 
                                          key="delayed-badge"
