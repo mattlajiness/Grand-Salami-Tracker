@@ -26,6 +26,8 @@ interface WagerHistoryProps {
   currentStreak: { type: 'WIN' | 'LOSS' | 'PUSH'; count: number } | null;
   isLoading: boolean;
   onDeleteWager?: (wagerId: string) => void;
+  voidDates?: Record<string, boolean>;
+  sport?: string;
 }
 
 export function WagerHistory({ 
@@ -36,7 +38,9 @@ export function WagerHistory({
   historicalTotals, 
   currentStreak, 
   isLoading,
-  onDeleteWager
+  onDeleteWager,
+  voidDates = {},
+  sport = 'MLB'
 }: WagerHistoryProps) {
   const { user } = useAuth();
   const [wagers, setWagers] = useState<WagerRecord[]>(userWagers);
@@ -50,9 +54,16 @@ export function WagerHistory({
     let wins = 0;
     let losses = 0;
     let pushes = 0;
+    let voids = 0;
     let graded = 0;
 
     wagers.forEach((wager) => {
+      const isWagerVoid = voidDates && voidDates[wager.date];
+      if (isWagerVoid) {
+        voids++;
+        graded++;
+        return;
+      }
       const finalTotal = historicalTotals[wager.date];
       const hasData = finalTotal !== undefined;
       if (hasData) {
@@ -72,7 +83,7 @@ export function WagerHistory({
     });
 
     const todayStr = format(new Date(), 'yyyy-MM-dd');
-    const hasTodayPendingWager = wagers.some(w => w.date === todayStr && historicalTotals[w.date] === undefined);
+    const hasTodayPendingWager = wagers.some(w => w.date === todayStr && historicalTotals[w.date] === undefined && !(voidDates && voidDates[w.date]));
     const activeWagersCount = hasTodayPendingWager ? 1 : 0;
     const totalDecided = wins + losses;
     const winRate = totalDecided > 0 ? Math.round((wins / totalDecided) * 100) : 0;
@@ -81,11 +92,12 @@ export function WagerHistory({
       wins,
       losses,
       pushes,
+      voids,
       graded,
       activeWagersCount,
       winRate
     };
-  }, [wagers, historicalTotals]);
+  }, [wagers, historicalTotals, voidDates]);
 
   const handleDelete = (wagerId: string) => {
     setDeletingWagerId(wagerId);
@@ -220,7 +232,7 @@ export function WagerHistory({
                     </div>
                     <div className="mt-2.5">
                       <span className="text-lg sm:text-xl font-mono font-black text-white tracking-tight">
-                        {stats.wins}W-{stats.losses}L{stats.pushes > 0 ? `-${stats.pushes}P` : ''}
+                        {stats.wins}W-{stats.losses}L{stats.pushes > 0 ? `-${stats.pushes}P` : ''}{stats.voids > 0 ? ` (${stats.voids}V)` : ''}
                       </span>
                     </div>
                     <span className="text-[7px] sm:text-[8px] font-mono text-slate-600 uppercase tracking-widest mt-1 block">
@@ -276,11 +288,14 @@ export function WagerHistory({
               ) : (
                 <div className="grid grid-cols-1 gap-3">
                   {wagers.map((wager) => {
+                    const isWagerVoid = voidDates && voidDates[wager.date];
                     const finalTotal = historicalTotals[wager.date];
-                    const hasData = finalTotal !== undefined;
-                    const isPush = hasData && finalTotal === wager.line;
-                    const isWin = hasData && !isPush && (wager.side === 'OVER' ? finalTotal > wager.line : finalTotal < wager.line);
+                    const hasData = finalTotal !== undefined || isWagerVoid;
+                    const isPush = hasData && !isWagerVoid && finalTotal === wager.line;
+                    const isWin = hasData && !isWagerVoid && !isPush && (wager.side === 'OVER' ? finalTotal > wager.line : finalTotal < wager.line);
                     const isToday = wager.date === format(new Date(), 'yyyy-MM-dd');
+                    const isMLB = (sport || 'MLB').toUpperCase() === 'MLB';
+                    const unitLabel = isMLB ? 'Runs' : 'Goals';
                     
                     return (
                       <div 
@@ -288,6 +303,7 @@ export function WagerHistory({
                         className={cn(
                           "relative group overflow-hidden bg-slate-950 border rounded-xl p-4 transition-all duration-300",
                           isToday && !hasData ? "border-blue-500/30" :
+                          isWagerVoid ? "border-amber-500/30 hover:border-amber-500/50" :
                           hasData 
                             ? isWin ? "border-green-500/30 hover:border-green-500/50" : isPush ? "border-blue-500/30 hover:border-blue-500/50" : "border-red-500/30 hover:border-red-500/50"
                             : "border-slate-800 hover:border-slate-700"
@@ -339,20 +355,22 @@ export function WagerHistory({
                         {hasData && (
                           <div className={cn(
                             "absolute top-0 right-0 w-24 h-24 -mt-12 -mr-12 rounded-full blur-2xl opacity-10",
-                            isWin ? "bg-green-500" : isPush ? "bg-blue-500" : "bg-red-500"
+                            isWagerVoid ? "bg-amber-500" : isWin ? "bg-green-500" : isPush ? "bg-blue-500" : "bg-red-500"
                           )} />
                         )}
 
                         <div className="flex items-center justify-between relative z-10">
                           <div className="flex items-center gap-4">
                             <div className={cn(
-                              "w-10 h-10 rounded-lg flex items-center justify-center border",
-                              isToday && !hasData ? "bg-blue-500/10 border-blue-500/20 text-blue-500" :
-                              hasData 
-                                ? isWin ? "bg-green-500/10 border-green-500/20 text-green-500" : isPush ? "bg-blue-500/10 border-blue-500/20 text-blue-500" : "bg-red-500/10 border-red-500/20 text-red-500"
-                                : "bg-slate-800 border-slate-700 text-slate-600"
+                                "w-10 h-10 rounded-lg flex items-center justify-center border",
+                                isToday && !hasData ? "bg-blue-500/10 border-blue-500/20 text-blue-500" :
+                                isWagerVoid ? "bg-amber-500/10 border-amber-500/20 text-amber-500" :
+                                hasData 
+                                  ? isWin ? "bg-green-500/10 border-green-500/20 text-green-500" : isPush ? "bg-blue-500/10 border-blue-500/20 text-blue-500" : "bg-red-500/10 border-red-500/20 text-red-500"
+                                  : "bg-slate-800 border-slate-700 text-slate-600"
                             )}>
                               {isToday && !hasData ? <Activity className="w-5 h-5 animate-pulse" /> : 
+                               isWagerVoid ? <RefreshCw className="w-5 h-5 text-amber-500" /> :
                                hasData ? (isWin ? <Trophy className="w-5 h-5" /> : isPush ? <RefreshCw className="w-5 h-5" /> : <Frown className="w-5 h-5" />) : <Calendar className="w-5 h-5" />}
                             </div>
                             <div>
@@ -363,12 +381,17 @@ export function WagerHistory({
                                 )}>
                                   {isToday ? 'Today\'s Wager' : format(parseISO(wager.date), 'EEEE, MMM d')}
                                 </span>
-                                {isToday && (
+                                {isToday && !isWagerVoid && (
                                   <span className="text-[7px] font-mono font-black px-1.5 py-0.5 rounded uppercase tracking-widest bg-blue-500/20 text-blue-400 border border-blue-500/30">
                                     ACTIVE
                                   </span>
                                 )}
-                                {hasData && (
+                                {isWagerVoid && (
+                                  <span className="text-[7px] font-mono font-black px-1.5 py-0.5 rounded uppercase tracking-widest bg-amber-500/20 text-amber-500 border border-amber-500/30">
+                                    VOID (PPD)
+                                  </span>
+                                )}
+                                {hasData && !isWagerVoid && (
                                   <span className={cn(
                                     "text-[7px] font-mono font-black px-1.5 py-0.5 rounded uppercase tracking-widest",
                                     isWin ? "bg-green-500/20 text-green-500" : isPush ? "bg-blue-500/20 text-blue-500" : "bg-red-500/20 text-red-500"
@@ -391,19 +414,22 @@ export function WagerHistory({
                             <div className="flex items-baseline justify-end gap-1">
                               <span className={cn(
                                 "text-lg font-mono font-black",
+                                isWagerVoid ? "text-amber-500" :
                                 hasData 
                                   ? (isWin ? "text-green-500" : isPush ? "text-blue-500" : "text-red-500")
                                   : "text-slate-700"
                               )}>
-                                {hasData ? finalTotal : '---'}
+                                {isWagerVoid ? 'VOID' : (hasData ? finalTotal : '---')}
                               </span>
-                              <span className="text-[8px] font-mono text-slate-600 uppercase tracking-tighter">Runs</span>
+                              {!isWagerVoid && (
+                                <span className="text-[8px] font-mono text-slate-600 uppercase tracking-tighter">{unitLabel}</span>
+                              )}
                             </div>
                           </div>
                         </div>
 
                         {/* Progress bar comparison */}
-                        {hasData && (
+                        {hasData && !isWagerVoid && (
                           <div className="mt-3 h-1 bg-slate-900 rounded-full overflow-hidden relative">
                             <div 
                               className="absolute top-0 h-full bg-slate-800 z-10 w-0.5"
@@ -418,11 +444,19 @@ export function WagerHistory({
                             />
                           </div>
                         )}
-                        {!hasData && (
+                        {!hasData && !isWagerVoid && (
                           <div className="mt-3 flex items-center gap-1.5">
                             <div className="w-1.5 h-1.5 rounded-full bg-slate-700 animate-pulse" />
                             <span className="text-[7px] font-mono text-slate-600 uppercase tracking-widest">
                               Historical totals beyond 7 days not calculated
+                            </span>
+                          </div>
+                        )}
+                        {isWagerVoid && (
+                          <div className="mt-3 flex items-center gap-1.5">
+                            <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                            <span className="text-[7px] font-mono text-amber-500 uppercase tracking-widest">
+                              Game postponed or canceled - Wager voided
                             </span>
                           </div>
                         )}

@@ -47,25 +47,30 @@ interface StreakStats {
   max: number;
 }
 
-function calculateStreakStats(sportWagers: any[], totals: Record<string, number>): StreakStats {
+function calculateStreakStats(sportWagers: any[], totals: Record<string, number>, voidDates: Record<string, boolean> = {}): StreakStats {
   if (sportWagers.length === 0) return { current: { type: null, count: 0 }, max: 0 };
 
-  const settled = sportWagers.filter(w => totals[w.date] !== undefined);
+  const settled = sportWagers.filter(w => totals[w.date] !== undefined || voidDates[w.date]);
   if (settled.length === 0) return { current: { type: null, count: 0 }, max: 0 };
 
   let currentCount = 0;
   let currentType: 'WIN' | 'LOSS' | 'PUSH' | null = null;
+  let hasSetCurrent = false;
 
   for (let i = 0; i < settled.length; i++) {
     const wager = settled[i];
+    if (voidDates[wager.date]) {
+      continue;
+    }
     const finalTotal = totals[wager.date];
     const isPush = finalTotal === wager.line;
     const isWin = !isPush && (wager.side === 'OVER' ? finalTotal > wager.line : finalTotal < wager.line);
     const result = isWin ? 'WIN' : isPush ? 'PUSH' : 'LOSS';
 
-    if (i === 0) {
+    if (!hasSetCurrent) {
       currentType = result;
       currentCount = 1;
+      hasSetCurrent = true;
     } else if (result === currentType) {
       currentCount++;
     } else {
@@ -78,6 +83,9 @@ function calculateStreakStats(sportWagers: any[], totals: Record<string, number>
 
   for (let i = settled.length - 1; i >= 0; i--) {
     const wager = settled[i];
+    if (voidDates[wager.date]) {
+      continue;
+    }
     const finalTotal = totals[wager.date];
     const isPush = finalTotal === wager.line;
     const isWin = !isPush && (wager.side === 'OVER' ? finalTotal > wager.line : finalTotal < wager.line);
@@ -740,6 +748,53 @@ export default function App() {
     return activeSport === 'MLB' ? mlbHistoricalTotals : nhlHistoricalTotals;
   }, [mlbHistoricalTotals, nhlHistoricalTotals, activeSport]);
 
+  const mlbVoidDates = useMemo(() => {
+    const voids: Record<string, boolean> = {};
+    const seenPks = new Set<number>();
+    const uniqueMlbGames = historicalGames.concat(games).filter(g => {
+      if (!g.gamePk || seenPks.has(g.gamePk)) return false;
+      seenPks.add(g.gamePk);
+      return true;
+    });
+
+    uniqueMlbGames.forEach(g => {
+      const date = g.officialDate || (g.gameDate ? format(new Date(g.gameDate), "yyyy-MM-dd") : "");
+      if (!date) return;
+      const state = (g.status?.detailedState || "").toLowerCase();
+      const statusCode = g.status?.statusCode?.toUpperCase() || "";
+      const isPostponed = state.includes("postponed") || state.includes("canceled") || state.includes("cancelled") || statusCode === "C" || statusCode === "CD" || statusCode === "PPD" || statusCode === "CNCL";
+      if (isPostponed) {
+        voids[date] = true;
+      }
+    });
+    return voids;
+  }, [historicalGames, games]);
+
+  const nhlVoidDates = useMemo(() => {
+    const voids: Record<string, boolean> = {};
+    const seenIds = new Set<number>();
+    const uniqueNhlGames = historicalNhlGames.concat(nhlGames).filter(g => {
+      if (!g.id || seenIds.has(g.id)) return false;
+      seenIds.add(g.id);
+      return true;
+    });
+
+    uniqueNhlGames.forEach(g => {
+      const date = g.gameDate ? g.gameDate.split("T")[0] : "";
+      if (!date) return;
+      const scheduleState = (g as any).gameScheduleState || "";
+      const isPostponed = scheduleState === "PPD" || scheduleState === "CNCL" || (g as any).gameState === "PPD" || (g as any).gameState === "CNCL";
+      if (isPostponed) {
+        voids[date] = true;
+      }
+    });
+    return voids;
+  }, [historicalNhlGames, nhlGames]);
+
+  const voidDates = useMemo(() => {
+    return activeSport === "MLB" ? mlbVoidDates : nhlVoidDates;
+  }, [mlbVoidDates, nhlVoidDates, activeSport]);
+
   // Dynamic prefetch of older historical wagers' dates to ensure historical totals are complete
   const fetchedDatesRef = useRef<Set<string>>(new Set());
 
@@ -913,22 +968,27 @@ export default function App() {
   const currentStreak = useMemo(() => {
     if (activeUserWagers.length === 0) return null;
     
-    const settled = activeUserWagers.filter(w => historicalTotals[w.date] !== undefined);
+    const settled = activeUserWagers.filter(w => historicalTotals[w.date] !== undefined || voidDates[w.date]);
     if (settled.length === 0) return null;
 
     let streakCount = 0;
     let streakType: 'WIN' | 'LOSS' | 'PUSH' | null = null;
+    let hasSetCurrent = false;
 
     for (let i = 0; i < settled.length; i++) {
         const wager = settled[i];
+        if (voidDates[wager.date]) {
+            continue;
+        }
         const finalTotal = historicalTotals[wager.date];
         const isPush = finalTotal === wager.line;
         const isWin = !isPush && (wager.side === 'OVER' ? finalTotal > wager.line : finalTotal < wager.line);
         const result = isWin ? 'WIN' : isPush ? 'PUSH' : 'LOSS';
 
-        if (i === 0) {
+        if (!hasSetCurrent) {
             streakType = result as any;
             streakCount = 1;
+            hasSetCurrent = true;
         } else if (result === streakType) {
             streakCount++;
         } else {
@@ -936,8 +996,10 @@ export default function App() {
         }
     }
 
-    return { type: streakType, count: streakCount };
-  }, [activeUserWagers, historicalTotals]);
+    if (!hasSetCurrent) return null;
+
+    return { type: streakType as any, count: streakCount };
+  }, [activeUserWagers, historicalTotals, voidDates]);
 
   // Synchronize streak leaderboard information
   const calculatedLeaderboardData = useMemo(() => {
@@ -946,8 +1008,8 @@ export default function App() {
     const mlbWagers = userWagers.filter(w => (w.sport || 'MLB').toUpperCase() === 'MLB');
     const nhlWagers = userWagers.filter(w => (w.sport || 'MLB').toUpperCase() === 'NHL');
 
-    const mlbStats = calculateStreakStats(mlbWagers, mlbHistoricalTotals);
-    const nhlStats = calculateStreakStats(nhlWagers, nhlHistoricalTotals);
+    const mlbStats = calculateStreakStats(mlbWagers, mlbHistoricalTotals, mlbVoidDates);
+    const nhlStats = calculateStreakStats(nhlWagers, nhlHistoricalTotals, nhlVoidDates);
 
     return {
       userId: user.uid,
@@ -957,7 +1019,7 @@ export default function App() {
       nhlStreak: nhlStats.current.type === 'WIN' ? nhlStats.current.count : 0,
       nhlMaxStreak: nhlStats.max,
     };
-  }, [user, profile, userWagers, mlbHistoricalTotals, nhlHistoricalTotals]);
+  }, [user, profile, userWagers, mlbHistoricalTotals, nhlHistoricalTotals, mlbVoidDates, nhlVoidDates]);
 
   useEffect(() => {
     if (!calculatedLeaderboardData || !user) return;
@@ -1349,6 +1411,7 @@ export default function App() {
                       userWagers={activeUserWagers}
                       onSaveWager={handleSaveWager}
                       onClearWager={handleClearWager}
+                      voidDates={voidDates}
                     />
 
                     {user && (
@@ -1441,7 +1504,7 @@ export default function App() {
           <InfoSection sport={activeSport} />
 
           <WagerHistory 
-            historicalGames={historicalGames} 
+            historicalGames={activeSport === 'MLB' ? historicalGames : historicalNhlGames} 
             isOpen={isHistoryModalOpen} 
             onClose={() => setIsHistoryModalOpen(false)} 
             userWagers={activeUserWagers}
@@ -1449,6 +1512,8 @@ export default function App() {
             currentStreak={currentStreak}
             isLoading={isWagerLoading}
             onDeleteWager={handleDeleteWager}
+            voidDates={voidDates}
+            sport={activeSport}
           />
 
           <FeedbackSection />

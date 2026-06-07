@@ -34,6 +34,7 @@ interface WagerTrackerProps {
   userWagers?: any[];
   onSaveWager?: (wager: any) => void;
   onClearWager?: (wagerId: string) => void;
+  voidDates?: Record<string, boolean>;
 }
 
 export function WagerTracker({ 
@@ -56,7 +57,8 @@ export function WagerTracker({
   historicalTotals = {},
   userWagers = [],
   onSaveWager,
-  onClearWager
+  onClearWager,
+  voidDates = {}
 }: WagerTrackerProps) {
   const isMLB = sport === 'MLB';
   const unitName = isMLB ? 'runs' : 'goals';
@@ -77,7 +79,7 @@ export function WagerTracker({
   const [historicalResult, setHistoricalResult] = useState<{
     line: number;
     total: number;
-    status: 'WON' | 'LOST' | 'PUSH';
+    status: 'WON' | 'LOST' | 'PUSH' | 'VOID';
     date: string;
   } | null>(null);
   const today = todayStr || format(new Date(), 'yyyy-MM-dd');
@@ -201,6 +203,10 @@ export function WagerTracker({
   const getStatus = () => {
     if (betLine === '') return null;
 
+    if (voidDates[today]) {
+      return 'VOID';
+    }
+
     const line = parseFloat(betLine.toString());
     
     if (isFinished) {
@@ -235,6 +241,11 @@ export function WagerTracker({
 
   const savedWagerStatus = useMemo(() => {
     if (!todayWager) return null;
+
+    if (voidDates[today]) {
+      return 'VOID';
+    }
+
     const line = todayWager.line;
     const side = todayWager.side.toLowerCase() as 'over' | 'under';
 
@@ -253,7 +264,7 @@ export function WagerTracker({
       if (currentTotal > line) return 'LOST';
       return projectedTotal < line ? 'ON TRACK' : 'DANGER';
     }
-  }, [todayWager, isFinished, currentTotal, projectedTotal]);
+  }, [todayWager, isFinished, currentTotal, projectedTotal, voidDates, today]);
 
   const playSound = (type: 'win' | 'loss') => {
     const audio = new Audio(
@@ -305,12 +316,12 @@ export function WagerTracker({
   useEffect(() => {
     if (!todayWager || !savedWagerStatus || !notificationsEnabled) return;
     
-    // We allow WON/LOST mid-game (settled), but PUSH requires isFinished
+    // We allow WON/LOST mid-game (settled), but PUSH requires isFinished. VOID is also notified early.
     const lineVal = todayWager.line;
     const sideVal = todayWager.side.toLowerCase() as 'over' | 'under';
 
-    // If not finished, we only notify if it's already WON or LOST (early settlement)
-    if (!isFinished && savedWagerStatus !== 'WON' && savedWagerStatus !== 'LOST') return;
+    // If not finished, we only notify if it's already WON or LOST (early settlement) or VOID
+    if (!isFinished && savedWagerStatus !== 'WON' && savedWagerStatus !== 'LOST' && savedWagerStatus !== 'VOID') return;
 
     const notificationKey = `notified_${sport}_${today}_${lineVal}_${sideVal}_${savedWagerStatus}`;
     const alreadyNotified = safeStorage.getItem(notificationKey) || notifiedKeys.current.has(notificationKey);
@@ -360,6 +371,19 @@ export function WagerTracker({
       lastNotifiedStatus.current = 'LOST';
       notifiedKeys.current.add(notificationKey);
       safeStorage.setItem(notificationKey, 'true');
+    } else if (savedWagerStatus === 'VOID' && lastNotifiedStatus.current !== 'VOID') {
+      playSound('win');
+      setShowResultModal(true);
+      const toastId = `wager-void-${sport}-${today}`;
+      toast.warning(`${sport} WAGER VOIDED 🔄`, {
+        id: toastId,
+        description: `This wager has been voided because a game in the slate was postponed or canceled.`,
+        duration: 15000,
+      });
+      sendBrowserNotification(`${sport} WAGER VOIDED 🔄`, `This wager has been voided because a game in the slate was postponed.`);
+      lastNotifiedStatus.current = 'VOID';
+      notifiedKeys.current.add(notificationKey);
+      safeStorage.setItem(notificationKey, 'true');
     } 
   }, [savedWagerStatus, todayWager, notificationsEnabled, currentTotal, isFinished, today, sport]);
 
@@ -370,19 +394,20 @@ export function WagerTracker({
     const checkSettlement = (wager: { line: number, side: string, date: string }) => {
       if (wager.date === today) return;
       
+      const isVoidVal = voidDates[wager.date];
       const finalTotal = historicalTotals[wager.date];
-      if (finalTotal === undefined) return;
+      if (finalTotal === undefined && !isVoidVal) return;
 
       const side = wager.side.toUpperCase();
       const isPush = finalTotal === wager.line;
       const isWin = !isPush && (side === 'OVER' ? finalTotal > wager.line : finalTotal < wager.line);
-      const resStatus = isWin ? 'WON' : isPush ? 'PUSH' : 'LOST';
+      const resStatus = isVoidVal ? 'VOID' : (isPush ? 'PUSH' : (isWin ? 'WON' : 'LOST'));
 
       const notificationKey = `notified_settlement_${sport}_${wager.date}_${wager.line}_${side}_${resStatus}`;
       if (!safeStorage.getItem(notificationKey) && !notifiedKeys.current.has(notificationKey)) {
         setHistoricalResult({
           line: wager.line,
-          total: finalTotal,
+          total: finalTotal || 0,
           status: resStatus,
           date: wager.date
         });
@@ -401,8 +426,10 @@ export function WagerTracker({
         notifiedKeys.current.add(notificationKey);
         safeStorage.setItem(notificationKey, 'true');
         
-        const title = resStatus === 'WON' ? 'PAST WAGER WON! 🏆' : resStatus === 'PUSH' ? 'PAST WAGER PUSHED 🤝' : 'PAST WAGER LOST ❌';
-        const body = `Your wager for ${wager.date} settled at ${finalTotal} (Line: ${wager.line})`;
+        const title = resStatus === 'WON' ? 'PAST WAGER WON! 🏆' : resStatus === 'PUSH' ? 'PAST WAGER PUSHED 🤝' : resStatus === 'VOID' ? 'PAST WAGER VOIDED 🔄' : 'PAST WAGER LOST ❌';
+        const body = resStatus === 'VOID'
+          ? `Your wager for ${wager.date} was VOID because a game on that date was postponed.`
+          : `Your wager for ${wager.date} settled at ${finalTotal} (Line: ${wager.line})`;
         const toastId = `historical-settlement-${sport}-${wager.date}`;
         
         toast(title, {
@@ -562,7 +589,7 @@ export function WagerTracker({
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
               className={cn(
                 "max-w-md w-full dashboard-card p-8 text-center relative overflow-hidden",
-                (historicalResult?.status || status) === 'WON' ? "border-green-500/50" : (historicalResult?.status || status) === 'PUSH' ? "border-blue-500/50" : "border-red-500/50"
+                (historicalResult?.status || status) === 'WON' ? "border-green-500/50" : (historicalResult?.status || status) === 'PUSH' ? "border-blue-500/50" : (historicalResult?.status || status) === 'VOID' ? "border-amber-500/50" : "border-red-500/50"
               )}
               onClick={e => e.stopPropagation()}
             >
@@ -570,13 +597,13 @@ export function WagerTracker({
               
               <div className={cn(
                 "w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6",
-                (historicalResult?.status || status) === 'WON' ? "bg-green-500/20 text-green-500" : (historicalResult?.status || status) === 'PUSH' ? "bg-blue-500/20 text-blue-500" : "bg-red-500/20 text-red-500"
+                (historicalResult?.status || status) === 'WON' ? "bg-green-500/20 text-green-500" : (historicalResult?.status || status) === 'PUSH' ? "bg-blue-500/20 text-blue-500" : (historicalResult?.status || status) === 'VOID' ? "bg-amber-500/20 text-amber-500" : "bg-red-500/20 text-red-500"
               )}>
-                {(historicalResult?.status || status) === 'WON' ? <Trophy className="w-10 h-10" /> : (historicalResult?.status || status) === 'PUSH' ? <RefreshCw className="w-10 h-10" /> : <Frown className="w-10 h-10" />}
+                {(historicalResult?.status || status) === 'WON' ? <Trophy className="w-10 h-10" /> : ((historicalResult?.status || status) === 'PUSH' || (historicalResult?.status || status) === 'VOID') ? <RefreshCw className="w-10 h-10" /> : <Frown className="w-10 h-10" />}
               </div>
 
               <h2 className="text-3xl font-black text-white uppercase tracking-tighter mb-2">
-                {(historicalResult?.status || status) === 'WON' ? 'Wager Won!' : (historicalResult?.status || status) === 'PUSH' ? 'Wager Pushed' : 'Wager Lost'}
+                {(historicalResult?.status || status) === 'WON' ? 'Wager Won!' : (historicalResult?.status || status) === 'PUSH' ? 'Wager Pushed' : (historicalResult?.status || status) === 'VOID' ? 'Wager Voided' : 'Wager Lost'}
               </h2>
               
               {historicalResult && (
@@ -590,6 +617,8 @@ export function WagerTracker({
                   ? "The slate finished in your favor. Great call!" 
                   : (historicalResult?.status || status) === 'PUSH'
                   ? "Final score matched the line exactly. No win, no loss."
+                  : (historicalResult?.status || status) === 'VOID'
+                  ? "This wager has been voided because a game in the slate was postponed."
                   : "The slate didn't go your way this time."
                 }
               </p>
@@ -604,8 +633,8 @@ export function WagerTracker({
                     <span className="text-[10px] font-mono font-black text-slate-500 uppercase block">Final Total</span>
                     <span className={cn(
                       "text-2xl font-mono font-black",
-                      (historicalResult?.status || status) === 'WON' ? "text-green-500" : (historicalResult?.status || status) === 'PUSH' ? "text-blue-500" : "text-red-500"
-                    )}>{historicalResult?.total || currentTotal}</span>
+                      (historicalResult?.status || status) === 'WON' ? "text-green-500" : (historicalResult?.status || status) === 'PUSH' ? "text-blue-500" : (historicalResult?.status || status) === 'VOID' ? "text-amber-500" : "text-red-500"
+                    )}>{(historicalResult?.status || status) === 'VOID' ? 'VOID' : (historicalResult?.total || currentTotal)}</span>
                   </div>
                 </div>
               </div>
@@ -811,6 +840,8 @@ export function WagerTracker({
                     ? "bg-green-500/10 border-green-500/20 text-green-500" 
                     : status === 'PUSH'
                     ? "bg-blue-500/10 border-blue-500/20 text-blue-500"
+                    : status === 'VOID'
+                    ? "bg-amber-500/10 border-amber-500/20 text-amber-500"
                     : status === 'DANGER' || status === 'BEHIND'
                     ? "bg-amber-500/10 border-amber-500/20 text-amber-500"
                     : status === 'CALIBRATING'
@@ -820,7 +851,7 @@ export function WagerTracker({
                   <div className="flex items-center gap-3">
                     {status === 'WON' || status === 'ON TRACK' ? (
                       <CheckCircle2 className="w-6 h-6" />
-                    ) : status === 'PUSH' ? (
+                    ) : status === 'PUSH' || status === 'VOID' ? (
                       <RefreshCw className="w-6 h-6" />
                     ) : status === 'LOST' ? (
                       <XCircle className="w-6 h-6" />

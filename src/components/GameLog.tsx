@@ -78,7 +78,7 @@ export const getMLBTeamRecordStr = (teamObj: any) => {
 export const renderMLBStatusBadge = (game: any, size: 'sm' | 'md' = 'sm') => {
   const detailedState = (game.status?.detailedState || '').toLowerCase();
   const statusCode = (game.status?.statusCode || '').toUpperCase();
-  const isPostponed = detailedState.includes('postponed') || detailedState.includes('canceled') || detailedState.includes('cancelled') || statusCode === 'C' || statusCode === 'O' || statusCode === 'P' || statusCode === 'Z';
+  const isPostponed = detailedState.includes('postponed') || detailedState.includes('canceled') || detailedState.includes('cancelled') || statusCode === 'C' || statusCode === 'CD' || statusCode === 'PPD' || statusCode === 'CNCL';
   const isDelay = detailedState.includes('delay') || ['D', 'DR', 'DI', 'DELAYED'].includes(statusCode) || detailedState.includes('delayed');
   
   const baseClasses = size === 'sm' 
@@ -938,7 +938,7 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                             {(() => {
                               const detailedState = (game.status?.detailedState || '').toLowerCase();
                               const statusCode = (game.status?.statusCode || '').toUpperCase();
-                              const isPostponed = detailedState.includes('postponed') || detailedState.includes('canceled') || detailedState.includes('cancelled') || statusCode === 'C' || statusCode === 'O' || statusCode === 'P';
+                              const isPostponed = detailedState.includes('postponed') || detailedState.includes('canceled') || detailedState.includes('cancelled') || statusCode === 'C' || statusCode === 'CD' || statusCode === 'PPD' || statusCode === 'CNCL';
                               const isDelay = detailedState.includes('delay') || ['D', 'DR', 'DI'].includes(statusCode);
                               
                               if (isPostponed) return "PPD";
@@ -1576,7 +1576,7 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                                     {(() => {
                                       const detailedState = (game.status?.detailedState || '').toLowerCase();
                                       const statusCode = (game.status?.statusCode || '').toUpperCase();
-                                      const isPostponed = detailedState.includes('postponed') || detailedState.includes('canceled') || detailedState.includes('cancelled') || statusCode === 'C' || statusCode === 'O' || statusCode === 'P';
+                                      const isPostponed = detailedState.includes('postponed') || detailedState.includes('canceled') || detailedState.includes('cancelled') || statusCode === 'C' || statusCode === 'CD' || statusCode === 'PPD' || statusCode === 'CNCL';
                                       const isDelay = detailedState.includes('delay') || ['D', 'DR', 'DI'].includes(statusCode);
                                       
                                       if (isPostponed) return "PPD";
