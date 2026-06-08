@@ -3,8 +3,41 @@
  */
 
 export function initGA() {
-  // Already initialized in index.html
-  console.log('Analytics: Using GA initialized in index.html');
+  if (typeof window === 'undefined') return;
+
+  // Check if we are running in an iframe, and skip if so (as GA is often blocked)
+  let isIframe = false;
+  try {
+    isIframe = window.self !== window.parent;
+  } catch (e) {
+    isIframe = true;
+  }
+
+  if (isIframe) {
+    console.log('Analytics: Running inside iframe sandbox. Skipping GA script injection to prevent cross-origin script error.');
+    return;
+  }
+
+  try {
+    // Dynamically inject the google tag script tag with error handling
+    const script = document.createElement('script');
+    script.async = true;
+    script.src = 'https://www.googletagmanager.com/gtag/js?id=G-BZ69JY3ECN';
+    script.onerror = () => {
+      console.warn('Analytics: GA script failed to load (blocked by ad-blocker or CSP).');
+    };
+    document.head.appendChild(script);
+
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = function(...args: any[]) {
+      window.dataLayer.push(args);
+    };
+    window.gtag('js', new Date());
+    window.gtag('config', 'G-BZ69JY3ECN');
+    console.log('Analytics: GA dynamically initialized safely.');
+  } catch (error) {
+    console.error('Analytics: Failed to initialize GA:', error);
+  }
 }
 
 /**
