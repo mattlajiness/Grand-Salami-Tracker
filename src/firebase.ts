@@ -3,11 +3,41 @@ import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChang
 import { getFirestore, doc, setDoc, getDoc, collection, query, where, onSnapshot, Timestamp, addDoc, deleteDoc, updateDoc, getDocFromServer, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, setLogLevel, memoryLocalCache } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 
+// Silence internal Firestore connection logs and warnings that do not constitute app errors
+if (typeof window !== 'undefined') {
+  const originalError = console.error;
+  console.error = function (...args: any[]) {
+    const isClockDriftWarning = args.some(arg => 
+      typeof arg === 'string' && 
+      (arg.includes('Detected an update time that is in the future') || 
+       arg.includes('Detected an update time') ||
+       arg.includes('update time that is in the future'))
+    );
+    if (isClockDriftWarning) {
+      // Quietly consume this harmless clock-drift warning to prevent bloating log outputs
+      return;
+    }
+    originalError.apply(console, args);
+  };
+
+  const originalWarn = console.warn;
+  console.warn = function (...args: any[]) {
+    const isClockDriftWarning = args.some(arg => 
+      typeof arg === 'string' && 
+      (arg.includes('Detected an update time') ||
+       arg.includes('update time that is in the future'))
+    );
+    if (isClockDriftWarning) {
+      return;
+    }
+    originalWarn.apply(console, args);
+  };
+}
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
-// Silence internal Firestore connection logs and warnings that do not constitute app errors
 try {
   setLogLevel('error');
 } catch (e) {
@@ -20,7 +50,17 @@ function isPersistenceSupported(): boolean {
     if (typeof window === 'undefined' || !window.indexedDB) {
       return false;
     }
-    // Attempting to evaluate window.indexedDB will throw a SecurityError in sandboxed cross-origin iframes
+    // Sandboxed preview iframe check to avoid IndexedDB partitioning security/exception errors and log spamming
+    let isIframe = false;
+    try {
+      isIframe = window.self !== window.parent;
+    } catch {
+      isIframe = true;
+    }
+    if (isIframe) {
+      console.log("Firestore: Running inside sandbox iframe, preferring memoryLocalCache to prevent IndexedDB partition/security issues.");
+      return false;
+    }
     const test = window.indexedDB;
     return !!test;
   } catch (e) {
