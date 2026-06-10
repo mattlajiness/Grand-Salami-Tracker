@@ -5,7 +5,7 @@
 export function initGA() {
   if (typeof window === 'undefined') return;
 
-  // Check if we are running in an iframe, and initialize a simulated proxy if so
+  // Check if we are running in an iframe, and use optimized configuration
   let isIframe = false;
   try {
     isIframe = window.self !== window.parent;
@@ -13,32 +13,32 @@ export function initGA() {
     isIframe = true;
   }
 
-  if (isIframe) {
-    console.log('Analytics: Running inside iframe sandbox. Setting up simulated GA proxy to avoid cross-origin blocker errors.');
+  try {
+    // 1. Setup the shared analytics data queue immediately so trackEvent calls never fail
     window.dataLayer = window.dataLayer || [];
     window.gtag = function(...args: any[]) {
       window.dataLayer.push(args);
     };
-    return;
-  }
 
-  try {
-    // Dynamically inject the google tag script tag with error handling
+    // 2. Queue structural telemetry init actions
+    window.gtag('js', new Date());
+    
+    // Configure tracking ID with custom flags for cross-origin or sandboxed iframe environments
+    window.gtag('config', 'G-BZ69JY3ECN', {
+      cookie_flags: 'max-age=7200;secure;samesite=none',
+      is_iframe: isIframe ? 'yes' : 'no'
+    });
+
+    // 3. Dynamically inject the google tag script tag
     const script = document.createElement('script');
     script.async = true;
     script.src = 'https://www.googletagmanager.com/gtag/js?id=G-BZ69JY3ECN';
     script.onerror = () => {
-      console.warn('Analytics: GA script failed to load (blocked by ad-blocker or CSP).');
+      console.warn('Analytics: GA script failed to load (possibly blocked by an ad-blocker or brave shields).');
     };
+    
     document.head.appendChild(script);
-
-    window.dataLayer = window.dataLayer || [];
-    window.gtag = function(...args: any[]) {
-      window.dataLayer.push(args);
-    };
-    window.gtag('js', new Date());
-    window.gtag('config', 'G-BZ69JY3ECN');
-    console.log('Analytics: GA dynamically initialized safely.');
+    console.log(`Analytics: GA dynamically initialized safely. (Context: ${isIframe ? 'Iframe Embedded' : 'Direct Standalone'})`);
   } catch (error) {
     console.error('Analytics: Failed to initialize GA:', error);
   }
