@@ -869,7 +869,7 @@ export default function App() {
   // Load Wager Data in real-time for global access and leaderboard sync
   useEffect(() => {
     if (!user) {
-      setUserWagers([]);
+      setUserWagers(prev => prev.length > 0 ? [] : prev);
       return;
     }
 
@@ -892,6 +892,44 @@ export default function App() {
 
     return () => unsubscribe();
   }, [user]);
+
+  // Load initial local wager into userWagers state for logged out users on load/sport change
+  useEffect(() => {
+    if (user) return; // Managed by Firestore real-time snapshot listener instead
+
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const savedLine = safeStorage.getItem(`${activeSport}_salami_bet_line`);
+    const savedType = safeStorage.getItem(`${activeSport}_salami_bet_type`);
+    const savedDate = safeStorage.getItem(`${activeSport}_salami_bet_date`);
+
+    if (savedDate === today && savedLine) {
+      const lineVal = parseFloat(savedLine);
+      const isOver = (savedType || 'over').toUpperCase() === 'OVER';
+      setUserWagers(prev => {
+        const hasWager = prev.some(w => 
+          w.id === `${activeSport}_${today}` && 
+          w.line === lineVal && 
+          w.side === (isOver ? 'OVER' : 'UNDER')
+        );
+        if (hasWager && prev.length === 1) return prev;
+        return [
+          {
+            id: `${activeSport}_${today}`,
+            line: lineVal,
+            side: isOver ? 'OVER' : 'UNDER',
+            date: today,
+            sport: activeSport,
+            createdAt: new Date().toISOString()
+          }
+        ];
+      });
+    } else {
+      setUserWagers(prev => {
+        if (prev.length > 0) return [];
+        return prev;
+      });
+    }
+  }, [user, activeSport]);
 
   // Synchronize local input state (betLine, betType) with today's wager from db/cache
   useEffect(() => {
@@ -927,23 +965,13 @@ export default function App() {
         // It's a past wager, WagerTracker will handle settlement notification
         // but we shouldn't show it as today's active wager
         setBetLine('');
-        setUserWagers([]);
       } else {
         if (savedLine) {
           const lineVal = parseFloat(savedLine);
           setBetLine(lineVal);
           if (savedType) setBetType(savedType as 'over' | 'under');
-          setUserWagers([{
-            id: `${activeSport}_${today}`,
-            line: lineVal,
-            side: (savedType || 'over').toUpperCase() as 'OVER' | 'UNDER',
-            date: today,
-            sport: activeSport,
-            createdAt: new Date().toISOString()
-          }]);
         } else {
           setBetLine('');
-          setUserWagers([]);
         }
       }
     }
