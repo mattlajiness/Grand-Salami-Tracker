@@ -5,7 +5,7 @@
 export function initGA() {
   if (typeof window === 'undefined') return;
 
-  // Check if we are running in an iframe, and skip if so (as GA is often blocked)
+  // Check if we are running in an iframe, and initialize a simulated proxy if so
   let isIframe = false;
   try {
     isIframe = window.self !== window.parent;
@@ -14,7 +14,11 @@ export function initGA() {
   }
 
   if (isIframe) {
-    console.log('Analytics: Running inside iframe sandbox. Skipping GA script injection to prevent cross-origin script error.');
+    console.log('Analytics: Running inside iframe sandbox. Setting up simulated GA proxy to avoid cross-origin blocker errors.');
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = function(...args: any[]) {
+      window.dataLayer.push(args);
+    };
     return;
   }
 

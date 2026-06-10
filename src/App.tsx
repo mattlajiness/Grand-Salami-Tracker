@@ -866,81 +866,88 @@ export default function App() {
     fetchUniqueWagerDates();
   }, [userWagers]);
 
-  // Load Wager Data for global access
+  // Load Wager Data in real-time for global access and leaderboard sync
   useEffect(() => {
-    const loadWagers = async () => {
-      const today = format(new Date(), 'yyyy-MM-dd');
-      if (user) {
-        setIsWagerLoading(true);
-        try {
-          // Get today's wager for tracker state - scoped by sport
-          const todayWagerDoc = doc(db, 'users', user.uid, 'wagers', `${activeSport}_${today}`);
-          const snap = await getDoc(todayWagerDoc);
-          if (snap.exists()) {
-            const data = snap.data();
-            setBetLine(data.line);
-            setBetType(data.side.toLowerCase() as 'over' | 'under');
-            
-            // Sync/Cache to safeStorage so it is available immediately on reload
-            safeStorage.setItem(`${activeSport}_salami_bet_line`, data.line.toString());
-            safeStorage.setItem(`${activeSport}_salami_bet_type`, data.side.toLowerCase());
-            safeStorage.setItem(`${activeSport}_salami_bet_date`, today);
-          } else {
-            // Keep the local betLine if there is one for today instead of blindly resetting to ''
-            const savedLine = safeStorage.getItem(`${activeSport}_salami_bet_line`);
-            const savedType = safeStorage.getItem(`${activeSport}_salami_bet_type`);
-            const savedDate = safeStorage.getItem(`${activeSport}_salami_bet_date`);
-            if (savedLine && savedDate === today) {
-              setBetLine(parseFloat(savedLine));
-              if (savedType) setBetType(savedType as 'over' | 'under');
-            } else {
-              setBetLine(''); // Reset if no local or cloud wager today for this sport
-            }
-          }
+    if (!user) {
+      setUserWagers([]);
+      return;
+    }
 
-          // Get all wagers for streak calculation
-          const wagersRef = collection(db, 'users', user.uid, 'wagers');
-          const q = query(wagersRef, orderBy('date', 'desc'));
-          const wagerSnap = await getDocs(q);
-          const fetchedWagers = wagerSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-          setUserWagers(fetchedWagers);
-        } catch (error) {
-          handleFirestoreError(error, OperationType.GET, `users/${user.uid}/wagers`);
-        } finally {
-          setIsWagerLoading(false);
-        }
+    setIsWagerLoading(true);
+    const wagersRef = collection(db, 'users', user.uid, 'wagers');
+    const q = query(wagersRef, orderBy('date', 'desc'));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedWagers = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      setUserWagers(fetchedWagers);
+      setIsWagerLoading(false);
+    }, (error) => {
+      try {
+        handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/wagers`);
+      } catch (e) {
+        console.warn("Failed to stream real-time user wagers:", e);
+      }
+      setIsWagerLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  // Synchronize local input state (betLine, betType) with today's wager from db/cache
+  useEffect(() => {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    if (user) {
+      const todayWager = userWagers.find(w => w.date === today && (w.sport || 'MLB').toUpperCase() === activeSport.toUpperCase());
+      if (todayWager) {
+        setBetLine(todayWager.line);
+        setBetType(todayWager.side.toLowerCase() as 'over' | 'under');
+        
+        // Sync/Cache to safeStorage so it is available immediately on reload
+        safeStorage.setItem(`${activeSport}_salami_bet_line`, todayWager.line.toString());
+        safeStorage.setItem(`${activeSport}_salami_bet_type`, todayWager.side.toLowerCase());
+        safeStorage.setItem(`${activeSport}_salami_bet_date`, today);
       } else {
+        // Keep the local betLine if there is one for today instead of blindly resetting to ''
         const savedLine = safeStorage.getItem(`${activeSport}_salami_bet_line`);
         const savedType = safeStorage.getItem(`${activeSport}_salami_bet_type`);
         const savedDate = safeStorage.getItem(`${activeSport}_salami_bet_date`);
-        
-        if (savedDate && savedDate !== today) {
-          // It's a past wager, WagerTracker will handle settlement notification
-          // but we shouldn't show it as today's active wager
-          setBetLine('');
-          setUserWagers([]);
+        if (savedLine && savedDate === today) {
+          setBetLine(parseFloat(savedLine));
+          if (savedType) setBetType(savedType as 'over' | 'under');
         } else {
-          if (savedLine) {
-            const lineVal = parseFloat(savedLine);
-            setBetLine(lineVal);
-            if (savedType) setBetType(savedType as 'over' | 'under');
-            setUserWagers([{
-              id: `${activeSport}_${today}`,
-              line: lineVal,
-              side: (savedType || 'over').toUpperCase() as 'OVER' | 'UNDER',
-              date: today,
-              sport: activeSport,
-              createdAt: new Date().toISOString()
-            }]);
-          } else {
-            setBetLine('');
-            setUserWagers([]);
-          }
+          setBetLine(''); // Reset if no local or cloud wager today for this sport
         }
       }
-    };
-    loadWagers();
-  }, [user, activeSport]);
+    } else {
+      const savedLine = safeStorage.getItem(`${activeSport}_salami_bet_line`);
+      const savedType = safeStorage.getItem(`${activeSport}_salami_bet_type`);
+      const savedDate = safeStorage.getItem(`${activeSport}_salami_bet_date`);
+      
+      if (savedDate && savedDate !== today) {
+        // It's a past wager, WagerTracker will handle settlement notification
+        // but we shouldn't show it as today's active wager
+        setBetLine('');
+        setUserWagers([]);
+      } else {
+        if (savedLine) {
+          const lineVal = parseFloat(savedLine);
+          setBetLine(lineVal);
+          if (savedType) setBetType(savedType as 'over' | 'under');
+          setUserWagers([{
+            id: `${activeSport}_${today}`,
+            line: lineVal,
+            side: (savedType || 'over').toUpperCase() as 'OVER' | 'UNDER',
+            date: today,
+            sport: activeSport,
+            createdAt: new Date().toISOString()
+          }]);
+        } else {
+          setBetLine('');
+          setUserWagers([]);
+        }
+      }
+    }
+  }, [user, userWagers, activeSport]);
 
   const activeUserWagers = useMemo(() => {
     return userWagers.filter(w => (w.sport || 'MLB').toUpperCase() === activeSport.toUpperCase());
