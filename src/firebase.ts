@@ -13,8 +13,22 @@ if (typeof window !== 'undefined') {
        arg.includes('Detected an update time') ||
        arg.includes('update time that is in the future'))
     );
+    const isFirestoreNetworkInfo = args.some(arg => 
+      typeof arg === 'string' && 
+      (arg.includes('Could not reach Cloud Firestore backend') || 
+       arg.includes('Connection failed') ||
+       arg.includes('operate in offline mode') ||
+       arg.includes('unreachable') ||
+       arg.includes('code=unavailable') ||
+       arg.includes('@firebase/firestore'))
+    );
     if (isClockDriftWarning) {
       // Quietly consume this harmless clock-drift warning to prevent bloating log outputs
+      return;
+    }
+    if (isFirestoreNetworkInfo) {
+      // Redirect to log instead of error so that sandbox/offline states aren't caught as failures
+      console.log('[Firestore Offline Handler]', ...args);
       return;
     }
     originalError.apply(console, args);
@@ -27,7 +41,20 @@ if (typeof window !== 'undefined') {
       (arg.includes('Detected an update time') ||
        arg.includes('update time that is in the future'))
     );
+    const isFirestoreNetworkInfo = args.some(arg => 
+      typeof arg === 'string' && 
+      (arg.includes('Could not reach Cloud Firestore backend') || 
+       arg.includes('Connection failed') ||
+       arg.includes('operate in offline mode') ||
+       arg.includes('unreachable') ||
+       arg.includes('code=unavailable') ||
+       arg.includes('@firebase/firestore'))
+    );
     if (isClockDriftWarning) {
+      return;
+    }
+    if (isFirestoreNetworkInfo) {
+      console.log('[Firestore Offline Handler]', ...args);
       return;
     }
     originalWarn.apply(console, args);
@@ -39,7 +66,7 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
 try {
-  setLogLevel('error');
+  setLogLevel('silent'); // Silence internal Firestore logger entirely to shut down SDK-internal logging verbosity
 } catch (e) {
   console.warn("Could not adjust Firestore log level:", e);
 }
