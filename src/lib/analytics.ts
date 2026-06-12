@@ -33,6 +33,22 @@ function getOrCreateClientId(): string {
 export function initGA() {
   if (typeof window === 'undefined') return;
 
+  // Check if the current context is Google AI Studio preview or local development
+  const isAisStudioDev = window.location.hostname.includes('ais-dev-') || 
+                         window.location.hostname === 'localhost' || 
+                         window.location.hostname === '127.0.0.1';
+
+  if (isAisStudioDev) {
+    window.dataLayer = window.dataLayer || [];
+    // Define a fully functional mock gtag that logs internally to console
+    window.gtag = function() {
+      window.dataLayer.push(arguments);
+      console.log('[Analytics Mock in Studio]', ...Array.from(arguments));
+    };
+    console.log('Analytics: Bypassed actual GA4 page initialization for AI Studio developer environment to prevent session pollution.');
+    return;
+  }
+
   // Check if we are running in an iframe, and use optimized configuration
   let isIframe = false;
   try {
