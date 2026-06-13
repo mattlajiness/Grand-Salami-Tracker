@@ -384,69 +384,69 @@ export function BullpenFatigueReport({ historicalGames, todayGames, isLoading }:
           </div>
         </div>
 
-        {/* Heatmap Grid - 2 to 5 columns with responsivity */}
+        {/* Heatmap Grid - Expanded height and column mapping with generous spacing */}
         {matchupHeatmap.length === 0 ? (
           <div className="text-center py-2 text-[8px] font-mono text-slate-500 uppercase tracking-widest">
             No active matchups today
           </div>
         ) : (
-          <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-[160px] overflow-y-auto custom-scrollbar pr-1">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-2.5 max-h-[320px] md:max-h-[420px] overflow-y-auto custom-scrollbar pr-1 py-1">
             {matchupHeatmap.map((match, mIdx) => {
               const awayTeam = match.away;
               const homeTeam = match.home;
               return (
                 <div 
                   key={match.gamePk || mIdx} 
-                  className="bg-slate-900/80 rounded-lg p-2 border border-slate-800/60 flex flex-col justify-between hover:border-slate-700/80 transition-colors"
+                  className="bg-slate-900/85 rounded-xl p-2.5 border border-slate-850 flex flex-col justify-between hover:border-slate-700/80 transition-colors duration-200 shadow-md"
                 >
-                  <div className="flex items-center justify-between mb-1.5 text-slate-500 text-[7px] font-mono font-bold uppercase tracking-wider">
+                  <div className="flex items-center justify-between mb-1.5 text-slate-500 text-[8px] font-mono font-bold uppercase tracking-wider border-b border-white/5 pb-1">
                     <span>{match.time}</span>
-                    <span className="opacity-30">M{mIdx + 1}</span>
+                    <span className="opacity-45">GAME {mIdx + 1}</span>
                   </div>
 
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 md:gap-1.5">
                     {/* Away Cell */}
                     <button 
                       onClick={() => setSelectedTeamId(selectedTeamId === awayTeam.teamId ? null : awayTeam.teamId)}
                       className={cn(
-                        "flex-1 p-1 rounded flex flex-col items-center justify-center cursor-pointer transition border relative group",
-                        selectedTeamId === awayTeam.teamId ? "ring-1 ring-sky-400 scale-[1.03] border-sky-400/40" : "hover:border-white/10 hover:scale-[1.01]",
-                        awayTeam.fatigueLevel === 'HIGH' && "bg-red-950/60 border-red-500/30 text-red-200",
-                        awayTeam.fatigueLevel === 'MED' && "bg-amber-950/50 border-amber-500/30 text-amber-200",
-                        awayTeam.fatigueLevel === 'LOW' && "bg-emerald-950/35 border-emerald-500/10 text-emerald-200"
+                        "flex-1 py-1 px-1.5 rounded-lg flex flex-col items-center justify-center cursor-pointer transition-all duration-200 border relative group min-w-0",
+                        selectedTeamId === awayTeam.teamId ? "ring-2 ring-sky-400 scale-[1.04] border-sky-400/50 shadow-lg shadow-sky-500/10" : "hover:border-white/15 hover:scale-[1.02]",
+                        awayTeam.fatigueLevel === 'HIGH' && "bg-red-950/70 border-red-500/40 text-red-100",
+                        awayTeam.fatigueLevel === 'MED' && "bg-amber-950/60 border-amber-500/40 text-amber-100",
+                        awayTeam.fatigueLevel === 'LOW' && "bg-emerald-950/45 border-emerald-500/20 text-emerald-100"
                       )}
                       title={`${awayTeam.teamName} (${awayTeam.fatigueLevel} fatigue)`}
                     >
-                      <span className="text-[9px] font-mono font-black tracking-tight">
+                      <span className="text-[9px] sm:text-[10px] md:text-xs font-mono font-black tracking-tight uppercase truncate max-w-full">
                         {awayTeam.abbreviation}
                       </span>
                       <span className={cn(
-                        "absolute bottom-0 right-0 w-1.5 h-1.5 rounded-tl-[3px]",
+                        "absolute bottom-0 right-0 w-1.5 h-1.5 rounded-tl-[3px] rounded-br-[7px]",
                         awayTeam.fatigueLevel === 'HIGH' && "bg-red-500",
                         awayTeam.fatigueLevel === 'MED' && "bg-amber-500",
                         awayTeam.fatigueLevel === 'LOW' && "bg-emerald-500"
                       )} />
                     </button>
 
-                    <span className="text-[7px] font-mono text-slate-600 font-bold">@</span>
+                    <span className="text-[7px] font-mono text-slate-600 font-bold self-center">@</span>
 
                     {/* Home Cell */}
                     <button 
                       onClick={() => setSelectedTeamId(selectedTeamId === homeTeam.teamId ? null : homeTeam.teamId)}
                       className={cn(
-                        "flex-1 p-1 rounded flex flex-col items-center justify-center cursor-pointer transition border relative group",
-                        selectedTeamId === homeTeam.teamId ? "ring-1 ring-sky-400 scale-[1.03] border-sky-400/40" : "hover:border-white/10 hover:scale-[1.01]",
-                        homeTeam.fatigueLevel === 'HIGH' && "bg-red-950/60 border-red-500/30 text-red-200",
-                        homeTeam.fatigueLevel === 'MED' && "bg-amber-950/50 border-amber-500/30 text-amber-200",
-                        homeTeam.fatigueLevel === 'LOW' && "bg-emerald-950/35 border-emerald-500/10 text-emerald-200"
+                        "flex-1 py-1 px-1.5 rounded-lg flex flex-col items-center justify-center cursor-pointer transition-all duration-200 border relative group min-w-0",
+                        selectedTeamId === homeTeam.teamId ? "ring-2 ring-sky-400 scale-[1.04] border-sky-400/50 shadow-lg shadow-sky-500/10" : "hover:border-white/15 hover:scale-[1.02]",
+                        homeTeam.fatigueLevel === 'HIGH' && "bg-red-950/70 border-red-500/40 text-red-100",
+                        homeTeam.fatigueLevel === 'MED' && "bg-amber-950/60 border-amber-500/40 text-amber-100",
+                        homeTeam.fatigueLevel === 'LOW' && "bg-emerald-950/45 border-emerald-500/20 text-emerald-100"
                       )}
                       title={`${homeTeam.teamName} (${homeTeam.fatigueLevel} fatigue)`}
                     >
-                      <span className="text-[9px] font-mono font-black tracking-tight">
+                      <span className="text-[9px] sm:text-[10px] md:text-xs font-mono font-black tracking-tight uppercase truncate max-w-full">
                         {homeTeam.abbreviation}
                       </span>
                       <span className={cn(
-                        "absolute bottom-0 right-0 w-1.5 h-1.5 rounded-tl-[3px]",
+                        "absolute bottom-0 right-0 w-1.5 h-1.5 rounded-tl-[3px] rounded-br-[7px]",
                         homeTeam.fatigueLevel === 'HIGH' && "bg-red-500",
                         homeTeam.fatigueLevel === 'MED' && "bg-amber-500",
                         homeTeam.fatigueLevel === 'LOW' && "bg-emerald-500"
