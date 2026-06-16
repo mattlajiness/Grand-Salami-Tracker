@@ -1088,7 +1088,7 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                               )}
                             </div>
                             
-                            {(manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine) !== undefined && (
+                            {game.status.abstractGameState !== 'Preview' && (manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine) !== undefined && (
                               <div className={cn(
                                 "text-[7px] font-mono font-black uppercase tracking-widest px-1.5 py-0.5 rounded flex items-center gap-1",
                                 total > (manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine) ? "bg-red-500/10 text-red-500" : 
@@ -1415,7 +1415,7 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                                 )}
                               </div>
                               
-                              {((manualLines && manualLines[game.gamePk] !== undefined) || gameLines[game.gamePk] !== undefined || game.totalLine !== undefined) && (
+                              {game.status.abstractGameState !== 'Preview' && ((manualLines && manualLines[game.gamePk] !== undefined) || gameLines[game.gamePk] !== undefined || game.totalLine !== undefined) && (
                                 <div className={cn(
                                   "mt-1 px-2 py-0.5 rounded text-[8px] font-mono font-black uppercase tracking-widest",
                                   (game.status.abstractGameState === 'Live' ? projectedTotal : totalScore) > (manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine) ? "bg-red-500/10 text-red-500" : 
