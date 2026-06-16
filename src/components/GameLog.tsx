@@ -1069,7 +1069,7 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                                       }
                                     }}
                                   >
-                                    {(manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine) !== undefined ? `L: ${manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine}` : 'NO LINE'}
+                                    {(manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine) !== undefined ? `O/U: ${manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine}` : 'NO LINE'}
                                   </span>
                                   {isAdmin && (
                                     <button
@@ -1410,7 +1410,7 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                                         </button>
                                       )}
                                     </div>
-                                    <span className="text-[7px] font-mono text-slate-500 font-bold uppercase tracking-widest mt-0.5">Betting Line</span>
+                                    <span className="text-[7px] font-mono text-slate-500 font-bold uppercase tracking-widest mt-0.5">O/U Line</span>
                                   </div>
                                 )}
                               </div>
