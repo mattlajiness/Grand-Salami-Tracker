@@ -1054,23 +1054,35 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                                   </button>
                                 </div>
                               ) : (
-                                <>
-                                  <span 
-                                    className={cn(
-                                      "text-[10px] font-mono font-black text-slate-300",
-                                      isAdmin && "hover:text-salami-red cursor-pointer underline decoration-dotted decoration-slate-700 underline-offset-4"
-                                    )}
-                                    onClick={(e) => {
-                                      if (isAdmin) {
-                                        e.stopPropagation();
-                                        setEditingLineId(game.gamePk);
-                                        const currentVal = manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine ?? 9.5;
-                                        setTempLine(currentVal.toString());
-                                      }
-                                    }}
-                                  >
-                                    {(manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine) !== undefined ? `O/U: ${manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine}` : 'NO LINE'}
-                                  </span>
+                                <div className="flex items-center gap-2">
+                                  {(() => {
+                                    const line = manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine;
+                                    if (line === undefined) return <span className="text-[10px] font-mono text-slate-500 font-bold">NO LINE</span>;
+                                    return (
+                                      <div 
+                                        className={cn(
+                                          "flex items-center gap-1 mt-0.5",
+                                          isAdmin && "cursor-pointer"
+                                        )}
+                                        onClick={(e) => {
+                                          if (isAdmin) {
+                                            e.stopPropagation();
+                                            setEditingLineId(game.gamePk);
+                                            setTempLine(line.toString());
+                                          }
+                                        }}
+                                      >
+                                        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-900 border border-slate-800 rounded font-mono text-[9px] shadow-sm">
+                                          <span className="flex items-center">
+                                            <span className="text-blue-400 font-extrabold text-[8px]">O</span>
+                                            <span className="text-slate-500 font-medium text-[8px] mx-0.5">/</span>
+                                            <span className="text-emerald-400 font-extrabold text-[8px]">U</span>
+                                          </span>
+                                          <span className="text-white font-black">{line}</span>
+                                        </div>
+                                      </div>
+                                    );
+                                  })()}
                                   {isAdmin && (
                                     <button
                                       onClick={(e) => {
@@ -1079,12 +1091,12 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                                         const currentVal = manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine ?? 9.5;
                                         setTempLine(currentVal.toString());
                                       }}
-                                      className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-500 hover:text-white transition-colors cursor-pointer"
+                                      className="p-1 hover:bg-slate-800 rounded-lg text-slate-500 hover:text-white transition-colors cursor-pointer"
                                     >
                                       <Edit2 className="w-2.5 h-2.5" />
                                     </button>
                                   )}
-                                </>
+                                </div>
                               )}
                             </div>
                             
@@ -1394,7 +1406,24 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                                           }
                                         }}
                                       >
-                                        {(manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine) !== undefined ? (manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine).toFixed(1) : '---'}
+                                        {(() => {
+                                          const lineVal = manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine;
+                                          if (lineVal === undefined) return '---';
+                                          return (
+                                            <span className="flex items-center gap-1.5 justify-center py-0.5" onClick={(e) => {
+                                              if (!isAdmin) e.stopPropagation();
+                                            }}>
+                                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-slate-950 border border-slate-850 rounded text-[10px] font-mono shadow-sm">
+                                                <span className="flex items-center">
+                                                  <span className="text-blue-400 font-extrabold text-[9px]">O</span>
+                                                  <span className="text-slate-500 font-medium text-[9px] mx-0.5">/</span>
+                                                  <span className="text-emerald-400 font-extrabold text-[9px]">U</span>
+                                                </span>
+                                                <span className="text-white font-black">{lineVal.toFixed(1)}</span>
+                                              </span>
+                                            </span>
+                                          );
+                                        })()}
                                       </span>
                                       {isAdmin && (
                                         <button

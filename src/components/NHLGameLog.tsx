@@ -829,7 +829,23 @@ export function NHLGameLog({
                                            }
                                          }}
                                        >
-                                         {(manualLines[game.id] ?? gameLines[game.id]) !== undefined ? (manualLines[game.id] ?? gameLines[game.id]).toFixed(1) : '6.5'}
+                                         {(() => {
+                                          const lineVal = manualLines[game.id] ?? gameLines[game.id] ?? 6.5;
+                                          return (
+                                            <span className="flex items-center gap-1.5 justify-center py-0.5" onClick={(e) => {
+                                              if (!isAdmin) e.stopPropagation();
+                                            }}>
+                                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-slate-950 border border-slate-850 rounded text-[10px] font-mono shadow-sm">
+                                                <span className="flex items-center">
+                                                  <span className="text-blue-400 font-extrabold text-[9px]">O</span>
+                                                  <span className="text-slate-500 font-medium text-[9px] mx-0.5">/</span>
+                                                  <span className="text-emerald-400 font-extrabold text-[9px]">U</span>
+                                                </span>
+                                                <span className="text-white font-black">{lineVal.toFixed(1)}</span>
+                                              </span>
+                                            </span>
+                                          );
+                                        })()}
                                        </span>
                                        {isAdmin && (
                                          <button
