@@ -709,6 +709,17 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
   };
 
   const filteredGames = games.filter(game => {
+    const detailedState = (game.status?.detailedState || '').toLowerCase();
+    const statusCode = (game.status?.statusCode || '').toUpperCase();
+    const isPostponed = detailedState.includes('postponed') || 
+                        detailedState.includes('canceled') || 
+                        detailedState.includes('cancelled') || 
+                        statusCode === 'C' || 
+                        statusCode === 'CD' || 
+                        statusCode === 'PPD' || 
+                        statusCode === 'CNCL';
+    if (isPostponed) return false;
+
     if (filter === 'All') return true;
     return game.status.abstractGameState === filter;
   });
@@ -1026,7 +1037,9 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
 
                         <div className="col-span-3 flex flex-col items-center border-l border-slate-800 justify-center gap-2">
                           <div className="flex flex-col items-center">
-                            <span className="text-lg font-mono font-black text-salami-red leading-none">{total}</span>
+                            <span className="text-lg font-mono font-black text-salami-red leading-none">
+                              {(game.status.abstractGameState === 'Live' || game.status.abstractGameState === 'Final') ? total : '-'}
+                            </span>
                             <span className="text-[7px] font-mono text-slate-500 font-black mt-1 uppercase tracking-tighter">Total</span>
                           </div>
                           
@@ -1100,7 +1113,7 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                               )}
                             </div>
                             
-                            {game.status.abstractGameState !== 'Preview' && (manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine) !== undefined && (
+                            {(game.status.abstractGameState === 'Live' || game.status.abstractGameState === 'Final') && (manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine) !== undefined && (
                               <div className={cn(
                                 "text-[7px] font-mono font-black uppercase tracking-widest px-1.5 py-0.5 rounded flex items-center gap-1",
                                 total > (manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine) ? "bg-red-500/10 text-red-500" : 
@@ -1267,7 +1280,7 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                                   "font-mono font-black text-lg",
                                   game.status.abstractGameState === 'Final' && (game.teams.away.score ?? 0) > (game.teams.home.score ?? 0) ? "text-white" : "text-slate-500"
                                 )}>
-                                  {(game.teams.away.score ?? 0).toString().padStart(2, '0')}
+                                  {game.status.abstractGameState === 'Preview' ? '--' : (game.teams.away.score ?? 0).toString().padStart(2, '0')}
                                 </span>
                               </div>
                               <div className="flex items-center justify-between">
@@ -1299,7 +1312,7 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                                   "font-mono font-black text-lg",
                                   game.status.abstractGameState === 'Final' && (game.teams.home.score ?? 0) > (game.teams.away.score ?? 0) ? "text-white" : "text-slate-500"
                                 )}>
-                                  {(game.teams.home.score ?? 0).toString().padStart(2, '0')}
+                                  {game.status.abstractGameState === 'Preview' ? '--' : (game.teams.home.score ?? 0).toString().padStart(2, '0')}
                                 </span>
                               </div>
 
@@ -1444,7 +1457,7 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                                 )}
                               </div>
                               
-                              {game.status.abstractGameState !== 'Preview' && ((manualLines && manualLines[game.gamePk] !== undefined) || gameLines[game.gamePk] !== undefined || game.totalLine !== undefined) && (
+                              {(game.status.abstractGameState === 'Live' || game.status.abstractGameState === 'Final') && ((manualLines && manualLines[game.gamePk] !== undefined) || gameLines[game.gamePk] !== undefined || game.totalLine !== undefined) && (
                                 <div className={cn(
                                   "mt-1 px-2 py-0.5 rounded text-[8px] font-mono font-black uppercase tracking-widest",
                                   (game.status.abstractGameState === 'Live' ? projectedTotal : totalScore) > (manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine) ? "bg-red-500/10 text-red-500" : 

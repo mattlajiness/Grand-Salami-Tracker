@@ -24,6 +24,8 @@ interface NHLGrandSalamiHeaderProps {
   betType?: 'over' | 'under';
   projectedTotal?: number | null;
   isFinished?: boolean;
+  voidDates?: Record<string, boolean>;
+  todayStr?: string;
 }
 
 export function NHLGrandSalamiHeader({ 
@@ -40,6 +42,8 @@ export function NHLGrandSalamiHeader({
   betType = 'over',
   projectedTotal = null,
   isFinished = false,
+  voidDates = {},
+  todayStr = ''
 }: NHLGrandSalamiHeaderProps) {
   const { user, signIn, signOut } = useAuth();
   const [relativeTime, setRelativeTime] = useState(formatDistanceToNow(lastUpdated, { addSuffix: true }));
@@ -103,6 +107,10 @@ export function NHLGrandSalamiHeader({
 
   const getStatus = () => {
     if (betLine === '') return null;
+    const today = todayStr || format(new Date(), 'yyyy-MM-dd');
+    if (voidDates[today]) {
+      return 'VOID';
+    }
     const line = parseFloat(betLine.toString());
     if (isFinished) {
       if (currentTotal === line) return 'PUSH';

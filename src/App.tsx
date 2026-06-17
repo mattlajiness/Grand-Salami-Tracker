@@ -198,7 +198,22 @@ export default function App() {
       const combinedMlbHistory = mlbResults.flat();
       const combinedNhlHistory = nhlResults.flat();
 
-      setHistoricalGames(combinedMlbHistory || []);
+      // Filter out San Francisco Giants @ Atlanta Braves game from "last night" (2026-06-16 or dynamically the day before today)
+      const lastNightStr = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+      const filteredMlbHistory = (combinedMlbHistory || []).filter(game => {
+        if (!game) return false;
+        const gameDateStr = game.officialDate;
+        const isTargetDate = gameDateStr === '2026-06-16' || gameDateStr === lastNightStr;
+        const isGiantsBraves = (
+          (game.teams?.home?.team?.id === 115 && game.teams?.away?.team?.id === 94) ||
+          (game.teams?.home?.team?.id === 94 && game.teams?.away?.team?.id === 115) ||
+          (game.teams?.home?.team?.name?.toLowerCase().includes('braves') && game.teams?.away?.team?.name?.toLowerCase().includes('giants')) ||
+          (game.teams?.home?.team?.name?.toLowerCase().includes('giants') && game.teams?.away?.team?.name?.toLowerCase().includes('braves'))
+        );
+        return !(isTargetDate && isGiantsBraves);
+      });
+
+      setHistoricalGames(filteredMlbHistory);
       setHistoricalNhlGames(combinedNhlHistory || []);
     } catch (error) {
       console.error('Error loading historical data:', error);
@@ -214,6 +229,9 @@ export default function App() {
     if (forced) setIsRefreshing(true);
     
     try {
+      if (forced) {
+        await loadHistoricalData();
+      }
       const today = format(new Date(), 'yyyy-MM-dd');
       const nhlDateStr = (selectedNhlDate === 'today' || selectedNhlDate === 'demo' || selectedNhlDate === 'pre-slate') 
         ? today 
@@ -237,7 +255,22 @@ export default function App() {
         setPalConfigured(true);
       }
       
-      setGames(mlbResult || []);
+      // Filter out Giants @ Braves entirely from today/live games so it doesn't show in the active list (ticker, GameLog, etc.)
+      const lastNightStr = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+      const filteredMlbResult = (mlbResult || []).filter(game => {
+        if (!game) return false;
+        const gameDateStr = game.officialDate;
+        const isTargetDate = gameDateStr === '2026-06-16' || gameDateStr === '2026-06-17' || gameDateStr === lastNightStr || gameDateStr === today;
+        const isGiantsBraves = (
+          (game.teams?.home?.team?.id === 115 && game.teams?.away?.team?.id === 94) ||
+          (game.teams?.home?.team?.id === 94 && game.teams?.away?.team?.id === 115) ||
+          (game.teams?.home?.team?.name?.toLowerCase().includes('braves') && game.teams?.away?.team?.name?.toLowerCase().includes('giants')) ||
+          (game.teams?.home?.team?.name?.toLowerCase().includes('giants') && game.teams?.away?.team?.name?.toLowerCase().includes('braves'))
+        );
+        return !(isTargetDate && isGiantsBraves);
+      });
+
+      setGames(filteredMlbResult);
       if (selectedNhlDate !== 'demo' && selectedNhlDate !== 'pre-slate') {
         setNhlGames(nhlResult || []);
       }
@@ -251,7 +284,7 @@ export default function App() {
       setIsRefreshing(false);
       setIsInitialLoad(false);
     }
-  }, [selectedNhlDate]);
+  }, [selectedNhlDate, loadHistoricalData]);
 
   useEffect(() => {
     loadHistoricalData();
@@ -424,8 +457,15 @@ export default function App() {
       if (!Array.isArray(games)) return 0;
       return games.reduce((acc, game) => {
         if (game.officialDate && game.officialDate !== todayStr) return acc;
-        const isPostponed = (game.status?.detailedState || '').toLowerCase().includes('postponed') || 
-                           (game.status?.detailedState || '').toLowerCase().includes('canceled');
+        const detailedState = (game.status?.detailedState || '').toLowerCase();
+        const statusCode = (game.status?.statusCode || '').toUpperCase();
+        const isPostponed = detailedState.includes('postponed') || 
+                            detailedState.includes('canceled') || 
+                            detailedState.includes('cancelled') || 
+                            statusCode === 'C' || 
+                            statusCode === 'CD' || 
+                            statusCode === 'PPD' || 
+                            statusCode === 'CNCL';
         if (isPostponed) return acc;
         const awayScore = game?.teams?.away?.score || 0;
         const homeScore = game?.teams?.home?.score || 0;
@@ -446,8 +486,15 @@ export default function App() {
       if (!Array.isArray(games)) return 0;
       return games.reduce((acc, game) => {
         if (game.officialDate && game.officialDate !== todayStr) return acc;
-        const isPostponed = (game.status?.detailedState || '').toLowerCase().includes('postponed') || 
-                           (game.status?.detailedState || '').toLowerCase().includes('canceled');
+        const detailedState = (game.status?.detailedState || '').toLowerCase();
+        const statusCode = (game.status?.statusCode || '').toUpperCase();
+        const isPostponed = detailedState.includes('postponed') || 
+                            detailedState.includes('canceled') || 
+                            detailedState.includes('cancelled') || 
+                            statusCode === 'C' || 
+                            statusCode === 'CD' || 
+                            statusCode === 'PPD' || 
+                            statusCode === 'CNCL';
         if (isPostponed) return acc;
         return acc + (game?.teams?.home?.score || 0);
       }, 0);
@@ -464,8 +511,15 @@ export default function App() {
       if (!Array.isArray(games)) return 0;
       return games.reduce((acc, game) => {
         if (game.officialDate && game.officialDate !== todayStr) return acc;
-        const isPostponed = (game.status?.detailedState || '').toLowerCase().includes('postponed') || 
-                           (game.status?.detailedState || '').toLowerCase().includes('canceled');
+        const detailedState = (game.status?.detailedState || '').toLowerCase();
+        const statusCode = (game.status?.statusCode || '').toUpperCase();
+        const isPostponed = detailedState.includes('postponed') || 
+                            detailedState.includes('canceled') || 
+                            detailedState.includes('cancelled') || 
+                            statusCode === 'C' || 
+                            statusCode === 'CD' || 
+                            statusCode === 'PPD' || 
+                            statusCode === 'CNCL';
         if (isPostponed) return acc;
         return acc + (game?.teams?.away?.score || 0);
       }, 0);
@@ -530,8 +584,16 @@ export default function App() {
     // Filter out games that won't be played or are from the wrong day
     const activeGames = games.filter(g => {
       const state = (g.status?.detailedState || '').toLowerCase();
+      const statusCode = (g.status?.statusCode || '').toUpperCase();
       const isWrongDay = g.officialDate && g.officialDate !== todayStr;
-      return !state.includes('postponed') && !state.includes('canceled') && !isWrongDay;
+      const isPostponed = state.includes('postponed') || 
+                          state.includes('canceled') || 
+                          state.includes('cancelled') || 
+                          statusCode === 'C' || 
+                          statusCode === 'CD' || 
+                          statusCode === 'PPD' || 
+                          statusCode === 'CNCL';
+      return !isPostponed && !isWrongDay;
     });
 
     if (activeGames.length === 0) {
@@ -767,6 +829,12 @@ export default function App() {
         voids[date] = true;
       }
     });
+
+    // Explicitly mark yesterday's date (last night) as voided because the Braves-Giants game was postponed
+    const lastNightStr = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+    voids['2026-06-16'] = true;
+    voids[lastNightStr] = true;
+
     return voids;
   }, [historicalGames, games]);
 
@@ -835,7 +903,20 @@ export default function App() {
           const results = await Promise.all(
             mlbDatesToFetch.map(date => fetchMLBGames(date))
           );
-          const newGames = results.flat().filter(Boolean);
+          const rawNewGames = results.flat().filter(Boolean);
+          const lastNightStr = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+          const newGames = rawNewGames.filter(game => {
+            if (!game) return false;
+            const gameDateStr = game.officialDate;
+            const isTargetDate = gameDateStr === '2026-06-16' || gameDateStr === lastNightStr;
+            const isGiantsBraves = (
+              (game.teams?.home?.team?.id === 115 && game.teams?.away?.team?.id === 94) ||
+              (game.teams?.home?.team?.id === 94 && game.teams?.away?.team?.id === 115) ||
+              (game.teams?.home?.team?.name?.toLowerCase().includes('braves') && game.teams?.away?.team?.name?.toLowerCase().includes('giants')) ||
+              (game.teams?.home?.team?.name?.toLowerCase().includes('giants') && game.teams?.away?.team?.name?.toLowerCase().includes('braves'))
+            );
+            return !(isTargetDate && isGiantsBraves);
+          });
           if (newGames.length > 0) {
             setHistoricalGames(prev => {
               const combined = [...prev, ...newGames];
@@ -1314,7 +1395,7 @@ export default function App() {
                   currentTotal={currentTotal}
                   homeTotal={homeTotal}
                   awayTotal={awayTotal}
-                  gameCount={games.length}
+                  gameCount={stats.gameCount}
                   finalCount={stats.finalCount}
                   liveCount={stats.liveCount}
                   onRefresh={() => loadLiveData(true)}
@@ -1326,6 +1407,8 @@ export default function App() {
                   projectedTotal={projectedTotal}
                   isFinished={stats.isFinished}
                   weatherSummary={stats.weatherSummary}
+                  voidDates={voidDates}
+                  todayStr={todayStr}
                 />
               ) : nhlStats && (
                 <NHLGrandSalamiHeader 
@@ -1343,6 +1426,8 @@ export default function App() {
                   betType={betType}
                   projectedTotal={null}
                   isFinished={nhlStats.isFinished}
+                  voidDates={voidDates}
+                  todayStr={todayStr}
                 />
               )}
 

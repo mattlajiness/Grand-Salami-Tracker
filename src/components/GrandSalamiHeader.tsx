@@ -25,6 +25,8 @@ interface GrandSalamiHeaderProps {
   projectedTotal?: number | null;
   isFinished?: boolean;
   weatherSummary?: { avgTemp: number; highWindGames: number } | null;
+  voidDates?: Record<string, boolean>;
+  todayStr?: string;
 }
 
 export function GrandSalamiHeader({ 
@@ -42,7 +44,9 @@ export function GrandSalamiHeader({
   betType = 'over',
   projectedTotal = null,
   isFinished = false,
-  weatherSummary = null
+  weatherSummary = null,
+  voidDates = {},
+  todayStr = ''
 }: GrandSalamiHeaderProps) {
   const { user, signIn, signOut } = useAuth();
   const [relativeTime, setRelativeTime] = useState(formatDistanceToNow(lastUpdated, { addSuffix: true }));
@@ -115,6 +119,10 @@ export function GrandSalamiHeader({
 
   const getStatus = () => {
     if (betLine === '') return null;
+    const today = todayStr || format(new Date(), 'yyyy-MM-dd');
+    if (voidDates[today]) {
+      return 'VOID';
+    }
     const line = parseFloat(betLine.toString());
     if (isFinished) {
       if (currentTotal === line) return 'PUSH';
@@ -136,7 +144,14 @@ export function GrandSalamiHeader({
   const postponedGames = useMemo(() => {
     return games.filter(g => {
       const detailedState = (g.status?.detailedState || '').toLowerCase();
-      return detailedState.includes('postponed') || detailedState.includes('canceled') || detailedState.includes('cancelled');
+      const statusCode = (g.status?.statusCode || '').toUpperCase();
+      return detailedState.includes('postponed') || 
+             detailedState.includes('canceled') || 
+             detailedState.includes('cancelled') || 
+             statusCode === 'C' || 
+             statusCode === 'CD' || 
+             statusCode === 'PPD' || 
+             statusCode === 'CNCL';
     });
   }, [games]);
 
@@ -257,6 +272,7 @@ export function GrandSalamiHeader({
                 "flex items-center gap-3 px-3 py-1.5 rounded-full border shadow-lg",
                 status === 'WON' || status === 'WINNING' || status === 'ON TRACK' ? "bg-green-500/10 border-green-500/30 text-green-400" :
                 status === 'PUSH' ? "bg-blue-500/10 border-blue-500/30 text-blue-400" :
+                status === 'VOID' ? "bg-amber-500/10 border-amber-500/30 text-amber-500" :
                 "bg-red-500/10 border-red-500/30 text-red-500"
               )}>
                 <div className="flex flex-col items-center">
