@@ -198,12 +198,11 @@ export default function App() {
       const combinedMlbHistory = mlbResults.flat();
       const combinedNhlHistory = nhlResults.flat();
 
-      // Filter out San Francisco Giants @ Atlanta Braves game from "last night" (2026-06-16 or dynamically the day before today)
-      const lastNightStr = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+      // Filter out only the postponed San Francisco Giants @ Atlanta Braves game on 2026-06-16
       const filteredMlbHistory = (combinedMlbHistory || []).filter(game => {
         if (!game) return false;
         const gameDateStr = game.officialDate;
-        const isTargetDate = gameDateStr === '2026-06-16' || gameDateStr === lastNightStr;
+        const isTargetDate = gameDateStr === '2026-06-16';
         const isGiantsBraves = (
           (game.teams?.home?.team?.id === 115 && game.teams?.away?.team?.id === 94) ||
           (game.teams?.home?.team?.id === 94 && game.teams?.away?.team?.id === 115) ||
@@ -255,12 +254,11 @@ export default function App() {
         setPalConfigured(true);
       }
       
-      // Filter out Giants @ Braves entirely from today/live games so it doesn't show in the active list (ticker, GameLog, etc.)
-      const lastNightStr = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+      // Filter out only the postponed Giants @ Braves game from June 16, 2026
       const filteredMlbResult = (mlbResult || []).filter(game => {
         if (!game) return false;
         const gameDateStr = game.officialDate;
-        const isTargetDate = gameDateStr === '2026-06-16' || gameDateStr === '2026-06-17' || gameDateStr === lastNightStr || gameDateStr === today;
+        const isTargetDate = gameDateStr === '2026-06-16';
         const isGiantsBraves = (
           (game.teams?.home?.team?.id === 115 && game.teams?.away?.team?.id === 94) ||
           (game.teams?.home?.team?.id === 94 && game.teams?.away?.team?.id === 115) ||
@@ -830,10 +828,8 @@ export default function App() {
       }
     });
 
-    // Explicitly mark yesterday's date (last night) as voided because the Braves-Giants game was postponed
-    const lastNightStr = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+    // Explicitly mark the postponed game on 2026-06-16 as voided
     voids['2026-06-16'] = true;
-    voids[lastNightStr] = true;
 
     return voids;
   }, [historicalGames, games]);
@@ -904,11 +900,10 @@ export default function App() {
             mlbDatesToFetch.map(date => fetchMLBGames(date))
           );
           const rawNewGames = results.flat().filter(Boolean);
-          const lastNightStr = format(subDays(new Date(), 1), 'yyyy-MM-dd');
           const newGames = rawNewGames.filter(game => {
             if (!game) return false;
             const gameDateStr = game.officialDate;
-            const isTargetDate = gameDateStr === '2026-06-16' || gameDateStr === lastNightStr;
+            const isTargetDate = gameDateStr === '2026-06-16';
             const isGiantsBraves = (
               (game.teams?.home?.team?.id === 115 && game.teams?.away?.team?.id === 94) ||
               (game.teams?.home?.team?.id === 94 && game.teams?.away?.team?.id === 115) ||
