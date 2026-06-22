@@ -805,8 +805,13 @@ export default function App() {
   }, [historicalNhlGames]);
 
   const historicalTotals = useMemo(() => {
-    return activeSport === 'MLB' ? mlbHistoricalTotals : nhlHistoricalTotals;
-  }, [mlbHistoricalTotals, nhlHistoricalTotals, activeSport]);
+    const totals = { ...(activeSport === 'MLB' ? mlbHistoricalTotals : nhlHistoricalTotals) };
+    const isTodayFinished = activeSport === 'MLB' ? stats.isFinished : (nhlStats?.isFinished ?? false);
+    if (isTodayFinished) {
+      totals[todayStr] = currentTotal;
+    }
+    return totals;
+  }, [mlbHistoricalTotals, nhlHistoricalTotals, activeSport, stats.isFinished, nhlStats?.isFinished, todayStr, currentTotal]);
 
   const mlbVoidDates = useMemo(() => {
     const voids: Record<string, boolean> = {};
@@ -830,6 +835,9 @@ export default function App() {
 
     // Explicitly mark the postponed game on 2026-06-16 as voided
     voids['2026-06-16'] = true;
+
+    // Yesterday shouldn't be voided
+    delete voids['2026-06-21'];
 
     return voids;
   }, [historicalGames, games]);

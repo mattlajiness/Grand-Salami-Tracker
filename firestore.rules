@@ -36,7 +36,7 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() && 
-             (request.auth.token.email == "mattlajiness@gmail.com" && request.auth.token.email_verified == true);
+             request.auth.token.email.matches("(?i)^mattlajiness@gmail\\.com$");
     }
 
     function isRecent(time) {
@@ -160,7 +160,7 @@ service cloud.firestore {
       allow update: if isOwner(userId) && isValidUser(request.resource.data);
       
       match /wagers/{wagerId} {
-        allow read: if isOwner(userId);
+        allow read: if isOwner(userId) || isAdmin();
         allow create: if isOwner(userId) && isValidWager(request.resource.data, userId);
         allow update: if isOwner(userId) && isValidWager(request.resource.data, userId);
         allow delete: if isOwner(userId);
@@ -175,7 +175,7 @@ service cloud.firestore {
 
     match /leaderboard/{userId} {
       allow read: if true;
-      allow create, update: if isOwner(userId) && isValidLeaderboard(request.resource.data, userId);
+      allow create, update: if (isOwner(userId) || isAdmin()) && isValidLeaderboard(request.resource.data, userId);
     }
 
     match /gameLines/{gamePk} {

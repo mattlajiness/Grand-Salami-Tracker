@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, limit, onSnapshot, getDocs, doc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { Users, Clock, Mail, ExternalLink, Send, Eye, EyeOff, MessageSquare } from 'lucide-react';
+import { Users, Clock, Mail, ExternalLink, Send, Eye, EyeOff, MessageSquare, RefreshCw } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { fetchMLBGames } from '../services/mlbService';
+import { fetchNHLGames } from '../services/nhlService';
 
 interface UserData {
   uid: string;
@@ -28,6 +30,252 @@ export function UserAdminPanel() {
   const [showEmailList, setShowEmailList] = useState(false);
   const [activeTab, setActiveTab] = useState<'users' | 'feedback'>('users');
   const [isHidden, setIsHidden] = useState(() => localStorage.getItem('hide_user_directory') === 'true');
+  const [syncingStreaks, setSyncingStreaks] = useState(false);
+  const [syncStatus, setSyncStatus] = useState('');
+
+  // Salami Streak Stats interfaces and functions
+  interface StreakStats {
+    current: { type: 'WIN' | 'LOSS' | 'PUSH' | null; count: number };
+    max: number;
+  }
+
+  function calculateStreakStats(sportWagers: any[], totals: Record<string, number>, voidDates: Record<string, boolean> = {}): StreakStats {
+    if (sportWagers.length === 0) return { current: { type: null, count: 0 }, max: 0 };
+
+    const settled = sportWagers.filter(w => totals[w.date] !== undefined || voidDates[w.date]);
+    if (settled.length === 0) return { current: { type: null, count: 0 }, max: 0 };
+
+    let currentCount = 0;
+    let currentType: 'WIN' | 'LOSS' | 'PUSH' | null = null;
+    let hasSetCurrent = false;
+
+    for (let i = 0; i < settled.length; i++) {
+      const wager = settled[i];
+      if (voidDates[wager.date]) {
+        continue;
+      }
+      const finalTotal = totals[wager.date];
+      const isPush = finalTotal === wager.line;
+      const isWin = !isPush && (wager.side === 'OVER' ? finalTotal > wager.line : finalTotal < wager.line);
+      const result = isWin ? 'WIN' : isPush ? 'PUSH' : 'LOSS';
+
+      if (!hasSetCurrent) {
+        currentType = result;
+        currentCount = 1;
+        hasSetCurrent = true;
+      } else if (result === currentType) {
+        currentCount++;
+      } else {
+        break;
+      }
+    }
+
+    let maxWinStreak = 0;
+    let runningWinStreak = 0;
+
+    for (let i = settled.length - 1; i >= 0; i--) {
+      const wager = settled[i];
+      if (voidDates[wager.date]) {
+        continue;
+      }
+      const finalTotal = totals[wager.date];
+      const isPush = finalTotal === wager.line;
+      const isWin = !isPush && (wager.side === 'OVER' ? finalTotal > wager.line : finalTotal < wager.line);
+
+      if (isWin) {
+        runningWinStreak++;
+        if (runningWinStreak > maxWinStreak) {
+          maxWinStreak = runningWinStreak;
+        }
+      } else if (isPush) {
+        // Push does not break winning streak
+      } else {
+        runningWinStreak = 0;
+      }
+    }
+
+    return {
+      current: { type: currentType, count: currentCount },
+      max: maxWinStreak
+    };
+  }
+
+  const recalculateAllUserStreaks = async () => {
+    setSyncingStreaks(true);
+    setSyncStatus('Fetching all users...');
+    try {
+      const usersSnap = await getDocs(collection(db, 'users'));
+      const allUsers = usersSnap.docs.map(doc => ({ uid: doc.id, ...doc.data() })) as UserData[];
+      
+      setSyncStatus(`Found ${allUsers.length} users. Fetching wagers...`);
+      
+      const userWagersMap: Record<string, any[]> = {};
+      const uniqueMlbDates = new Set<string>();
+      const uniqueNhlDates = new Set<string>();
+      
+      for (const u of allUsers) {
+        setSyncStatus(`Fetching wagers for ${u.displayName || u.email || u.uid}...`);
+        const wagersSnap = await getDocs(collection(db, 'users', u.uid, 'wagers'));
+        const wagers = wagersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        userWagersMap[u.uid] = wagers;
+        
+        wagers.forEach((w: any) => {
+          const sport = (w.sport || 'MLB').toUpperCase();
+          if (sport === 'MLB') {
+            uniqueMlbDates.add(w.date);
+          } else if (sport === 'NHL') {
+            uniqueNhlDates.add(w.date);
+          }
+        });
+      }
+      
+      setSyncStatus(`Fetching game scores for ${uniqueMlbDates.size + uniqueNhlDates.size} dates...`);
+      
+      // Fetch MLB Scores
+      const mlbVoidDates: Record<string, boolean> = {};
+      const mlbTotals: Record<string, number> = {};
+      
+      let dateIdx = 0;
+      for (const date of uniqueMlbDates) {
+        dateIdx++;
+        setSyncStatus(`Fetching MLB scores: ${date} (${dateIdx}/${uniqueMlbDates.size})...`);
+        try {
+          const games = await fetchMLBGames(date);
+          const filteredGames = (games || []).filter((game: any) => {
+            if (!game) return false;
+            const gameDateStr = game.officialDate;
+            const isTargetDate = gameDateStr === '2026-06-16';
+            const isGiantsBraves = (
+              (game.teams?.home?.team?.id === 115 && game.teams?.away?.team?.id === 94) ||
+              (game.teams?.home?.team?.id === 94 && game.teams?.away?.team?.id === 115) ||
+              (game.teams?.home?.team?.name?.toLowerCase().includes('braves') && game.teams?.away?.team?.name?.toLowerCase().includes('giants')) ||
+              (game.teams?.home?.team?.name?.toLowerCase().includes('giants') && game.teams?.away?.team?.name?.toLowerCase().includes('braves'))
+            );
+            return !(isTargetDate && isGiantsBraves);
+          });
+          
+          let hasPreviewOrLive = false;
+          let hasFinal = false;
+          let totalRuns = 0;
+          let isDateVoided = false;
+          
+          filteredGames.forEach((g: any) => {
+            const state = g.status?.abstractGameState;
+            if (state === 'Preview' || state === 'Live') {
+              hasPreviewOrLive = true;
+            }
+            if (state === 'Final') {
+              hasFinal = true;
+              totalRuns += (g.teams?.away?.score || 0) + (g.teams?.home?.score || 0);
+            }
+            
+            const detailedState = (g.status?.detailedState || "").toLowerCase();
+            const statusCode = g.status?.statusCode?.toUpperCase() || "";
+            const isPostponed = detailedState.includes("postponed") || detailedState.includes("canceled") || detailedState.includes("cancelled") || statusCode === "C" || statusCode === "CD" || statusCode === "PPD" || statusCode === "CNCL";
+            if (isPostponed) {
+              isDateVoided = true;
+            }
+          });
+          
+          if (hasFinal && !hasPreviewOrLive) {
+            mlbTotals[date] = totalRuns;
+          }
+          if (isDateVoided) {
+            mlbVoidDates[date] = true;
+          }
+        } catch (e) {
+          console.error(`Failed to fetch MLB ${date}`, e);
+        }
+      }
+      
+      // Void Overrides
+      mlbVoidDates['2026-06-16'] = true;
+      delete mlbVoidDates['2026-06-21']; // Yesterday shouldn't be voided
+      
+      // Fetch NHL Scores
+      const nhlVoidDates: Record<string, boolean> = {};
+      const nhlTotals: Record<string, number> = {};
+      
+      dateIdx = 0;
+      for (const date of uniqueNhlDates) {
+        dateIdx++;
+        setSyncStatus(`Fetching NHL scores: ${date} (${dateIdx}/${uniqueNhlDates.size})...`);
+        try {
+          const nhlResult = await fetchNHLGames(date);
+          let hasPreviewOrLive = false;
+          let hasFinished = false;
+          let totalGoals = 0;
+          let isDateVoided = false;
+          
+          (nhlResult || []).forEach((g: any) => {
+            const state = g.gameState;
+            if (state === 'PRE' || state === 'LIVE' || state === 'CRIT') {
+              hasPreviewOrLive = true;
+            }
+            if (state === 'FINAL' || state === 'OFF') {
+              hasFinished = true;
+              totalGoals += (g.awayTeam?.score || 0) + (g.homeTeam?.score || 0);
+            }
+            
+            const scheduleState = g.gameScheduleState || "";
+            const isPostponed = scheduleState === "PPD" || scheduleState === "CNCL" || state === "PPD" || state === "CNCL";
+            if (isPostponed) {
+              isDateVoided = true;
+            }
+          });
+          
+          if (hasFinished && !hasPreviewOrLive) {
+            nhlTotals[date] = totalGoals;
+          }
+          if (isDateVoided) {
+            nhlVoidDates[date] = true;
+          }
+        } catch (e) {
+          console.error(`Failed to fetch NHL ${date}`, e);
+        }
+      }
+      
+      // Calculate & update Firestore in batch
+      let updatedCount = 0;
+      for (const u of allUsers) {
+        setSyncStatus(`Syncing streaks for ${u.displayName || u.email || u.uid}...`);
+        const wagers = userWagersMap[u.uid] || [];
+        
+        const mlbUserWagers = wagers
+          .filter((w: any) => (w.sport || 'MLB').toUpperCase() === 'MLB')
+          .sort((a: any, b: any) => b.date.localeCompare(a.date));
+        
+        const nhlUserWagers = wagers
+          .filter((w: any) => (w.sport || 'MLB').toUpperCase() === 'NHL')
+          .sort((a: any, b: any) => b.date.localeCompare(a.date));
+        
+        const mlbStats = calculateStreakStats(mlbUserWagers, mlbTotals, mlbVoidDates);
+        const nhlStats = calculateStreakStats(nhlUserWagers, nhlTotals, nhlVoidDates);
+        
+        const leaderboardData = {
+          userId: u.uid,
+          displayName: u.displayName || u.email?.split('@')[0] || 'Anonymous Salami Bettor',
+          mlbStreak: mlbStats.current.type === 'WIN' ? mlbStats.current.count : 0,
+          mlbMaxStreak: mlbStats.max,
+          nhlStreak: nhlStats.current.type === 'WIN' ? nhlStats.current.count : 0,
+          nhlMaxStreak: nhlStats.max,
+          updatedAt: new Date().toISOString()
+        };
+        
+        const docRef = doc(db, 'leaderboard', u.uid);
+        await setDoc(docRef, leaderboardData, { merge: true });
+        updatedCount++;
+      }
+      
+      setSyncStatus(`Success! Recalculated and synced streaks for all ${updatedCount} users.`);
+      setTimeout(() => setSyncStatus(''), 8000);
+    } catch (error: any) {
+      console.error('Batch sync error:', error);
+      setSyncStatus(`Sync error: ${error.message || 'Unknown error occurred'}`);
+    } finally {
+      setSyncingStreaks(false);
+    }
+  };
 
   useEffect(() => {
     const qUsers = query(
@@ -38,6 +286,7 @@ export function UserAdminPanel() {
 
     const unsubscribeUsers = onSnapshot(qUsers, (snapshot) => {
       const usersList = snapshot.docs.map(doc => ({
+        uid: doc.id,
         ...doc.data()
       })) as UserData[];
       setUsers(usersList);
@@ -165,6 +414,22 @@ export function UserAdminPanel() {
               </button>
             )}
 
+            {activeTab === 'users' && (
+              <button 
+                disabled={syncingStreaks}
+                onClick={recalculateAllUserStreaks}
+                className={cn(
+                  "px-4 py-2 rounded-full border transition-all duration-300 font-bold uppercase tracking-widest text-[9px] flex items-center gap-2 whitespace-nowrap",
+                  syncingStreaks
+                    ? "bg-amber-600 border-amber-500 text-white animate-pulse"
+                    : "bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-500 border-emerald-500 text-white shadow-[0_2px_10px_rgba(16,185,129,0.2)]"
+                )}
+              >
+                <RefreshCw className={cn("w-3.5 h-3.5", syncingStreaks && "animate-spin")} />
+                {syncingStreaks ? "Syncing..." : "Sync All Streaks"}
+              </button>
+            )}
+
             <button
               onClick={() => {
                 setIsHidden(true);
@@ -178,6 +443,15 @@ export function UserAdminPanel() {
             </button>
           </div>
         </div>
+
+        {syncStatus && (
+          <div className="mb-4 p-4 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center gap-3 animate-in fade-in duration-300">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+            <p className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest leading-none">
+              {syncStatus}
+            </p>
+          </div>
+        )}
 
         {activeTab === 'users' ? (
           showEmailList ? (
