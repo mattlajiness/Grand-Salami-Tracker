@@ -172,7 +172,8 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
     }
   };
 
-  const urlObj = new URL('https://statsapi.mlb.com/api/v1/schedule');
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+  const urlObj = new URL('/api/mlb/schedule', origin);
   urlObj.searchParams.append('sportId', '1');
   urlObj.searchParams.append('hydrate', 'linescore,team,weather,venue,probablePitcher,boxscore,officials');
   urlObj.searchParams.append('_t', Math.floor(Date.now() / 60000).toString()); // Minute-level cache busting
@@ -239,7 +240,8 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
       // 1. Boxscore enrichment
       if (game.status.abstractGameState === 'Final' && (!game.boxscore?.teams.home.pitchers || game.boxscore.teams.home.pitchers.length === 0)) {
         try {
-          const boxResponse = await fetch(`https://statsapi.mlb.com/api/v1/game/${game.gamePk}/boxscore`);
+          const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+          const boxResponse = await fetch(`${origin}/api/mlb/game/${game.gamePk}/boxscore`);
           if (boxResponse.ok) {
             const boxData = await boxResponse.json();
             enrichedGame.boxscore = {
@@ -271,7 +273,8 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
 
       // 3. Over/Under TotalLine enrichment
       try {
-        const oddsUrl = `https://statsapi.mlb.com/api/v1/game/${game.gamePk}/contextMetrics?hydrate=odds`;
+        const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+        const oddsUrl = `${origin}/api/mlb/game/${game.gamePk}/contextMetrics?hydrate=odds`;
         const oddsRes = await fetch(oddsUrl);
         if (oddsRes.ok) {
           const oddsData = await oddsRes.json();
@@ -308,7 +311,8 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
       if (pitcherStatsCache && (now - (pitcherStatsCache as any).lastFetched < CACHE_TTL)) {
         statsMap = pitcherStatsCache.data;
       } else {
-        statsMap = await fetchPitcherStats(pitcherIdsWithOpponents);
+        const seasonYear = date ? date.split('-')[0] : '2026';
+        statsMap = await fetchPitcherStats(pitcherIdsWithOpponents, seasonYear);
         pitcherStatsCache = { data: statsMap, lastFetched: now } as any;
       }
 
@@ -381,7 +385,7 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
   }
 }
 
-async function fetchPitcherStats(pitcherInfo: { id: number, opponentId: number }[]): Promise<Record<number, any>> {
+async function fetchPitcherStats(pitcherInfo: { id: number, opponentId: number }[], seasonYear: string = '2026'): Promise<Record<number, any>> {
   const statsMap: Record<number, any> = {};
   const pitcherIds = pitcherInfo.map(p => p.id);
   
@@ -393,7 +397,9 @@ async function fetchPitcherStats(pitcherInfo: { id: number, opponentId: number }
 
   await Promise.all(batches.map(async (batch) => {
     try {
-      const url = `https://statsapi.mlb.com/api/v1/people?personIds=${batch.join(',')}&hydrate=stats(group=[pitching],type=[season,gameLog])`;
+      // Query without restricting season filter globally to allow robust fallback to prior seasons
+      const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+      const url = `${origin}/api/mlb/people?personIds=${batch.join(',')}&hydrate=stats(group=[pitching],type=[season,yearByYear,gameLog])`;
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort('PitcherStatsTimeout'), 20000);
       
@@ -407,18 +413,48 @@ async function fetchPitcherStats(pitcherInfo: { id: number, opponentId: number }
         data.people.forEach((person: any) => {
           const stats: any = {};
           
-          // Season stats
-          const seasonStats = person.stats?.find((s: any) => s.type.displayName === 'season' && s.group.displayName === 'pitching');
-          const seasonSplit = seasonStats?.splits?.find((split: any) => split.season === '2026' || split.season === '2025');
-          if (seasonSplit?.stat) {
-            stats.era = seasonSplit.stat.era;
-            stats.whip = seasonSplit.stat.whip;
-            stats.wins = seasonSplit.stat.wins;
-            stats.losses = seasonSplit.stat.losses;
+          // Season & yearByYear stats with robust fallback to most recent active season
+          let bestSplit: any = null;
+          let bestSplitYear = 0;
+
+          if (person.stats) {
+            person.stats.forEach((statGroup: any) => {
+              const groupName = (statGroup.group?.displayName || statGroup.group?.value || '').toLowerCase();
+              
+              if (groupName === 'pitching' && statGroup.splits) {
+                statGroup.splits.forEach((split: any) => {
+                  const splitYear = parseInt(split.season || '0', 10);
+                  if (split.stat && splitYear > 0 && splitYear <= parseInt(seasonYear, 10)) {
+                    if (splitYear > bestSplitYear) {
+                      bestSplit = split;
+                      bestSplitYear = splitYear;
+                    } else if (splitYear === bestSplitYear && bestSplit) {
+                      const curGames = split.stat.gamesPlayed || 0;
+                      const prevGames = bestSplit.stat.gamesPlayed || 0;
+                      if (curGames > prevGames) {
+                        bestSplit = split;
+                      }
+                    }
+                  }
+                });
+              }
+            });
           }
 
-          // Last 3 games from gameLog
-          const gameLogStats = person.stats?.find((s: any) => s.type.displayName === 'gameLog' && s.group.displayName === 'pitching');
+          if (bestSplit?.stat) {
+            stats.era = bestSplit.stat.era;
+            stats.whip = bestSplit.stat.whip;
+            stats.wins = bestSplit.stat.wins;
+            stats.losses = bestSplit.stat.losses;
+          }
+
+          // Last 3 games from gameLog with robust matching
+          const gameLogStats = person.stats?.find((s: any) => {
+            const typeName = (s.type?.displayName || s.type?.value || '').toLowerCase();
+            const groupName = (s.group?.displayName || s.group?.value || '').toLowerCase();
+            return typeName === 'gamelog' && groupName === 'pitching';
+          });
+
           if (gameLogStats?.splits?.length > 0) {
             const lastThree = gameLogStats.splits.slice(-3);
             let totalER = 0;

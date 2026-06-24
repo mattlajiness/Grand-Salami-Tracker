@@ -1147,7 +1147,8 @@ export default function App() {
       try {
         const docRef = doc(db, 'leaderboard', user.uid);
         const cacheString = JSON.stringify(calculatedLeaderboardData);
-        if (safeStorage.getItem('leaderboard_sync_cache') === cacheString) {
+        const cacheKey = `leaderboard_sync_cache_${user.uid}`;
+        if (safeStorage.getItem(cacheKey) === cacheString) {
           return;
         }
 
@@ -1156,7 +1157,7 @@ export default function App() {
           updatedAt: new Date().toISOString(),
         }, { merge: true });
 
-        safeStorage.setItem('leaderboard_sync_cache', cacheString);
+        safeStorage.setItem(cacheKey, cacheString);
       } catch (error) {
         console.error('Error syncing leaderboard stats:', error);
       }

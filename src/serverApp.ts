@@ -95,6 +95,114 @@ app.get("/api/nhl/game/:gameId", async (req, res) => {
   }
 });
 
+// MLB API Proxies to bypass browser CORS limitations and secure data retrieval
+app.get("/api/mlb/schedule", async (req, res) => {
+  const urlObj = new URL("https://statsapi.mlb.com/api/v1/schedule");
+  Object.keys(req.query).forEach(key => {
+    urlObj.searchParams.append(key, req.query[key] as string);
+  });
+
+  console.log(`[MLB Schedule Proxy] Fetching: ${urlObj.toString()}`);
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+
+    const response = await fetch(urlObj.toString(), { signal: controller.signal });
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      return res.status(response.status).json({ error: "Failed to fetch MLB schedule" });
+    }
+
+    const data = await response.json();
+    res.json(data);
+  } catch (error: any) {
+    console.error("MLB Schedule Proxy Error:", error);
+    res.status(500).json({ error: "Internal Server Error", message: error.message });
+  }
+});
+
+app.get("/api/mlb/people", async (req, res) => {
+  const urlObj = new URL("https://statsapi.mlb.com/api/v1/people");
+  Object.keys(req.query).forEach(key => {
+    urlObj.searchParams.append(key, req.query[key] as string);
+  });
+
+  console.log(`[MLB People Proxy] Fetching: ${urlObj.toString()}`);
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+
+    const response = await fetch(urlObj.toString(), { signal: controller.signal });
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      return res.status(response.status).json({ error: "Failed to fetch MLB people stats" });
+    }
+
+    const data = await response.json();
+    res.json(data);
+  } catch (error: any) {
+    console.error("MLB People Proxy Error:", error);
+    res.status(500).json({ error: "Internal Server Error", message: error.message });
+  }
+});
+
+app.get("/api/mlb/game/:gamePk/boxscore", async (req, res) => {
+  const { gamePk } = req.params;
+  const url = `https://statsapi.mlb.com/api/v1/game/${gamePk}/boxscore`;
+
+  console.log(`[MLB Boxscore Proxy] Fetching: ${url}`);
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      return res.status(response.status).json({ error: "Failed to fetch MLB boxscore" });
+    }
+
+    const data = await response.json();
+    res.json(data);
+  } catch (error: any) {
+    console.error("MLB Boxscore Proxy Error:", error);
+    res.status(500).json({ error: "Internal Server Error", message: error.message });
+  }
+});
+
+app.get("/api/mlb/game/:gamePk/contextMetrics", async (req, res) => {
+  const { gamePk } = req.params;
+  const urlObj = new URL(`https://statsapi.mlb.com/api/v1/game/${gamePk}/contextMetrics`);
+  Object.keys(req.query).forEach(key => {
+    urlObj.searchParams.append(key, req.query[key] as string);
+  });
+
+  console.log(`[MLB ContextMetrics Proxy] Fetching: ${urlObj.toString()}`);
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
+    const response = await fetch(urlObj.toString(), { signal: controller.signal });
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      return res.status(response.status).json({ error: "Failed to fetch MLB context metrics" });
+    }
+
+    const data = await response.json();
+    res.json(data);
+  } catch (error: any) {
+    console.error("MLB ContextMetrics Proxy Error:", error);
+    res.status(500).json({ error: "Internal Server Error", message: error.message });
+  }
+});
+
 // Health check
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });

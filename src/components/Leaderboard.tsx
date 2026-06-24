@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, limit, onSnapshot, doc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Trophy, Flame, Award, Search, Sparkles, TrendingUp, HelpCircle, Eye, EyeOff } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -26,6 +26,7 @@ export function Leaderboard({ currentUserId, activeSport: initialSport }: Leader
   const [sortBy, setSortBy] = useState<'active' | 'max'>('active');
   const [searchQuery, setSearchQuery] = useState('');
   const [records, setRecords] = useState<LeaderboardRecord[]>([]);
+  const [userSelfRecord, setUserSelfRecord] = useState<LeaderboardRecord | null>(null);
   const [loading, setLoading] = useState(true);
 
   const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -87,6 +88,34 @@ export function Leaderboard({ currentUserId, activeSport: initialSport }: Leader
 
     return () => unsubscribe();
   }, [sortField]);
+
+  // Subscribe to logged-in user's personal standing
+  useEffect(() => {
+    if (!currentUserId) {
+      setUserSelfRecord(null);
+      return;
+    }
+    const docRef = doc(db, 'leaderboard', currentUserId);
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setUserSelfRecord({
+          id: docSnap.id,
+          userId: currentUserId,
+          ...docSnap.data()
+        } as LeaderboardRecord);
+      } else {
+        setUserSelfRecord(null);
+      }
+    }, (error) => {
+      console.warn("User self leaderboard snapshot error:", error);
+    });
+    return () => unsubscribe();
+  }, [currentUserId]);
+
+  const isUserInTop30 = useMemo(() => {
+    if (!currentUserId) return false;
+    return records.some(r => r.userId === currentUserId || r.id === currentUserId);
+  }, [records, currentUserId]);
 
   // Client-side quick filter for search
   const filteredRecords = useMemo(() => {
@@ -330,6 +359,81 @@ export function Leaderboard({ currentUserId, activeSport: initialSport }: Leader
                       </div>
                     );
                   })}
+                  
+                  {currentUserId && !isUserInTop30 && userSelfRecord && (
+                    <div className="space-y-1.5 mt-2.5 pt-2.5 border-t border-dashed border-slate-800">
+                      <p className="text-[8px] font-mono text-slate-500 uppercase tracking-widest pl-1">
+                        Your Standing
+                      </p>
+                      {(() => {
+                        const activeVal = sport === 'MLB' ? userSelfRecord.mlbStreak : userSelfRecord.nhlStreak;
+                        const maxVal = sport === 'MLB' ? userSelfRecord.mlbMaxStreak : userSelfRecord.nhlMaxStreak;
+                        
+                        return (
+                          <div
+                            className="p-3 rounded-xl border flex items-center justify-between transition-all duration-300 gap-3 bg-blue-500/10 border-blue-500/40 shadow-[0_0_15px_rgba(59,130,246,0.1)] hover:border-blue-500/60"
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <span className="w-7 h-7 rounded-lg border flex items-center justify-center text-[10px] font-bold font-mono shrink-0 select-none shadow-sm bg-slate-950 border-slate-900 text-slate-400">
+                                #30+
+                              </span>
+                              
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-xs font-bold truncate text-blue-400 font-extrabold">
+                                    {userSelfRecord.displayName || 'Anonymous Salami'}
+                                  </span>
+                                  <span className="px-1.5 py-0.2 bg-blue-500/20 border border-blue-400/30 text-[8px] font-black uppercase text-blue-300 tracking-widest rounded-full leading-normal scale-90">
+                                    YOU
+                                  </span>
+                                </div>
+                                
+                                <div className="flex items-center gap-1.5 text-[8px] font-mono text-slate-500 mt-0.5">
+                                  {sortBy === 'active' ? (
+                                    <span>BEST ALL-TIME: {maxVal} WINS</span>
+                                  ) : (
+                                    <span>ACTIVE STREAK: {activeVal > 0 ? `${activeVal}W` : 'NONE'}</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-3 shrink-0">
+                              <div className="text-right">
+                                {sortBy === 'active' ? (
+                                  activeVal > 0 ? (
+                                    <div className="flex items-center gap-1 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded-full shadow-[0_0_10px_rgba(239,68,68,0.05)]">
+                                      <Flame className="w-3.5 h-3.5 text-red-500 fill-red-500 animate-pulse" />
+                                      <span className="text-xs font-black text-red-400 font-mono italic">
+                                        {activeVal}W
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <div className="text-[10px] font-bold text-slate-500 font-mono uppercase bg-slate-950 border border-slate-800 px-2 py-0.5 rounded-full select-none">
+                                      0-0
+                                    </div>
+                                  )
+                                ) : (
+                                  maxVal > 0 ? (
+                                    <div className="flex items-center gap-1 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full shadow-[0_0_10px_rgba(245,158,11,0.05)]">
+                                      <Award className="w-3.5 h-3.5 text-amber-500 fill-amber-500/10" />
+                                      <span className="text-xs font-black text-amber-400 font-mono italic">
+                                        {maxVal}W
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <div className="text-[10px] font-bold text-slate-500 font-mono uppercase bg-slate-950 border border-slate-800 px-2 py-0.5 rounded-full select-none">
+                                      0-0
+                                    </div>
+                                  )
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
