@@ -982,7 +982,7 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                               </span>
                               {game.teams.away.probablePitcher && (
                                 <span className="text-[8px] font-mono text-slate-500 truncate max-w-[120px]">
-                                  {game.teams.away.probablePitcher.fullName.split(' ').pop()}
+                                  {(game.teams.away.probablePitcher.fullName || '').split(' ').pop()}
                                   {game.teams.away.probablePitcher.era && ` (${game.teams.away.probablePitcher.era})`}
                                 </span>
                               )}
@@ -1007,7 +1007,7 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                               </span>
                               {game.teams.home.probablePitcher && (
                                 <span className="text-[8px] font-mono text-slate-500 truncate max-w-[120px]">
-                                  {game.teams.home.probablePitcher.fullName.split(' ').pop()}
+                                  {(game.teams.home.probablePitcher.fullName || '').split(' ').pop()}
                                   {game.teams.home.probablePitcher.era && ` (${game.teams.home.probablePitcher.era})`}
                                 </span>
                               )}
