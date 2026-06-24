@@ -168,7 +168,7 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
     }
   };
 
-  const urlObj = new URL('/api/mlb/schedule', typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+  const urlObj = new URL(`https://statsapi.mlb.com/api/v1/schedule`);
   urlObj.searchParams.append('sportId', '1');
   urlObj.searchParams.append('hydrate', 'linescore,team,weather,venue,probablePitcher,boxscore,officials');
   urlObj.searchParams.append('_t', Math.floor(Date.now() / 60000).toString()); // Minute-level cache busting
@@ -239,7 +239,7 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
         // 1. Boxscore enrichment
         if (game.status.abstractGameState === 'Final' && (!game.boxscore?.teams.home.pitchers || game.boxscore.teams.home.pitchers.length === 0)) {
           try {
-            const boxResponse = await fetch(`/api/mlb/game/${game.gamePk}/boxscore`);
+            const boxResponse = await fetch(`https://statsapi.mlb.com/api/v1/game/${game.gamePk}/boxscore`);
             if (boxResponse.ok) {
               const boxData = await boxResponse.json();
               enrichedGame.boxscore = {
@@ -271,7 +271,7 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
 
         // 3. Over/Under TotalLine enrichment
         try {
-          const oddsUrl = `/api/mlb/game/${game.gamePk}/contextMetrics?hydrate=odds`;
+          const oddsUrl = `https://statsapi.mlb.com/api/v1/game/${game.gamePk}/contextMetrics?hydrate=odds`;
           const oddsRes = await fetch(oddsUrl);
           if (oddsRes.ok) {
             const oddsData = await oddsRes.json();
@@ -416,7 +416,7 @@ async function fetchPitcherStats(pitcherInfo: { id: number, opponentId: number }
   await Promise.all(batches.map(async (batch) => {
     try {
       // Query without restricting season filter globally to allow robust fallback to prior seasons
-      const url = `/api/mlb/people?personIds=${batch.join(',')}&hydrate=stats(group=[pitching],type=[season,yearByYear,gameLog])`;
+      const url = `https://statsapi.mlb.com/api/v1/people?personIds=${batch.join(',')}&hydrate=stats(group=[pitching],type=[season,yearByYear,gameLog])`;
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort('PitcherStatsTimeout'), 20000);
       
