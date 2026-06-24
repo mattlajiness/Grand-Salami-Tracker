@@ -132,15 +132,15 @@ const SCHEDULE_CACHE_TTL = 60 * 1000; // 1 minute fallback cache
 const safeLocalStorage = {
   getItem(key: string): string | null {
     try {
-      return typeof window !== 'undefined' && window.localStorage ? localStorage.getItem(key) : null;
+      return typeof window !== 'undefined' && window.sessionStorage ? sessionStorage.getItem(key) : null;
     } catch {
       return null;
     }
   },
   setItem(key: string, value: string): void {
     try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        localStorage.setItem(key, value);
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        sessionStorage.setItem(key, value);
       }
     } catch {}
   }

@@ -74,6 +74,21 @@ try {
 // Helper to detect if local persistence / IndexedDB is supported and accessible in the current browser/iframe context
 function isPersistenceSupported(): boolean {
   try {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        // Aggressive cleanup: remove all NHL and MLB caches to free up quota
+        for (let i = 0; i < window.localStorage.length; i++) {
+          const key = window.localStorage.key(i);
+          if (key && (key.startsWith('mlb_games_cache_') || key.startsWith('nhl_games_cache_') || key.startsWith('salami_live_games_'))) {
+            window.localStorage.removeItem(key);
+            i--; // adjust index since we removed an item
+          }
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+
     if (typeof window === 'undefined' || !window.indexedDB) {
       return false;
     }
