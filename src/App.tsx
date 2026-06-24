@@ -190,10 +190,26 @@ export default function App() {
     try {
       const datesToFetch = [1, 2, 3, 4, 5, 6, 7].map(d => format(subDays(new Date(), d), 'yyyy-MM-dd'));
       
-      const [mlbResults, nhlResults] = await Promise.all([
-        Promise.all(datesToFetch.map(date => fetchMLBGames(date))),
-        Promise.all(datesToFetch.map(date => fetchNHLGames(date)))
-      ]);
+      // Fetch sequentially to avoid rate-limiting the proxy and MLB API
+      const mlbResults: any[] = [];
+      const nhlResults: any[] = [];
+      
+      for (const date of datesToFetch) {
+        try {
+          const mlb = await fetchMLBGames(date);
+          mlbResults.push(mlb);
+        } catch (e) {
+          console.warn(`Failed to fetch MLB history for ${date}`);
+        }
+        try {
+          const nhl = await fetchNHLGames(date);
+          nhlResults.push(nhl);
+        } catch (e) {
+          console.warn(`Failed to fetch NHL history for ${date}`);
+        }
+        // Small delay between days to be nice to the API
+        await new Promise(r => setTimeout(r, 200));
+      }
 
       const combinedMlbHistory = mlbResults.flat();
       const combinedNhlHistory = nhlResults.flat();

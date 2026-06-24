@@ -97,10 +97,8 @@ app.get("/api/nhl/game/:gameId", async (req, res) => {
 
 // MLB API Proxies to bypass browser CORS limitations and secure data retrieval
 app.get("/api/mlb/schedule", async (req, res) => {
-  const urlObj = new URL("https://statsapi.mlb.com/api/v1/schedule");
-  Object.keys(req.query).forEach(key => {
-    urlObj.searchParams.append(key, req.query[key] as string);
-  });
+  const queryStr = req.originalUrl.split('?')[1] || '';
+  const urlObj = new URL(`https://statsapi.mlb.com/api/v1/schedule?${queryStr}`);
 
   console.log(`[MLB Schedule Proxy] Fetching: ${urlObj.toString()}`);
 
@@ -124,10 +122,8 @@ app.get("/api/mlb/schedule", async (req, res) => {
 });
 
 app.get("/api/mlb/people", async (req, res) => {
-  const urlObj = new URL("https://statsapi.mlb.com/api/v1/people");
-  Object.keys(req.query).forEach(key => {
-    urlObj.searchParams.append(key, req.query[key] as string);
-  });
+  const queryStr = req.originalUrl.split('?')[1] || '';
+  const urlObj = new URL(`https://statsapi.mlb.com/api/v1/people?${queryStr}`);
 
   console.log(`[MLB People Proxy] Fetching: ${urlObj.toString()}`);
 
@@ -177,10 +173,8 @@ app.get("/api/mlb/game/:gamePk/boxscore", async (req, res) => {
 
 app.get("/api/mlb/game/:gamePk/contextMetrics", async (req, res) => {
   const { gamePk } = req.params;
-  const urlObj = new URL(`https://statsapi.mlb.com/api/v1/game/${gamePk}/contextMetrics`);
-  Object.keys(req.query).forEach(key => {
-    urlObj.searchParams.append(key, req.query[key] as string);
-  });
+  const queryStr = req.originalUrl.split('?')[1] || '';
+  const urlObj = new URL(`https://statsapi.mlb.com/api/v1/game/${gamePk}/contextMetrics?${queryStr}`);
 
   console.log(`[MLB ContextMetrics Proxy] Fetching: ${urlObj.toString()}`);
 

@@ -5,7 +5,7 @@ import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 import { format, subDays, parseISO } from 'date-fns';
 
-const getTeamAbbreviation = (teamId: number, teamName: string): string => {
+const getTeamAbbreviation = (teamId: number, teamName: string = ''): string => {
   const m: Record<number, string> = {
     109: "ARI", 144: "ATL", 110: "BAL", 111: "BOS", 112: "CHC",
     145: "CWS", 113: "CIN", 114: "CLE", 115: "COL", 116: "DET",
@@ -15,12 +15,13 @@ const getTeamAbbreviation = (teamId: number, teamName: string): string => {
     138: "STL", 139: "TB", 140: "TEX", 141: "TOR", 120: "WSH"
   };
   if (m[teamId]) return m[teamId];
-  if (teamName.toLowerCase().includes("las vegas") || teamName.toLowerCase().includes("athletics")) return "ATH";
-  const words = teamName.replace(/[^a-zA-Z\s]/g, "").split(/\s+/);
+  const safeName = teamName || '';
+  if (safeName.toLowerCase().includes("las vegas") || safeName.toLowerCase().includes("athletics")) return "ATH";
+  const words = safeName.replace(/[^a-zA-Z\s]/g, "").split(/\s+/);
   if (words.length >= 2) {
     return (words[0].substring(0, 1) + words[1].substring(0, 2)).toUpperCase();
   }
-  return teamName.substring(0, 3).toUpperCase();
+  return safeName.substring(0, 3).toUpperCase();
 };
 
 interface BullpenFatigueReportProps {

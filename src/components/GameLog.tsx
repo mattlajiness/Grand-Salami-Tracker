@@ -975,7 +975,7 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                                 referrerPolicy="no-referrer"
                               />
                               <span className="text-[11px] font-bold text-slate-300 truncate max-w-[85px]">
-                                {game.teams.away.team.name.split(' ').pop()}
+                                {(game.teams.away.team.name || '').split(' ').pop()}
                               </span>
                               <span className="text-[8px] font-mono text-slate-500 font-semibold shrink-0">
                                 {getMLBTeamRecordStr(game.teams.away)}
@@ -1000,7 +1000,7 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                                 referrerPolicy="no-referrer"
                               />
                               <span className="text-[11px] font-bold text-slate-300 truncate max-w-[85px]">
-                                {game.teams.home.team.name.split(' ').pop()}
+                                {(game.teams.home.team.name || '').split(' ').pop()}
                               </span>
                               <span className="text-[8px] font-mono text-slate-500 font-semibold shrink-0">
                                 {getMLBTeamRecordStr(game.teams.home)}
@@ -1990,7 +1990,7 @@ function GameDetailView({ game, parkFactors = [] }: { game: MLBGame, parkFactors
           <tbody className="divide-y divide-slate-800">
             <tr>
               <td className="py-3 font-bold text-slate-300 uppercase tracking-tighter">
-                {game.teams.away.team.name.split(' ').pop()} <span className="text-[8px] font-mono text-slate-500 ml-1">{getMLBTeamRecordStr(game.teams.away)}</span>
+                {(game.teams.away.team.name || '').split(' ').pop()} <span className="text-[8px] font-mono text-slate-500 ml-1">{getMLBTeamRecordStr(game.teams.away)}</span>
               </td>
               {linescore.innings?.map(inn => (
                 <td key={inn.num} className="text-center px-2 py-3 text-slate-500">{inn.away.runs ?? '-'}</td>
@@ -2003,7 +2003,7 @@ function GameDetailView({ game, parkFactors = [] }: { game: MLBGame, parkFactors
             </tr>
             <tr>
               <td className="py-3 font-bold text-slate-300 uppercase tracking-tighter">
-                {game.teams.home.team.name.split(' ').pop()} <span className="text-[8px] font-mono text-slate-500 ml-1">{getMLBTeamRecordStr(game.teams.home)}</span>
+                {(game.teams.home.team.name || '').split(' ').pop()} <span className="text-[8px] font-mono text-slate-500 ml-1">{getMLBTeamRecordStr(game.teams.home)}</span>
               </td>
               {linescore.innings?.map(inn => (
                 <td key={inn.num} className="text-center px-2 py-3 text-slate-500">{inn.home.runs ?? '-'}</td>

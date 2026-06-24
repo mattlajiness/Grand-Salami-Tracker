@@ -168,8 +168,7 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
     }
   };
 
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
-  const urlObj = new URL('/api/mlb/schedule', origin);
+  const urlObj = new URL('/api/mlb/schedule', typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
   urlObj.searchParams.append('sportId', '1');
   urlObj.searchParams.append('hydrate', 'linescore,team,weather,venue,probablePitcher,boxscore,officials');
   urlObj.searchParams.append('_t', Math.floor(Date.now() / 60000).toString()); // Minute-level cache busting
@@ -230,56 +229,60 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
     }
 
     // Enrich with boxscores if missing for final games
-    const enrichedGames = await Promise.all(rawGames.map(async (game) => {
-      let enrichedGame = { ...game };
+    const enrichedGames: MLBGame[] = [];
+    const batchSize = 3;
+    for (let i = 0; i < rawGames.length; i += batchSize) {
+      const batch = rawGames.slice(i, i + batchSize);
+      const batchResults = await Promise.all(batch.map(async (game) => {
+        let enrichedGame = { ...game };
 
-      // 1. Boxscore enrichment
-      if (game.status.abstractGameState === 'Final' && (!game.boxscore?.teams.home.pitchers || game.boxscore.teams.home.pitchers.length === 0)) {
+        // 1. Boxscore enrichment
+        if (game.status.abstractGameState === 'Final' && (!game.boxscore?.teams.home.pitchers || game.boxscore.teams.home.pitchers.length === 0)) {
+          try {
+            const boxResponse = await fetch(`/api/mlb/game/${game.gamePk}/boxscore`);
+            if (boxResponse.ok) {
+              const boxData = await boxResponse.json();
+              enrichedGame.boxscore = {
+                teams: {
+                  away: { pitchers: boxData.teams.away.pitchers || [] },
+                  home: { pitchers: boxData.teams.home.pitchers || [] }
+                }
+              };
+            }
+          } catch (e) {}
+        }
+
+        // 2. Weather Forecast enrichment for Preview/Live games missing weather
+        if (!enrichedGame.weather || !enrichedGame.weather.temp) {
+          try {
+            const forecast = await fetchWeatherForecast(game.teams.home.team.id, game.gameDate, game.venue?.name);
+            if (forecast) {
+              enrichedGame.weather = {
+                condition: forecast.condition,
+                temp: forecast.temp.toString(),
+                wind: `${forecast.windSpeed} mph, ${forecast.windDir}`,
+                isForecast: true
+              };
+            }
+          } catch (e) {
+            console.error("Weather enrichment failed", e);
+          }
+        }
+
+        // 3. Over/Under TotalLine enrichment
         try {
-          const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
-          const boxResponse = await fetch(`${origin}/api/mlb/game/${game.gamePk}/boxscore`);
-          if (boxResponse.ok) {
-            const boxData = await boxResponse.json();
-            enrichedGame.boxscore = {
-              teams: {
-                away: { pitchers: boxData.teams.away.pitchers || [] },
-                home: { pitchers: boxData.teams.home.pitchers || [] }
-              }
-            };
+          const oddsUrl = `/api/mlb/game/${game.gamePk}/contextMetrics?hydrate=odds`;
+          const oddsRes = await fetch(oddsUrl);
+          if (oddsRes.ok) {
+            const oddsData = await oddsRes.json();
+            enrichedGame.totalLine = oddsData.odds?.[0]?.total;
           }
         } catch (e) {}
-      }
 
-      // 2. Weather Forecast enrichment for Preview/Live games missing weather
-      if (!enrichedGame.weather || !enrichedGame.weather.temp) {
-        try {
-          const forecast = await fetchWeatherForecast(game.teams.home.team.id, game.gameDate, game.venue?.name);
-          if (forecast) {
-            enrichedGame.weather = {
-              condition: forecast.condition,
-              temp: forecast.temp.toString(),
-              wind: `${forecast.windSpeed} mph, ${forecast.windDir}`,
-              isForecast: true
-            };
-          }
-        } catch (e) {
-          console.error("Weather enrichment failed", e);
-        }
-      }
-
-      // 3. Over/Under TotalLine enrichment
-      try {
-        const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
-        const oddsUrl = `${origin}/api/mlb/game/${game.gamePk}/contextMetrics?hydrate=odds`;
-        const oddsRes = await fetch(oddsUrl);
-        if (oddsRes.ok) {
-          const oddsData = await oddsRes.json();
-          enrichedGame.totalLine = oddsData.odds?.[0]?.total;
-        }
-      } catch (e) {}
-
-      return enrichedGame;
-    }));
+        return enrichedGame;
+      }));
+      enrichedGames.push(...batchResults);
+    }
 
     let resultGames = enrichedGames;
 
@@ -413,8 +416,7 @@ async function fetchPitcherStats(pitcherInfo: { id: number, opponentId: number }
   await Promise.all(batches.map(async (batch) => {
     try {
       // Query without restricting season filter globally to allow robust fallback to prior seasons
-      const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
-      const url = `${origin}/api/mlb/people?personIds=${batch.join(',')}&hydrate=stats(group=[pitching],type=[season,yearByYear,gameLog])`;
+      const url = `/api/mlb/people?personIds=${batch.join(',')}&hydrate=stats(group=[pitching],type=[season,yearByYear,gameLog])`;
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort('PitcherStatsTimeout'), 20000);
       
