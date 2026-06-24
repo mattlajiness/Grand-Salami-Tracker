@@ -82,10 +82,18 @@ const safeLocalStorage = {
 
 export async function fetchNHLGames(date?: string): Promise<NHLGame[]> {
   const targetDate = date || format(new Date(), 'yyyy-MM-dd');
-  const url = `/api/nhl/scores?date=${targetDate}`;
+  let url = `/api/nhl/scores/${targetDate}`;
 
   try {
-    const response = await fetch(url);
+    let response = await fetch(url);
+    
+    // Fallback to "now" if the specific date endpoint fails
+    if (!response.ok) {
+        console.warn(`NHL fetch failed for ${targetDate}, trying 'now' fallback...`);
+        url = `/api/nhl/scores/now`;
+        response = await fetch(url);
+    }
+    
     if (!response.ok) {
         let errorData;
         try {

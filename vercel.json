@@ -2,8 +2,16 @@
   "version": 2,
   "rewrites": [
     {
-      "source": "/api/:path*",
-      "destination": "/api/server.ts"
+      "source": "/api/nhl/scores/:date",
+      "destination": "https://api-web.nhle.com/v1/score/:date"
+    },
+    {
+      "source": "/api/nhl/game/:gameId",
+      "destination": "https://api-web.nhle.com/v1/gamecenter/:gameId/landing"
+    },
+    {
+      "source": "/api/mlb/:path*",
+      "destination": "https://statsapi.mlb.com/api/v1/:path*"
     },
     {
       "source": "/((?!api).*)",

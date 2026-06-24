@@ -8,8 +8,8 @@ const app = express();
 app.use(express.json());
 
 // NHL API Proxy
-app.get("/api/nhl/scores", async (req, res) => {
-  const date = req.query.date || new Date().toISOString().split('T')[0];
+app.get("/api/nhl/scores/:date", async (req, res) => {
+  const date = req.params.date || new Date().toISOString().split('T')[0];
   const url = `https://api-web.nhle.com/v1/score/${date}`;
   console.log(`[NHL Proxy] Fetching scores for ${date}: ${url}`);
   
