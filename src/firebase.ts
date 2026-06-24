@@ -77,6 +77,18 @@ function isPersistenceSupported(): boolean {
     if (typeof window === 'undefined' || !window.indexedDB) {
       return false;
     }
+    // Test localStorage since persistentMultipleTabManager() relies heavily on it
+    try {
+      if (!window.localStorage) {
+        return false;
+      }
+      const testKey = '__firestore_test__';
+      window.localStorage.setItem(testKey, 'test');
+      window.localStorage.removeItem(testKey);
+    } catch (e) {
+      console.log("Firestore: localStorage is not writable (e.g. Incognito/Private mode or full disk), disabling persistent local cache.");
+      return false;
+    }
     // Sandboxed preview iframe check to avoid IndexedDB partitioning security/exception errors and log spamming
     let isIframe = false;
     try {
