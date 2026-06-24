@@ -117,13 +117,9 @@ export interface MLBScheduleResponse {
   }[];
 }
 
-// Cache for pitcher stats to reduce API load
-let pitcherStatsCache: {
-  data: Record<number, string>;
-  lastFetched: number;
-} | null = null;
-
-const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+// Cache for individual pitcher stats to reduce API load
+const pitcherStatsCache: Record<number, { stats: any; fetchedAt: number }> = {};
+const PITCHER_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
 // Cache for schedule data to handle transient fetch failures
 let scheduleCache: {
@@ -305,16 +301,35 @@ export async function fetchMLBGames(date?: string, startDate?: string, endDate?:
     });
 
     if (pitcherIdsWithOpponents.length > 0) {
-      let statsMap: Record<number, any> = {};
+      const statsMap: Record<number, any> = {};
       const now = Date.now();
       
-      if (pitcherStatsCache && (now - (pitcherStatsCache as any).lastFetched < CACHE_TTL)) {
-        statsMap = pitcherStatsCache.data;
-      } else {
+      const missingPitchers = pitcherIdsWithOpponents.filter(p => {
+        const cached = pitcherStatsCache[p.id];
+        return !cached || (now - cached.fetchedAt > PITCHER_CACHE_TTL);
+      });
+
+      if (missingPitchers.length > 0) {
         const seasonYear = date ? date.split('-')[0] : '2026';
-        statsMap = await fetchPitcherStats(pitcherIdsWithOpponents, seasonYear);
-        pitcherStatsCache = { data: statsMap, lastFetched: now } as any;
+        const fetchedStats = await fetchPitcherStats(missingPitchers, seasonYear);
+        
+        // Save to cache
+        Object.keys(fetchedStats).forEach(idStr => {
+          const id = parseInt(idStr, 10);
+          pitcherStatsCache[id] = {
+            stats: fetchedStats[id],
+            fetchedAt: now
+          };
+        });
       }
+
+      // Populate statsMap from cache
+      pitcherIdsWithOpponents.forEach(p => {
+        const cached = pitcherStatsCache[p.id];
+        if (cached) {
+          statsMap[p.id] = cached.stats;
+        }
+      });
 
       resultGames = resultGames.map(game => {
         const awayPitcher = game.teams.away.probablePitcher;
