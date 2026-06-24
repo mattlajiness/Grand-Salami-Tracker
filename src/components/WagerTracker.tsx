@@ -5,7 +5,7 @@ import { cn } from '../lib/utils';
 import { toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
 import { db, handleFirestoreError, OperationType } from '../firebase';
-import { doc, setDoc, getDoc, deleteDoc, Timestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, deleteDoc, updateDoc, Timestamp } from 'firebase/firestore';
 import { format, parseISO } from 'date-fns';
 import { trackEvent } from '../lib/analytics';
 import { calculateSmartProjection, getConfidenceScore } from '../lib/projectionEngine';
@@ -324,7 +324,9 @@ export function WagerTracker({
     if (!isFinished && savedWagerStatus !== 'WON' && savedWagerStatus !== 'LOST' && savedWagerStatus !== 'VOID') return;
 
     const notificationKey = `notified_${sport}_${today}_${lineVal}_${sideVal}_${savedWagerStatus}`;
-    const alreadyNotified = safeStorage.getItem(notificationKey) || notifiedKeys.current.has(notificationKey);
+    const alreadyNotified = safeStorage.getItem(notificationKey) || 
+                            notifiedKeys.current.has(notificationKey) ||
+                            Boolean(todayWager.notified);
 
     if (alreadyNotified) return;
 
@@ -344,6 +346,12 @@ export function WagerTracker({
       lastNotifiedStatus.current = 'WON';
       notifiedKeys.current.add(notificationKey);
       safeStorage.setItem(notificationKey, 'true');
+      if (user) {
+        const wagerDoc = doc(db, 'users', user.uid, 'wagers', `${sport}_${today}`);
+        updateDoc(wagerDoc, { notified: true }).catch(err => {
+          console.warn("Error updating wager notified status:", err);
+        });
+      }
     } else if (savedWagerStatus === 'PUSH' && isFinished && lastNotifiedStatus.current !== 'PUSH') {
       playSound('win');
       setShowResultModal(true);
@@ -357,6 +365,12 @@ export function WagerTracker({
       lastNotifiedStatus.current = 'PUSH';
       notifiedKeys.current.add(notificationKey);
       safeStorage.setItem(notificationKey, 'true');
+      if (user) {
+        const wagerDoc = doc(db, 'users', user.uid, 'wagers', `${sport}_${today}`);
+        updateDoc(wagerDoc, { notified: true }).catch(err => {
+          console.warn("Error updating wager notified status:", err);
+        });
+      }
     } else if (savedWagerStatus === 'LOST' && lastNotifiedStatus.current !== 'LOST') {
       playSound('loss');
       setShowResultModal(true);
@@ -371,6 +385,12 @@ export function WagerTracker({
       lastNotifiedStatus.current = 'LOST';
       notifiedKeys.current.add(notificationKey);
       safeStorage.setItem(notificationKey, 'true');
+      if (user) {
+        const wagerDoc = doc(db, 'users', user.uid, 'wagers', `${sport}_${today}`);
+        updateDoc(wagerDoc, { notified: true }).catch(err => {
+          console.warn("Error updating wager notified status:", err);
+        });
+      }
     } else if (savedWagerStatus === 'VOID' && lastNotifiedStatus.current !== 'VOID') {
       playSound('win');
       setShowResultModal(true);
@@ -384,14 +404,20 @@ export function WagerTracker({
       lastNotifiedStatus.current = 'VOID';
       notifiedKeys.current.add(notificationKey);
       safeStorage.setItem(notificationKey, 'true');
+      if (user) {
+        const wagerDoc = doc(db, 'users', user.uid, 'wagers', `${sport}_${today}`);
+        updateDoc(wagerDoc, { notified: true }).catch(err => {
+          console.warn("Error updating wager notified status:", err);
+        });
+      }
     } 
-  }, [savedWagerStatus, todayWager, notificationsEnabled, currentTotal, isFinished, today, sport]);
+  }, [savedWagerStatus, todayWager, notificationsEnabled, currentTotal, isFinished, today, sport, user]);
 
   // Historical Settlement Check (Handles "Next Day" notifications)
   useEffect(() => {
     if (!notificationsEnabled || !historicalTotals || Object.keys(historicalTotals).length === 0) return;
 
-    const checkSettlement = (wager: { line: number, side: string, date: string }) => {
+    const checkSettlement = (wager: { line: number, side: string, date: string, notified_settlement?: boolean }) => {
       if (wager.date === today) return;
       
       const isVoidVal = voidDates[wager.date];
@@ -404,7 +430,11 @@ export function WagerTracker({
       const resStatus = isVoidVal ? 'VOID' : (isPush ? 'PUSH' : (isWin ? 'WON' : 'LOST'));
 
       const notificationKey = `notified_settlement_${sport}_${wager.date}_${wager.line}_${side}_${resStatus}`;
-      if (!safeStorage.getItem(notificationKey) && !notifiedKeys.current.has(notificationKey)) {
+      const alreadySettledNotified = safeStorage.getItem(notificationKey) || 
+                                     notifiedKeys.current.has(notificationKey) ||
+                                     Boolean(wager.notified_settlement);
+
+      if (!alreadySettledNotified) {
         setHistoricalResult({
           line: wager.line,
           total: finalTotal || 0,
@@ -425,6 +455,13 @@ export function WagerTracker({
         setShowResultModal(true);
         notifiedKeys.current.add(notificationKey);
         safeStorage.setItem(notificationKey, 'true');
+        
+        if (user) {
+          const wagerDoc = doc(db, 'users', user.uid, 'wagers', `${sport}_${wager.date}`);
+          updateDoc(wagerDoc, { notified_settlement: true }).catch(err => {
+            console.warn("Error updating historical wager settlement status:", err);
+          });
+        }
         
         const title = resStatus === 'WON' ? 'PAST WAGER WON! 🏆' : resStatus === 'PUSH' ? 'PAST WAGER PUSHED 🤝' : resStatus === 'VOID' ? 'PAST WAGER VOIDED 🔄' : 'PAST WAGER LOST ❌';
         const body = resStatus === 'VOID'
@@ -448,7 +485,8 @@ export function WagerTracker({
         checkSettlement({
           line: pastWagers[0].line,
           side: pastWagers[0].side,
-          date: pastWagers[0].date
+          date: pastWagers[0].date,
+          notified_settlement: pastWagers[0].notified_settlement
         });
       }
     } else if (!user) {
@@ -464,7 +502,7 @@ export function WagerTracker({
         });
       }
     }
-  }, [historicalTotals, userWagers, user, today, sport, notificationsEnabled]);
+  }, [historicalTotals, userWagers, user, today, sport, notificationsEnabled, voidDates]);
 
   // Proactive Permission Check
   useEffect(() => {
