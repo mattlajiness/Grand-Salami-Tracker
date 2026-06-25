@@ -19,7 +19,26 @@ export function RunTrends({ historicalGames, currentTotal, games, gameLines, man
     const dailyTotals: Record<string, number> = {};
     const gameCounts: Record<string, number> = {};
     
-    historicalGames.forEach(game => {
+    const seenGames = new Set<string>();
+    const uniqueHistoricalGames = historicalGames.filter(g => {
+      const key = `${g.gamePk}_${g.officialDate || ''}`;
+      if (!g.gamePk || seenGames.has(key)) return false;
+      seenGames.add(key);
+      return true;
+    });
+
+    uniqueHistoricalGames.forEach(game => {
+      const state = (game.status?.detailedState || '').toLowerCase();
+      const statusCode = (game.status?.statusCode || '').toUpperCase();
+      const isPostponed = state.includes('postponed') || 
+                          state.includes('canceled') || 
+                          state.includes('cancelled') || 
+                          statusCode === 'C' || 
+                          statusCode === 'CD' || 
+                          statusCode === 'PPD' || 
+                          statusCode === 'CNCL';
+      if (isPostponed) return;
+
       const date = game.officialDate || game.gameDate.split('T')[0];
       const runs = (game.teams.away.score || 0) + (game.teams.home.score || 0);
       dailyTotals[date] = (dailyTotals[date] || 0) + runs;

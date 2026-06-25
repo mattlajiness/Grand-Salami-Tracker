@@ -716,10 +716,11 @@ export default function App() {
   // Group historical games by date for results with robust de-duplication
   const mlbHistoricalTotals = useMemo(() => {
     const totals: Record<string, number> = {};
-    const seenGames = new Set<number>();
+    const seenGames = new Set<string>();
     const uniqueMlbGames = historicalGames.filter(g => {
-      if (!g.gamePk || seenGames.has(g.gamePk)) return false;
-      seenGames.add(g.gamePk);
+      const key = `${g.gamePk}_${g.officialDate || ''}`;
+      if (!g.gamePk || seenGames.has(key)) return false;
+      seenGames.add(key);
       return true;
     });
     
@@ -815,10 +816,11 @@ export default function App() {
 
   const mlbVoidDates = useMemo(() => {
     const voids: Record<string, boolean> = {};
-    const seenPks = new Set<number>();
+    const seenPks = new Set<string>();
     const uniqueMlbGames = historicalGames.concat(games).filter(g => {
-      if (!g.gamePk || seenPks.has(g.gamePk)) return false;
-      seenPks.add(g.gamePk);
+      const key = `${g.gamePk}_${g.officialDate || ''}`;
+      if (!g.gamePk || seenPks.has(key)) return false;
+      seenPks.add(key);
       return true;
     });
 
@@ -923,7 +925,7 @@ export default function App() {
           if (newGames.length > 0) {
             setHistoricalGames(prev => {
               const combined = [...prev, ...newGames];
-              const unique = Array.from(new Map(combined.map(g => [g.gamePk, g])).values());
+              const unique = Array.from(new Map(combined.map(g => [`${g.gamePk}_${g.officialDate || ''}`, g])).values());
               return unique;
             });
           }
