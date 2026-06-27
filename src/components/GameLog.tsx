@@ -1765,7 +1765,7 @@ function GameDetailView({ game, parkFactors = [] }: { game: MLBGame, parkFactors
                  <span className="text-[7px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black">Umpire Intelligence</span>
                  <div className="h-px w-8 bg-slate-800" />
               </div>
-              <span className="text-xs font-black text-white uppercase tracking-tight truncate">{homePlateUmpire.fullName}</span>
+              <span className="text-xs font-black text-white uppercase tracking-tight break-words whitespace-normal leading-tight">{homePlateUmpire.fullName}</span>
             </div>
           </div>
 
@@ -1950,7 +1950,7 @@ function GameDetailView({ game, parkFactors = [] }: { game: MLBGame, parkFactors
              </div>
              <div className="flex flex-col min-w-0">
                <span className="text-[7px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black">{teamAbbr} Starter</span>
-               <span className="text-xs font-black text-white uppercase tracking-tight truncate">{pitcher.fullName}</span>
+               <span className="text-xs font-black text-white uppercase tracking-tight break-words whitespace-normal leading-tight">{pitcher.fullName}</span>
              </div>
            </div>
 
