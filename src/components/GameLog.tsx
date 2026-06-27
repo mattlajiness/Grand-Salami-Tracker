@@ -955,26 +955,9 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                               if (isPostponed) return "PPD";
                               if (isDelay) return "DELAYED";
                               
-                              if (game.status.abstractGameState === 'Preview') {
-                                return new Date(game.gameDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                              }
-                              if (game.status.abstractGameState === 'Live') {
-                                if (game.linescore?.currentInningOrdinal) {
-                                  const state = (game.linescore.inningState || '').toUpperCase();
-                                  let prefix = '';
-                                  if (state === 'MIDDLE') prefix = 'MID';
-                                  else if (state === 'END') prefix = 'END';
-                                  else if (game.linescore.isTopInning !== undefined) {
-                                    prefix = game.linescore.isTopInning ? 'TOP' : 'BOT';
-                                  }
-                                  if (prefix) {
-                                    return `LIVE - ${prefix} ${game.linescore.currentInningOrdinal}`.toUpperCase();
-                                  }
-                                  return `LIVE - INN ${game.linescore.currentInningOrdinal}`.toUpperCase();
-                                }
-                                return "LIVE";
-                              }
-                              return "FINAL";
+                              return game.status.abstractGameState === 'Preview' 
+                                ? new Date(game.gameDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                : game.status.abstractGameState === 'Live' ? "LIVE" : "FINAL";
                             })()}
                           </span>
                           {isExpanded ? <ChevronUp className="w-3 h-3 text-slate-400" /> : <ChevronDown className="w-3 h-3 text-slate-400" />}
@@ -1641,26 +1624,9 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                                       if (isPostponed) return "PPD";
                                       if (isDelay) return "DELAYED";
                                       
-                                      if (game.status.abstractGameState === 'Preview') {
-                                        return new Date(game.gameDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                                      }
-                                      if (game.status.abstractGameState === 'Live') {
-                                        if (game.linescore?.currentInningOrdinal) {
-                                          const state = (game.linescore.inningState || '').toUpperCase();
-                                          let prefix = '';
-                                          if (state === 'MIDDLE') prefix = 'MID';
-                                          else if (state === 'END') prefix = 'END';
-                                          else if (game.linescore.isTopInning !== undefined) {
-                                            prefix = game.linescore.isTopInning ? 'TOP' : 'BOT';
-                                          }
-                                          if (prefix) {
-                                            return `LIVE - ${prefix} ${game.linescore.currentInningOrdinal}`.toUpperCase();
-                                          }
-                                          return `LIVE - INN ${game.linescore.currentInningOrdinal}`.toUpperCase();
-                                        }
-                                        return "LIVE";
-                                      }
-                                      return "FINAL";
+                                      return game.status.abstractGameState === 'Preview' 
+                                        ? new Date(game.gameDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                        : game.status.abstractGameState === 'Live' ? "LIVE" : "FINAL";
                                     })()}
                                   </div>
                                   <div className="flex items-center gap-1 group-hover:text-salami-red transition-colors whitespace-nowrap">
