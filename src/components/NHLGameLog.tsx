@@ -639,7 +639,7 @@ export function NHLGameLog({
                             <div className="flex flex-col gap-2">
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                  <div className="w-8 h-8 rounded bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-700 shadow-sm relative">
+                                  <div className="w-8 h-8 rounded bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-700 shadow-sm relative shrink-0">
                                     <img 
                                       src={game.awayTeam.logo} 
                                       alt={game.awayTeam.abbrev}
@@ -651,7 +651,7 @@ export function NHLGameLog({
                                     )}
                                   </div>
                                   <div className="flex flex-col">
-                                    <span className="font-bold text-slate-200 tracking-tight leading-none uppercase flex items-center gap-1.5">
+                                    <span className="font-bold text-slate-200 tracking-tight leading-none uppercase flex items-center gap-1.5 whitespace-nowrap">
                                       {game.awayTeam.abbrev}
                                       <span className="text-[9px] font-mono font-medium text-slate-500 normal-case shrink-0">
                                         {getNHLTeamRecordStr(game.awayTeam)}
@@ -669,7 +669,7 @@ export function NHLGameLog({
                                   </div>
                                 </div>
                                 <span className={cn(
-                                  "font-mono font-black text-lg",
+                                  "font-mono font-black text-lg shrink-0 ml-4",
                                   game.gameState === 'FINAL' && (game.awayTeam.score ?? 0) > (game.homeTeam.score ?? 0) ? "text-white" : "text-slate-500"
                                 )}>
                                   {(game.awayTeam.score ?? 0).toString().padStart(2, '0')}
@@ -677,7 +677,7 @@ export function NHLGameLog({
                               </div>
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                  <div className="w-8 h-8 rounded bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-700 shadow-sm relative">
+                                  <div className="w-8 h-8 rounded bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-700 shadow-sm relative shrink-0">
                                     <img 
                                       src={game.homeTeam.logo} 
                                       alt={game.homeTeam.abbrev}
@@ -689,7 +689,7 @@ export function NHLGameLog({
                                     )}
                                   </div>
                                   <div className="flex flex-col">
-                                    <span className="font-bold text-slate-200 tracking-tight leading-none uppercase flex items-center gap-1.5">
+                                    <span className="font-bold text-slate-200 tracking-tight leading-none uppercase flex items-center gap-1.5 whitespace-nowrap">
                                       {game.homeTeam.abbrev}
                                       <span className="text-[9px] font-mono font-medium text-slate-500 normal-case shrink-0">
                                         {getNHLTeamRecordStr(game.homeTeam)}
@@ -707,7 +707,7 @@ export function NHLGameLog({
                                   </div>
                                 </div>
                                 <span className={cn(
-                                  "font-mono font-black text-lg",
+                                  "font-mono font-black text-lg shrink-0 ml-4",
                                   game.gameState === 'FINAL' && (game.homeTeam.score ?? 0) > (game.awayTeam.score ?? 0) ? "text-white" : "text-slate-500"
                                 )}>
                                   {(game.homeTeam.score ?? 0).toString().padStart(2, '0')}

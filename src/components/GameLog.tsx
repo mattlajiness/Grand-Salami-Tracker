@@ -966,12 +966,12 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
 
                       <div className="grid grid-cols-12 gap-2 items-center">
                         <div className="col-span-9 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
+                          <div className="flex items-center justify-between min-w-0">
+                            <div className="flex items-center gap-2 min-w-0">
                               <img 
                                 src={`https://www.mlbstatic.com/team-logos/${game.teams.away.team.id}.svg`} 
                                 alt=""
-                                className="w-5 h-5 object-contain"
+                                className="w-5 h-5 object-contain shrink-0"
                                 referrerPolicy="no-referrer"
                               />
                               <span className="text-[11px] font-bold text-slate-300 truncate max-w-[85px]">
@@ -981,22 +981,22 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                                 {getMLBTeamRecordStr(game.teams.away)}
                               </span>
                               {game.teams.away.probablePitcher && (
-                                <span className="text-[8px] font-mono text-slate-500 truncate max-w-[120px]">
+                                <span className="text-[8px] font-mono text-slate-500 truncate max-w-[100px]">
                                   {(game.teams.away.probablePitcher?.fullName || '').split(' ').pop()}
                                   {game.teams.away.probablePitcher.era && ` (${game.teams.away.probablePitcher.era})`}
                                 </span>
                               )}
                             </div>
-                            <span className="font-mono font-black text-sm text-white">
+                            <span className="font-mono font-black text-sm text-white shrink-0 ml-2">
                               {game.teams.away.score ?? '-'}
                             </span>
                           </div>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
+                          <div className="flex items-center justify-between min-w-0">
+                            <div className="flex items-center gap-2 min-w-0">
                               <img 
                                 src={`https://www.mlbstatic.com/team-logos/${game.teams.home.team.id}.svg`} 
                                 alt=""
-                                className="w-5 h-5 object-contain"
+                                className="w-5 h-5 object-contain shrink-0"
                                 referrerPolicy="no-referrer"
                               />
                               <span className="text-[11px] font-bold text-slate-300 truncate max-w-[85px]">
@@ -1006,13 +1006,13 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                                 {getMLBTeamRecordStr(game.teams.home)}
                               </span>
                               {game.teams.home.probablePitcher && (
-                                <span className="text-[8px] font-mono text-slate-500 truncate max-w-[120px]">
+                                <span className="text-[8px] font-mono text-slate-500 truncate max-w-[100px]">
                                   {(game.teams.home.probablePitcher?.fullName || '').split(' ').pop()}
                                   {game.teams.home.probablePitcher.era && ` (${game.teams.home.probablePitcher.era})`}
                                 </span>
                               )}
                             </div>
-                            <span className="font-mono font-black text-sm text-white">
+                            <span className="font-mono font-black text-sm text-white shrink-0 ml-2">
                               {game.teams.home.score ?? '-'}
                             </span>
                           </div>
@@ -1253,7 +1253,7 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                             <div className="flex flex-col gap-2">
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                  <div className="w-8 h-8 rounded bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-700 shadow-sm">
+                                  <div className="w-8 h-8 rounded bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-700 shadow-sm shrink-0">
                                     <img 
                                       src={`https://www.mlbstatic.com/team-logos/${game.teams.away.team.id}.svg`} 
                                       alt={game.teams.away.team.name}
@@ -1263,13 +1263,13 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                                   </div>
                                   <div className="flex flex-col">
                                     <div className="flex items-center gap-2">
-                                      <span className="font-bold text-slate-200 tracking-tight leading-none">{game.teams.away.team.name}</span>
+                                      <span className="font-bold text-slate-200 tracking-tight leading-none whitespace-nowrap">{game.teams.away.team.name}</span>
                                       <span className="text-[10px] font-mono text-slate-500 font-medium shrink-0">
                                         {getMLBTeamRecordStr(game.teams.away)}
                                       </span>
                                     </div>
                                     {game.teams.away.probablePitcher && (
-                                      <span className="text-[9px] font-mono text-slate-500 mt-1 uppercase tracking-widest">
+                                      <span className="text-[9px] font-mono text-slate-500 mt-1 uppercase tracking-widest whitespace-nowrap">
                                         P: {game.teams.away.probablePitcher?.fullName || 'TBD'}
                                         {game.teams.away.probablePitcher.era && ` (${game.teams.away.probablePitcher.era} ERA)`}
                                       </span>
@@ -1277,7 +1277,7 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                                   </div>
                                 </div>
                                 <span className={cn(
-                                  "font-mono font-black text-lg",
+                                  "font-mono font-black text-lg shrink-0 ml-4",
                                   game.status.abstractGameState === 'Final' && (game.teams.away.score ?? 0) > (game.teams.home.score ?? 0) ? "text-white" : "text-slate-500"
                                 )}>
                                   {game.status.abstractGameState === 'Preview' ? '--' : (game.teams.away.score ?? 0).toString().padStart(2, '0')}
@@ -1285,7 +1285,7 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                               </div>
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                  <div className="w-8 h-8 rounded bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-700 shadow-sm">
+                                  <div className="w-8 h-8 rounded bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-700 shadow-sm shrink-0">
                                     <img 
                                       src={`https://www.mlbstatic.com/team-logos/${game.teams.home.team.id}.svg`} 
                                       alt={game.teams.home.team.name}
@@ -1295,13 +1295,13 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                                   </div>
                                   <div className="flex flex-col">
                                     <div className="flex items-center gap-2">
-                                      <span className="font-bold text-slate-200 tracking-tight leading-none">{game.teams.home.team.name}</span>
+                                      <span className="font-bold text-slate-200 tracking-tight leading-none whitespace-nowrap">{game.teams.home.team.name}</span>
                                       <span className="text-[10px] font-mono text-slate-500 font-medium shrink-0">
                                         {getMLBTeamRecordStr(game.teams.home)}
                                       </span>
                                     </div>
                                     {game.teams.home.probablePitcher && (
-                                      <span className="text-[9px] font-mono text-slate-500 mt-1 uppercase tracking-widest">
+                                      <span className="text-[9px] font-mono text-slate-500 mt-1 uppercase tracking-widest whitespace-nowrap">
                                         P: {game.teams.home.probablePitcher?.fullName || 'TBD'}
                                         {game.teams.home.probablePitcher.era && ` (${game.teams.home.probablePitcher.era} ERA)`}
                                       </span>
@@ -1309,7 +1309,7 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                                   </div>
                                 </div>
                                 <span className={cn(
-                                  "font-mono font-black text-lg",
+                                  "font-mono font-black text-lg shrink-0 ml-4",
                                   game.status.abstractGameState === 'Final' && (game.teams.home.score ?? 0) > (game.teams.away.score ?? 0) ? "text-white" : "text-slate-500"
                                 )}>
                                   {game.status.abstractGameState === 'Preview' ? '--' : (game.teams.home.score ?? 0).toString().padStart(2, '0')}
@@ -1989,7 +1989,7 @@ function GameDetailView({ game, parkFactors = [] }: { game: MLBGame, parkFactors
           </thead>
           <tbody className="divide-y divide-slate-800">
             <tr>
-              <td className="py-3 font-bold text-slate-300 uppercase tracking-tighter">
+              <td className="py-3 font-bold text-slate-300 uppercase tracking-tighter whitespace-nowrap pr-4">
                 {(game.teams.away.team.name || '').split(' ').pop()} <span className="text-[8px] font-mono text-slate-500 ml-1">{getMLBTeamRecordStr(game.teams.away)}</span>
               </td>
               {linescore.innings?.map(inn => (
@@ -2002,7 +2002,7 @@ function GameDetailView({ game, parkFactors = [] }: { game: MLBGame, parkFactors
               <td className="text-center px-3 py-3 text-slate-500">{linescore.teams.away.errors ?? 0}</td>
             </tr>
             <tr>
-              <td className="py-3 font-bold text-slate-300 uppercase tracking-tighter">
+              <td className="py-3 font-bold text-slate-300 uppercase tracking-tighter whitespace-nowrap pr-4">
                 {(game.teams.home.team.name || '').split(' ').pop()} <span className="text-[8px] font-mono text-slate-500 ml-1">{getMLBTeamRecordStr(game.teams.home)}</span>
               </td>
               {linescore.innings?.map(inn => (
