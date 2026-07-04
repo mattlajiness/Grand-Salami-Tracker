@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, useMotionValue, animate } from 'motion/react';
 import { TrendingDown, TrendingUp, AlertTriangle, ChevronRight, BarChart3, Database, CloudRain, Wind, Trophy, RefreshCw, Calendar, HelpCircle, LogIn, LogOut, User as UserIcon, Clock, Thermometer, Check, Twitter, UserPlus, Target, ShoppingBag, Activity, MessageSquare } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { useAuth } from '../contexts/AuthContext';
@@ -8,6 +8,29 @@ import { toast } from 'sonner';
 import { MLBGame } from '../services/mlbService';
 import { trackEvent } from '../lib/analytics';
 import { SalamiLogo } from './SalamiLogo';
+
+function NumberTicker({ value, className, style }: { value: number, className?: string, style?: React.CSSProperties }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const motionValue = useMotionValue(0);
+
+  useEffect(() => {
+    const controls = animate(motionValue, value, {
+      duration: 1.2,
+      ease: "easeOut"
+    });
+    return controls.stop;
+  }, [motionValue, value]);
+
+  useEffect(() => {
+    return motionValue.on("change", (latest) => {
+      if (ref.current) {
+        ref.current.textContent = Math.round(latest).toString().padStart(3, '0');
+      }
+    });
+  }, [motionValue]);
+
+  return <div ref={ref} className={className} style={style}>{Math.round(value).toString().padStart(3, '0')}</div>;
+}
 
 interface GrandSalamiHeaderProps {
   currentTotal: number;
@@ -402,14 +425,13 @@ export function GrandSalamiHeader({
           </div>
           
           <div className="flex items-end gap-4 select-none touch-manipulation">
-            <div 
+            <NumberTicker 
+              value={currentTotal || 0}
               className="font-mono font-black tracking-tighter px-4 py-2 rounded-lg border-2 transition-all duration-300 shadow-inner text-5xl sm:text-7xl md:text-8xl min-w-[140px] sm:min-w-[160px] text-center bg-slate-950 border-slate-900 text-salami-red shadow-[0_0_30px_rgba(225,29,72,0.15)]"
               style={{
                 textShadow: '0 0 15px rgba(225, 29, 72, 0.7), 0 0 30px rgba(225, 29, 72, 0.3)'
               }}
-            >
-              {(currentTotal || 0).toString().padStart(3, '0')}
-            </div>
+            />
             <div className="pb-2">
               <span className="text-salami-red font-mono font-black text-2xl block leading-none tracking-tighter">RUNS</span>
               <span className="text-slate-500 font-mono text-[10px] block mt-1 uppercase">Total Scored</span>
