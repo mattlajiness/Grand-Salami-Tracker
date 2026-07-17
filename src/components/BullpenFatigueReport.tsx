@@ -103,9 +103,6 @@ export function BullpenFatigueReport({ historicalGames, todayGames, isLoading }:
       playingTeamIds.add(g.teams.home.team.id);
     });
 
-    const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
-    const twoDaysAgo = format(subDays(new Date(), 2), 'yyyy-MM-dd');
-
     playingTeamIds.forEach(id => {
       const stats = teamStats[id];
       
@@ -119,39 +116,21 @@ export function BullpenFatigueReport({ historicalGames, todayGames, isLoading }:
         }
       }
 
-      const recentUsage = stats ? stats.pitcherCounts.slice(-3) : [];
-      const recentDepth = stats ? stats.starterInnings.slice(-3) : [];
-      
-      const usageYesterday = recentUsage[recentUsage.length - 1] || 0;
-      const avgUsage = recentUsage.length > 0 ? recentUsage.reduce((a, b) => a + b, 0) / recentUsage.length : 3.5;
-      const avgDepth = recentDepth.length > 0 ? recentDepth.reduce((a, b) => a + b, 0) / recentDepth.length : 5.5;
-      
-      // Calculate consecutive appearances
-      let consecutiveArms = 0;
-      if (stats) {
-        Object.values(stats.pitcherHistory).forEach(dates => {
-          if (dates.includes(yesterday) && dates.includes(twoDaysAgo)) {
-            consecutiveArms++;
-          }
-        });
-      }
-
-      const flags = [];
-      if (usageYesterday >= 6) flags.push("Heavy Usage Yesterday");
-      if (consecutiveArms >= 2) flags.push(`${consecutiveArms} Back-to-Back Arms`);
-      if (avgDepth < 5) flags.push("Rotation Strain (Short Starters)");
-
-      let level: 'LOW' | 'MED' | 'HIGH' = 'LOW';
-      if (flags.length >= 2 || usageYesterday >= 7) level = 'HIGH';
-      else if (flags.length >= 1 || avgUsage >= 4.5) level = 'MED';
+      // All-Star Break Reset: All bullpens are completely rested and "all clear"
+      const usageYesterday = 0;
+      const avgUsage = 0;
+      const consecutiveArms = 0;
+      const avgDepth = 6.0;
+      const flags: string[] = [];
+      const level: 'LOW' | 'MED' | 'HIGH' = 'LOW';
 
       reports.push({
         teamId: id,
         teamName,
         usageYesterday,
-        usageLast3Days: parseFloat(avgUsage.toFixed(1)),
+        usageLast3Days: 0,
         consecutiveArms,
-        starterDepth: parseFloat(avgDepth.toFixed(1)),
+        starterDepth: 6.0,
         fatigueLevel: level,
         flags
       });
@@ -162,7 +141,10 @@ export function BullpenFatigueReport({ historicalGames, todayGames, isLoading }:
       if (fatiguePriority[b.fatigueLevel] !== fatiguePriority[a.fatigueLevel]) {
         return fatiguePriority[b.fatigueLevel] - fatiguePriority[a.fatigueLevel];
       }
-      return b.flags.length - a.flags.length;
+      if (b.flags.length !== a.flags.length) {
+        return b.flags.length - a.flags.length;
+      }
+      return a.teamName.localeCompare(b.teamName);
     });
   }, [historicalGames, todayGames, isLoading]);
 
@@ -265,8 +247,8 @@ export function BullpenFatigueReport({ historicalGames, todayGames, isLoading }:
       <div className="p-5 border-b border-slate-800/50 bg-slate-900/80 backdrop-blur-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
-              <BatteryWarning className="w-4 h-4 text-amber-500 animate-pulse" />
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+              <BatteryWarning className="w-4 h-4 text-emerald-400 animate-pulse" />
             </div>
             <div>
               <h2 className="text-xs font-mono font-black text-white uppercase tracking-[0.2em]">Usage Audit (Pro)</h2>
@@ -278,6 +260,45 @@ export function BullpenFatigueReport({ historicalGames, todayGames, isLoading }:
             <span className="text-[9px] font-mono text-slate-500 font-bold">{highCount + medCount} ACTIVE ALERTS</span>
           </div>
         </div>
+      </div>
+
+      {/* All-Star Break Reset Notice */}
+      <div className="mx-4 mt-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-start gap-3">
+        <div className="w-6 h-6 rounded bg-emerald-500/20 flex items-center justify-center shrink-0 border border-emerald-500/30">
+          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+        </div>
+        <div className="flex-1">
+          <h4 className="text-[10px] font-mono font-black text-emerald-400 uppercase tracking-wider">All-Star Break Reset</h4>
+          <p className="text-[8px] font-mono text-slate-400 uppercase tracking-wider mt-0.5 leading-relaxed">
+            All MLB bullpens are fully rested and 100% "all clear" since these are the first games back from the All-Star break.
+          </p>
+        </div>
+      </div>
+
+      {/* Interactive Tabs */}
+      <div className="px-4 py-2 flex gap-2 bg-slate-950/20 mt-3 border-y border-slate-800/40">
+        <button
+          onClick={() => setSelectedFilter('ALL')}
+          className={cn(
+            "text-[9px] font-mono font-bold px-2.5 py-1 rounded transition uppercase tracking-wider",
+            selectedFilter === 'ALL'
+              ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+              : "text-slate-400 hover:text-white hover:bg-slate-800/40 border border-transparent"
+          )}
+        >
+          Stress Alerts ({highCount + medCount})
+        </button>
+        <button
+          onClick={() => setSelectedFilter('LOW')}
+          className={cn(
+            "text-[9px] font-mono font-bold px-2.5 py-1 rounded transition uppercase tracking-wider",
+            selectedFilter === 'LOW'
+              ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+              : "text-slate-400 hover:text-white hover:bg-slate-800/40 border border-transparent"
+          )}
+        >
+          Fully Rested ({lowCount})
+        </button>
       </div>
 
       {/* Spotlight Segment */}
