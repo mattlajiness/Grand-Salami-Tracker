@@ -270,25 +270,25 @@ export function NHLGoalTrends({
                   />
                 </div>
               </div>
-              <div className="flex items-center justify-between mt-3 font-mono">
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                  <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_5px_rgba(6,182,212,0.8)]" />
+              <div className="flex flex-wrap items-center justify-between gap-y-1.5 mt-3 font-mono">
+                <div className="flex flex-wrap items-center gap-x-3 sm:gap-x-4 gap-y-1">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_5px_rgba(6,182,212,0.8)]" />
                     <span className="text-[10px] font-black text-white">{trends.liveOU.over} OVER</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-slate-700" />
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-slate-700" />
                     <span className="text-[10px] font-black text-slate-400">{trends.liveOU.under} UNDER</span>
                   </div>
                   {trends.liveOU.push > 0 && (
-                    <div className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-blue-500" />
                       <span className="text-[10px] font-black text-blue-400">{trends.liveOU.push} PUSH</span>
                     </div>
                   )}
                 </div>
                 {trends.liveOU.ready > 0 && (
-                  <span className="text-[8px] text-slate-600 uppercase italic">+{trends.liveOU.ready} Pending</span>
+                  <span className="text-[8.5px] text-slate-500 uppercase tracking-tight">+{trends.liveOU.ready} Pending</span>
                 )}
               </div>
             </>
