@@ -6,6 +6,7 @@ import { Activity, RefreshCw, ChevronDown, ChevronUp, User, Info, Wind, Thermome
 import { calculateLiveThreat } from '../lib/projectionEngine';
 import { getUmpireTendency, getGenericTendency } from '../lib/umpireEngine';
 import { BallparkPalLogo } from './BallparkPalLogo';
+import { OULineBadge } from './OULineBadge';
 import { useAuth } from '../contexts/AuthContext';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { Timestamp, collection, doc, setDoc, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
@@ -1045,95 +1046,18 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                           
                           {/* O/U Line UI */}
                           <div className="pt-2 border-t border-slate-800 w-full flex flex-col items-center">
-                            <div className="flex items-center gap-2 mb-1">
-                              {editingLineId === game.gamePk ? (
-                                <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                                  <input
-                                    type="number"
-                                    step="0.5"
-                                    value={tempLine}
-                                    onChange={(e) => setTempLine(e.target.value)}
-                                    className="w-12 bg-slate-950 border border-salami-red rounded px-1 py-0.5 text-xs font-mono text-white text-center focus:outline-none"
-                                    autoFocus
-                                  />
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleSaveLine(game.gamePk);
-                                    }}
-                                    className="p-1 hover:bg-slate-800 rounded text-green-500 cursor-pointer"
-                                  >
-                                    <Save className="w-3 h-3" />
-                                  </button>
-                                </div>
-                              ) : (
-                                <div className="flex items-center gap-2">
-                                  {(() => {
-                                    const line = manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine;
-                                    if (line === undefined) return <span className="text-[10px] font-mono text-slate-500 font-bold">NO LINE</span>;
-                                    return (
-                                      <div 
-                                        className={cn(
-                                          "flex items-center gap-1 mt-0.5",
-                                          isAdmin && "cursor-pointer"
-                                        )}
-                                        onClick={(e) => {
-                                          if (isAdmin) {
-                                            e.stopPropagation();
-                                            setEditingLineId(game.gamePk);
-                                            setTempLine(line.toString());
-                                          }
-                                        }}
-                                      >
-                                        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-900 border border-slate-800 rounded font-mono text-[9px] shadow-sm">
-                                          <span className="flex items-center">
-                                            <span className="text-blue-400 font-extrabold text-[8px]">O</span>
-                                            <span className="text-slate-500 font-medium text-[8px] mx-0.5">/</span>
-                                            <span className="text-emerald-400 font-extrabold text-[8px]">U</span>
-                                          </span>
-                                          <span className="text-white font-black">{line}</span>
-                                        </div>
-                                      </div>
-                                    );
-                                  })()}
-                                  {isAdmin && (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setEditingLineId(game.gamePk);
-                                        const currentVal = manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine ?? 9.5;
-                                        setTempLine(currentVal.toString());
-                                      }}
-                                      className="p-1 hover:bg-slate-800 rounded-lg text-slate-500 hover:text-white transition-colors cursor-pointer"
-                                    >
-                                      <Edit2 className="w-2.5 h-2.5" />
-                                    </button>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                            
-                            {(game.status.abstractGameState === 'Live' || game.status.abstractGameState === 'Final') && (manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine) !== undefined && (
-                              <div className={cn(
-                                "text-[7px] font-mono font-black uppercase tracking-widest px-1.5 py-0.5 rounded flex items-center gap-1",
-                                total > (manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine) ? "bg-red-500/10 text-red-500" : 
-                                total < (manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine) ? "bg-green-500/10 text-green-500" : 
-                                "bg-blue-500/10 text-blue-500"
-                              )}>
-                                {(() => {
-                                  const line = manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine;
-                                  const diff = total - (line || 0);
-                                  const label = diff > 0 ? 'OVER' : diff < 0 ? 'UNDER' : 'PUSH';
-                                  const sign = diff > 0 ? '+' : '';
-                                  return (
-                                    <>
-                                      <span>{label} {line}</span>
-                                      <span className="opacity-60">({sign}{diff.toFixed(1)})</span>
-                                    </>
-                                  );
-                                })()}
-                              </div>
-                            )}
+                            <OULineBadge 
+                              line={manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine}
+                              currentTotal={total}
+                              status={game.status.abstractGameState}
+                              isAdmin={isAdmin}
+                              onSaveLine={(newLine) => {
+                                setTempLine(newLine.toString());
+                                handleSaveLine(game.gamePk);
+                              }}
+                              size="sm"
+                              sport="MLB"
+                            />
                           </div>
 
                           {game.weather && (
@@ -1381,114 +1305,19 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                           </td>
                           <td className="px-6 py-5 text-center border-l border-slate-800">
                             <div className="flex flex-col items-center justify-center">
-                              <div className="flex items-center gap-2 group/line">
-                                {editingLineId === game.gamePk ? (
-                                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                                    <input
-                                      type="number"
-                                      step="0.5"
-                                      value={tempLine}
-                                      onChange={(e) => setTempLine(e.target.value)}
-                                      className="w-14 bg-slate-950 border border-salami-red rounded px-1 py-0.5 text-xs font-mono text-white text-center focus:outline-none"
-                                      autoFocus
-                                    />
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleSaveLine(game.gamePk);
-                                      }}
-                                      className="p-2 md:p-1 hover:bg-slate-800 rounded text-green-500 cursor-pointer"
-                                    >
-                                      <Save className="w-3 h-3" />
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <div className="flex flex-col items-center">
-                                    <div className="flex items-center gap-2">
-                                      <span 
-                                        className={cn(
-                                          "text-sm font-mono font-black text-white",
-                                          isAdmin && "hover:text-salami-red cursor-pointer underline decoration-dotted decoration-slate-700 underline-offset-4"
-                                        )}
-                                        onClick={(e) => {
-                                          if (isAdmin) {
-                                            e.stopPropagation();
-                                            setEditingLineId(game.gamePk);
-                                            const currentVal = manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine ?? 9.5;
-                                            setTempLine(currentVal.toString());
-                                          }
-                                        }}
-                                      >
-                                        {(() => {
-                                          const lineVal = manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine;
-                                          if (lineVal === undefined) return '---';
-                                          return (
-                                            <span className="flex items-center gap-1.5 justify-center py-0.5" onClick={(e) => {
-                                              if (!isAdmin) e.stopPropagation();
-                                            }}>
-                                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-slate-950 border border-slate-850 rounded text-[10px] font-mono shadow-sm">
-                                                <span className="flex items-center">
-                                                  <span className="text-blue-400 font-extrabold text-[9px]">O</span>
-                                                  <span className="text-slate-500 font-medium text-[9px] mx-0.5">/</span>
-                                                  <span className="text-emerald-400 font-extrabold text-[9px]">U</span>
-                                                </span>
-                                                <span className="text-white font-black">{lineVal.toFixed(1)}</span>
-                                              </span>
-                                            </span>
-                                          );
-                                        })()}
-                                      </span>
-                                      {isAdmin && (
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setEditingLineId(game.gamePk);
-                                            const currentVal = manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine ?? 9.5;
-                                            setTempLine(currentVal.toString());
-                                          }}
-                                          className="p-2 md:p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-all cursor-pointer"
-                                        >
-                                          <Edit2 className="w-3 h-3" />
-                                        </button>
-                                      )}
-                                    </div>
-                                    <span className="text-[7px] font-mono text-slate-500 font-bold uppercase tracking-widest mt-0.5">O/U Line</span>
-                                  </div>
-                                )}
-                              </div>
-                              
-                              {(game.status.abstractGameState === 'Live' || game.status.abstractGameState === 'Final') && ((manualLines && manualLines[game.gamePk] !== undefined) || gameLines[game.gamePk] !== undefined || game.totalLine !== undefined) && (
-                                <div className={cn(
-                                  "mt-1 px-2 py-0.5 rounded text-[8px] font-mono font-black uppercase tracking-widest",
-                                  (game.status.abstractGameState === 'Live' ? projectedTotal : totalScore) > (manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine) ? "bg-red-500/10 text-red-500" : 
-                                  (game.status.abstractGameState === 'Live' ? projectedTotal : totalScore) < (manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine) ? "bg-green-500/10 text-green-500" : 
-                                  "bg-blue-500/10 text-blue-500"
-                                )}>
-                                {(() => {
-                                  const line = manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine;
-                                  const isLive = game.status.abstractGameState === 'Live';
-                                  const displayScore = isLive ? projectedTotal : totalScore;
-                                  const diff = displayScore - line;
-                                  
-                                  let label = '';
-                                  if (game.status.abstractGameState === 'Final') {
-                                    label = diff > 0 ? 'OVER' : diff < 0 ? 'UNDER' : 'PUSH';
-                                  } else if (isLive) {
-                                    label = diff > 0.5 ? 'TRENDING OVER' : diff < -0.5 ? 'TRENDING UNDER' : 'ON PACE';
-                                  } else {
-                                    label = 'PREVIEW';
-                                  }
-                                  
-                                  const sign = diff > 0 ? '+' : '';
-                                  return (
-                                    <div className="flex items-center gap-1">
-                                      <span>{label} {line}</span>
-                                      <span className="opacity-60">({sign}{diff.toFixed(1)})</span>
-                                    </div>
-                                  );
-                                })()}
-                                </div>
-                              )}
+                              <OULineBadge 
+                                line={manualLines[game.gamePk] ?? gameLines[game.gamePk] ?? game.totalLine}
+                                currentTotal={totalScore}
+                                projectedTotal={projectedTotal}
+                                status={game.status.abstractGameState}
+                                isAdmin={isAdmin}
+                                onSaveLine={(newLine) => {
+                                  setTempLine(newLine.toString());
+                                  handleSaveLine(game.gamePk);
+                                }}
+                                size="md"
+                                sport="MLB"
+                              />
                             </div>
                           </td>
                           <td className="px-6 py-5 text-right">

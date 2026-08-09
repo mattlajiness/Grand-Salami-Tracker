@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { NHLPeriodGoalsChart } from './NHLPeriodGoalsChart';
 import { NHLPowerPlayTracker } from './NHLPowerPlayTracker';
 import { NHLGoalieStatsCard } from './NHLGoalieStatsCard';
+import { OULineBadge } from './OULineBadge';
 
 export const renderNHLStatusBadge = (game: NHLGame) => {
   const scheduleState = (game as any).gameScheduleState || '';
@@ -792,78 +793,18 @@ export function NHLGameLog({
                           </td>
                           <td className="px-6 py-5 text-center border-l border-slate-800">
                              <div className="flex flex-col items-center justify-center">
-                               <div className="flex items-center gap-2 group/line">
-                                 {editingLineId === game.id ? (
-                                   <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                                     <input
-                                       type="number"
-                                       step="0.5"
-                                       value={tempLine}
-                                       onChange={(e) => setTempLine(e.target.value)}
-                                       className="w-14 bg-slate-950 border border-blue-600 rounded px-1 py-0.5 text-xs font-mono text-white text-center focus:outline-none"
-                                       autoFocus
-                                     />
-                                     <button
-                                       onClick={(e) => {
-                                         e.stopPropagation();
-                                         handleSaveLine(game.id);
-                                       }}
-                                       className="p-1 hover:bg-slate-800 rounded text-green-500 cursor-pointer"
-                                     >
-                                       <Save className="w-3 h-3" />
-                                     </button>
-                                   </div>
-                                 ) : (
-                                   <div className="flex flex-col items-center">
-                                     <div className="flex items-center gap-2">
-                                       <span 
-                                         className={cn(
-                                           "text-sm font-mono font-black text-white",
-                                           isAdmin && "hover:text-blue-500 cursor-pointer underline decoration-dotted decoration-slate-700 underline-offset-4"
-                                         )}
-                                         onClick={(e) => {
-                                           if (isAdmin) {
-                                             e.stopPropagation();
-                                             setEditingLineId(game.id);
-                                             setTempLine((manualLines[game.id] ?? gameLines[game.id] ?? 6.5).toString());
-                                           }
-                                         }}
-                                       >
-                                         {(() => {
-                                          const lineVal = manualLines[game.id] ?? gameLines[game.id] ?? 6.5;
-                                          return (
-                                            <span className="flex items-center gap-1.5 justify-center py-0.5" onClick={(e) => {
-                                              if (!isAdmin) e.stopPropagation();
-                                            }}>
-                                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-slate-950 border border-slate-850 rounded text-[10px] font-mono shadow-sm">
-                                                <span className="flex items-center">
-                                                  <span className="text-blue-400 font-extrabold text-[9px]">O</span>
-                                                  <span className="text-slate-500 font-medium text-[9px] mx-0.5">/</span>
-                                                  <span className="text-emerald-400 font-extrabold text-[9px]">U</span>
-                                                </span>
-                                                <span className="text-white font-black">{lineVal.toFixed(1)}</span>
-                                              </span>
-                                            </span>
-                                          );
-                                        })()}
-                                       </span>
-                                       {isAdmin && (
-                                         <button
-                                           onClick={(e) => {
-                                             e.stopPropagation();
-                                             setEditingLineId(game.id);
-                                             setTempLine((manualLines[game.id] ?? gameLines[game.id] ?? 6.5).toString());
-                                           }}
-                                           className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-500 hover:text-white transition-colors cursor-pointer"
-                                         >
-                                           <Edit2 className="w-3 h-3" />
-                                         </button>
-                                       )}
-                                     </div>
-                                     <span className="text-[7px] font-mono text-slate-500 font-bold uppercase tracking-widest mt-0.5">O/U Line</span>
-                                   </div>
-                                 )}
-                               </div>
+                               <OULineBadge 
+                                 line={manualLines[game.id] ?? gameLines[game.id] ?? 6.5}
+                                 currentTotal={totalScore}
+                                 status={game.gameState}
+                                 isAdmin={isAdmin}
+                                 onSaveLine={(newLine) => {
+                                   setTempLine(newLine.toString());
+                                   handleSaveLine(game.id);
+                                 }}
+                                 size="md"
+                                 sport="NHL"
+                               />
                              </div>
                           </td>
                           <td className="px-6 py-5 text-center border-l border-slate-800 bg-slate-900/10">

@@ -24,7 +24,7 @@ import { FeedbackSection } from './components/FeedbackSection';
 import { BallparkPalLogo } from './components/BallparkPalLogo';
 import { ParkFactorsReport } from './components/ParkFactorsReport';
 import { Leaderboard } from './components/Leaderboard';
-import { Calendar, Share2, Droplets, Activity, ExternalLink, Smartphone, LogIn, AlertTriangle, XCircle, RefreshCw, Library, CalendarRange, Eye, CloudSun } from 'lucide-react';
+import { Calendar, Share2, Droplets, Activity, ExternalLink, Smartphone, LogIn, AlertTriangle, XCircle, RefreshCw, Library, CalendarRange, Eye, CloudSun, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { useAuth } from './contexts/AuthContext';
 import { db, handleFirestoreError, OperationType } from './firebase';
@@ -133,6 +133,8 @@ export default function App() {
     const saved = safeStorage.getItem('salami_show_park_factors');
     return saved !== 'false';
   });
+  const [mobileBannerDismissed, setMobileBannerDismissed] = useState(false);
+  const [mobileBannerMinimized, setMobileBannerMinimized] = useState(false);
 
   const handleToggleParkFactors = () => {
     setShowParkFactors(prev => {
@@ -1674,35 +1676,102 @@ export default function App() {
 
       {/* Mobile Iframe Alert - Sticky Bottom Overlay */}
       <AnimatePresence>
-        {!user && IS_IFRAME && (
+        {!user && IS_IFRAME && !mobileBannerDismissed && (
           <motion.div 
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-6 left-4 right-4 z-[100] md:hidden"
+            transition={{ type: "spring", stiffness: 350, damping: 25 }}
+            className="fixed bottom-5 left-4 right-4 z-[100] md:hidden"
           >
-            <div className="bg-slate-900/95 backdrop-blur-md border border-slate-700/50 rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
-                  <Smartphone className="w-5 h-5 text-blue-400" />
+            {mobileBannerMinimized ? (
+              /* Minimized Compact Chip */
+              <div className="bg-slate-900/95 backdrop-blur-md border border-slate-700/60 rounded-full px-3.5 py-2 shadow-[0_10px_30px_rgba(0,0,0,0.6)] flex items-center justify-between gap-2.5">
+                <div 
+                  className="flex items-center gap-2 cursor-pointer select-none"
+                  onClick={() => setMobileBannerMinimized(false)}
+                >
+                  <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center border border-blue-500/30">
+                    <Smartphone className="w-3 h-3 text-blue-400" />
+                  </div>
+                  <span className="text-[10px] font-black text-white uppercase tracking-wider">Mobile Access</span>
                 </div>
-                <div>
-                  <h4 className="text-[10px] font-black text-white uppercase tracking-widest leading-none mb-1">Mobile Access</h4>
-                  <p className="text-[9px] font-mono text-slate-400 uppercase tracking-tighter leading-tight">
-                    Login restricted in preview. Open in browser to sync wagers.
-                  </p>
+
+                <div className="flex items-center gap-1.5">
+                  <button 
+                    onClick={() => {
+                      window.open(window.location.href, '_blank');
+                    }}
+                    className="flex items-center gap-1 px-2.5 py-1 bg-blue-600 hover:bg-blue-500 rounded-full text-[9px] font-black uppercase tracking-wider text-white shadow-sm active:scale-95 transition-all cursor-pointer"
+                  >
+                    <span>Launch</span>
+                    <ExternalLink className="w-2.5 h-2.5" />
+                  </button>
+                  <button 
+                    onClick={() => setMobileBannerMinimized(false)}
+                    className="p-1 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors cursor-pointer"
+                    title="Expand"
+                  >
+                    <ChevronUp className="w-3.5 h-3.5" />
+                  </button>
+                  <button 
+                    onClick={() => setMobileBannerDismissed(true)}
+                    className="p-1 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors cursor-pointer"
+                    title="Close"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
-              <button 
-                onClick={() => {
-                  window.open(window.location.href, '_blank');
-                }}
-                className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 rounded-xl text-[10px] font-black uppercase tracking-widest text-white whitespace-nowrap shadow-lg shadow-blue-900/40 active:scale-95 transition-all"
-              >
-                <span>Launch App</span>
-                <ExternalLink className="w-3 h-3" />
-              </button>
-            </div>
+            ) : (
+              /* Full Expanded Banner */
+              <div className="bg-slate-900/95 backdrop-blur-md border border-slate-700/60 rounded-2xl p-3.5 shadow-[0_20px_50px_rgba(0,0,0,0.6)] flex flex-col gap-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-blue-500/15 flex items-center justify-center border border-blue-500/30 shrink-0">
+                      <Smartphone className="w-4 h-4 text-blue-400" />
+                    </div>
+                    <div>
+                      <h4 className="text-[10px] font-black text-white uppercase tracking-widest leading-none mb-0.5">Mobile Access</h4>
+                      <p className="text-[9px] font-mono text-slate-400 uppercase tracking-tighter leading-tight">
+                        Login restricted in preview iframe.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button 
+                      onClick={() => setMobileBannerMinimized(true)}
+                      className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors cursor-pointer"
+                      title="Shrink / Minimize"
+                    >
+                      <ChevronDown className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={() => setMobileBannerDismissed(true)}
+                      className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors cursor-pointer"
+                      title="Close"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-3 pt-1 border-t border-slate-800/80">
+                  <span className="text-[8.5px] font-mono text-slate-400 uppercase tracking-tight">
+                    Open in browser tab to sign in & sync wagers
+                  </span>
+                  <button 
+                    onClick={() => {
+                      window.open(window.location.href, '_blank');
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 rounded-xl text-[10px] font-black uppercase tracking-wider text-white whitespace-nowrap shadow-md shadow-blue-900/40 active:scale-95 transition-all cursor-pointer shrink-0"
+                  >
+                    <span>Launch App</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </button>
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
