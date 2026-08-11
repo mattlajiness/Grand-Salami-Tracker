@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Edit2, Save, X } from 'lucide-react';
+import { Edit2, Save, X, Plus } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 interface OULineBadgeProps {
@@ -29,16 +29,10 @@ export function OULineBadge({
   useEffect(() => {
     if (line !== undefined) {
       setValStr(line.toString());
+    } else {
+      setValStr('');
     }
   }, [line]);
-
-  if (line === undefined) {
-    return (
-      <span className="text-[10px] font-mono text-slate-500 font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-900/60 border border-slate-800">
-        No Line
-      </span>
-    );
-  }
 
   const handleSave = () => {
     const num = parseFloat(valStr);
@@ -48,19 +42,25 @@ export function OULineBadge({
     setIsEditing(false);
   };
 
-  return (
-    <div className={cn("flex flex-col items-center gap-1 max-w-full", className)}>
-      {isEditing ? (
+  if (isEditing) {
+    return (
+      <div className={cn("flex flex-col items-center gap-1 max-w-full", className)}>
         <div className="flex items-center gap-1 bg-slate-950 border border-salami-red rounded-lg px-2 py-1 shadow-lg" onClick={(e) => e.stopPropagation()}>
           <input
             type="number"
             step="0.5"
+            placeholder="O/U Line"
             value={valStr}
             onChange={(e) => setValStr(e.target.value)}
-            className="w-14 bg-transparent font-mono font-black text-xs text-white text-center focus:outline-none"
+            className="w-16 bg-transparent font-mono font-black text-xs text-white text-center focus:outline-none"
             autoFocus
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleSave();
+              if (e.key === 'Escape') setIsEditing(false);
+            }}
           />
           <button
+            type="button"
             onClick={(e) => {
               e.stopPropagation();
               handleSave();
@@ -68,9 +68,10 @@ export function OULineBadge({
             className="p-1 hover:bg-slate-800 rounded text-emerald-400 cursor-pointer transition-colors"
             title="Save Line"
           >
-            <Save className="w-3 h-3" />
+            <Save className="w-3.5 h-3.5" />
           </button>
           <button
+            type="button"
             onClick={(e) => {
               e.stopPropagation();
               setIsEditing(false);
@@ -78,13 +79,44 @@ export function OULineBadge({
             className="p-1 hover:bg-slate-800 rounded text-slate-500 hover:text-white cursor-pointer transition-colors"
             title="Cancel"
           >
-            <X className="w-3 h-3" />
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
-      ) : (
-        <div className="flex items-center gap-1.5 group">
-          {/* Polished O/U Badge */}
-          <div className={cn(
+      </div>
+    );
+  }
+
+  if (line === undefined) {
+    return (
+      <div className={cn("flex flex-col items-center gap-1 max-w-full", className)}>
+        {isAdmin ? (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsEditing(true);
+            }}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-dashed border-slate-700 hover:border-salami-red bg-slate-900/80 hover:bg-slate-900 text-[11px] font-mono font-bold text-slate-400 hover:text-salami-red transition-all cursor-pointer group shadow-sm"
+            title="Click to set Over/Under line"
+          >
+            <Plus className="w-3 h-3 text-slate-500 group-hover:text-salami-red transition-colors" />
+            <span>Set O/U Line</span>
+          </button>
+        ) : (
+          <span className="text-[10px] font-mono text-slate-500 font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-900/60 border border-slate-800">
+            No Line
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className={cn("flex flex-col items-center gap-1 max-w-full", className)}>
+      <div className="flex items-center gap-1.5 group">
+        {/* Polished O/U Badge */}
+        <div 
+          className={cn(
             "inline-flex items-center gap-1.5 sm:gap-2 rounded-lg border font-mono shadow-md backdrop-blur-md transition-all duration-200 select-none",
             size === 'sm' && "px-1.5 sm:px-2 py-0.5 text-[10px]",
             size === 'md' && "px-2.5 py-1 text-xs",
@@ -98,25 +130,25 @@ export function OULineBadge({
               setIsEditing(true);
             }
           }}
-          >
-            {/* O/U Tag */}
-            <span className="flex items-center bg-slate-950/90 px-1 sm:px-1.5 py-0.5 rounded border border-slate-800/80 shadow-inner">
-              <span className="text-sky-400 font-black tracking-tighter">O</span>
-              <span className="text-slate-600 font-medium mx-0.5 text-[8px]">/</span>
-              <span className="text-emerald-400 font-black tracking-tighter">U</span>
-            </span>
+          title={isAdmin ? "Click to edit Over/Under line" : undefined}
+        >
+          {/* O/U Tag */}
+          <span className="flex items-center bg-slate-950/90 px-1 sm:px-1.5 py-0.5 rounded border border-slate-800/80 shadow-inner">
+            <span className="text-sky-400 font-black tracking-tighter">O</span>
+            <span className="text-slate-600 font-medium mx-0.5 text-[8px]">/</span>
+            <span className="text-emerald-400 font-black tracking-tighter">U</span>
+          </span>
 
-            {/* Line Number */}
-            <span className="text-white font-black tracking-tight drop-shadow-sm">
-              {line.toFixed(1)}
-            </span>
+          {/* Line Number */}
+          <span className="text-white font-black tracking-tight drop-shadow-sm">
+            {line.toFixed(1)}
+          </span>
 
-            {isAdmin && (
-              <Edit2 className="w-2.5 h-2.5 text-slate-400 opacity-60 group-hover:opacity-100 transition-opacity ml-0.5" />
-            )}
-          </div>
+          {isAdmin && (
+            <Edit2 className="w-2.5 h-2.5 text-slate-400 opacity-60 group-hover:opacity-100 transition-opacity ml-0.5" />
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

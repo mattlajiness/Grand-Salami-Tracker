@@ -683,9 +683,9 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
   const [editingLineId, setEditingLineId] = useState<number | null>(null);
   const [tempLine, setTempLine] = useState<string>('');
 
-  const handleSaveLine = async (gamePk: number) => {
+  const handleSaveLine = async (gamePk: number, lineVal?: number) => {
     if (!isAdmin) return;
-    const total = parseFloat(tempLine);
+    const total = lineVal !== undefined ? lineVal : parseFloat(tempLine);
     if (isNaN(total)) {
       toast.error("Invalid line total");
       return;
@@ -693,13 +693,13 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
 
     try {
       await setDoc(doc(db, 'gameLines', gamePk.toString()), {
-        gamePk,
-        total,
+        gamePk: Number(gamePk),
+        total: Number(total),
         updatedAt: Timestamp.now(),
-        updatedBy: user?.uid
+        updatedBy: user?.uid || 'admin'
       });
       setEditingLineId(null);
-      toast.success("Game line updated");
+      toast.success(`Game line updated to ${total}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `gameLines/${gamePk}`);
     }
@@ -1052,8 +1052,7 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                               status={game.status.abstractGameState}
                               isAdmin={isAdmin}
                               onSaveLine={(newLine) => {
-                                setTempLine(newLine.toString());
-                                handleSaveLine(game.gamePk);
+                                handleSaveLine(game.gamePk, newLine);
                               }}
                               size="sm"
                               sport="MLB"
@@ -1312,8 +1311,7 @@ export function GameLog({ games, gameLines, manualLines = {}, parkFactors = [] }
                                 status={game.status.abstractGameState}
                                 isAdmin={isAdmin}
                                 onSaveLine={(newLine) => {
-                                  setTempLine(newLine.toString());
-                                  handleSaveLine(game.gamePk);
+                                  handleSaveLine(game.gamePk, newLine);
                                 }}
                                 size="md"
                                 sport="MLB"

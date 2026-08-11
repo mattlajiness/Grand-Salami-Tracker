@@ -411,9 +411,9 @@ export function NHLGameLog({
   const [editingLineId, setEditingLineId] = useState<number | null>(null);
   const [tempLine, setTempLine] = useState<string>('');
 
-  const handleSaveLine = async (gameId: number) => {
+  const handleSaveLine = async (gameId: number, lineVal?: number) => {
     if (!isAdmin) return;
-    const total = parseFloat(tempLine);
+    const total = lineVal !== undefined ? lineVal : parseFloat(tempLine);
     if (isNaN(total)) {
       toast.error("Invalid line total");
       return;
@@ -421,13 +421,13 @@ export function NHLGameLog({
 
     try {
       await setDoc(doc(db, 'nhlGameLines', gameId.toString()), {
-        gameId,
-        total,
+        gameId: Number(gameId),
+        total: Number(total),
         updatedAt: Timestamp.now(),
-        updatedBy: user?.uid
+        updatedBy: user?.uid || 'admin'
       });
       setEditingLineId(null);
-      toast.success("Game line updated");
+      toast.success(`NHL Game line updated to ${total}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `nhlGameLines/${gameId}`);
     }
@@ -799,8 +799,7 @@ export function NHLGameLog({
                                  status={game.gameState}
                                  isAdmin={isAdmin}
                                  onSaveLine={(newLine) => {
-                                   setTempLine(newLine.toString());
-                                   handleSaveLine(game.id);
+                                   handleSaveLine(game.id, newLine);
                                  }}
                                  size="md"
                                  sport="NHL"
