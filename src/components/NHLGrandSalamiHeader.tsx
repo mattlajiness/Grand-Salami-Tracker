@@ -135,8 +135,8 @@ export function NHLGrandSalamiHeader({
         <div className="stitching-top opacity-50" />
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-600 to-transparent" />
         
-        <div className="flex items-center justify-between gap-4 mb-4">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+          <div className="flex items-center gap-3 w-full sm:w-auto sm:justify-start">
             <div className="relative">
               <div className="absolute inset-0 bg-blue-500/20 blur-md rounded-full" />
               <SalamiLogo className="w-12 h-12 relative z-10" sport="NHL" />
@@ -152,7 +152,7 @@ export function NHLGrandSalamiHeader({
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 w-full sm:w-auto sm:justify-start">
             <div className="hidden xs:flex items-center gap-2 text-[9px] font-mono px-2 py-1 rounded-full border text-slate-500 bg-slate-800/50 border-slate-800">
               <Calendar className="w-2.5 h-2.5 text-blue-500" />
               {format(new Date(), 'MMM dd').toUpperCase()}
@@ -272,13 +272,13 @@ export function NHLGrandSalamiHeader({
 
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-8 relative z-10">
           <div className="space-y-4">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 w-full sm:w-auto sm:justify-start">
               <div className="w-10 h-10 rounded-full border-2 flex items-center justify-center shadow-lg bg-slate-800 border-slate-700">
                 <img src="https://a.espncdn.com/i/teamlogos/leagues/500/nhl.png" alt="NHL" className="w-6 h-6 object-contain filter drop-shadow-md brightness-110" />
               </div>
               <div>
                 <span className="data-label block">Grand Salami Tracker</span>
-                <h2 className="text-xs font-mono font-bold text-slate-400 uppercase tracking-[0.2em]">National Hockey League</h2>
+                <h2 className="text-[10px] sm:text-xs font-mono font-bold text-slate-400 uppercase tracking-[0.1em] sm:tracking-[0.2em]">National Hockey League</h2>
               </div>
             </div>
             

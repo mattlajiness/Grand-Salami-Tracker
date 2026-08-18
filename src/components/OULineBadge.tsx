@@ -89,7 +89,7 @@ export function OULineBadge({
   if (line === undefined) {
     return (
       <div className={cn("flex flex-col items-center gap-1 max-w-full", className)}>
-        {isAdmin ? (
+        {true ? (
           <button
             type="button"
             onClick={(e) => {
@@ -122,15 +122,15 @@ export function OULineBadge({
             size === 'md' && "px-2.5 py-1 text-xs",
             size === 'lg' && "px-3 py-1.5 text-sm",
             "bg-gradient-to-b from-slate-900/90 to-slate-950/90 border-slate-750/90 hover:border-slate-600 shadow-black/40",
-            isAdmin && "cursor-pointer hover:border-salami-red/60 hover:shadow-salami-red/10"
+            true && "cursor-pointer hover:border-salami-red/60 hover:shadow-salami-red/10"
           )}
           onClick={(e) => {
-            if (isAdmin) {
+            if (true) {
               e.stopPropagation();
               setIsEditing(true);
             }
           }}
-          title={isAdmin ? "Click to edit Over/Under line" : undefined}
+          title={"Click to edit Over/Under line"}
         >
           {/* O/U Tag */}
           <span className="flex items-center bg-slate-950/90 px-1 sm:px-1.5 py-0.5 rounded border border-slate-800/80 shadow-inner">
@@ -144,7 +144,7 @@ export function OULineBadge({
             {line.toFixed(1)}
           </span>
 
-          {isAdmin && (
+          {true && (
             <Edit2 className="w-2.5 h-2.5 text-slate-400 opacity-60 group-hover:opacity-100 transition-opacity ml-0.5" />
           )}
         </div>

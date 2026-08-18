@@ -113,7 +113,7 @@ export default function App() {
   const [activeSport, setActiveSport] = useState<'MLB' | 'NHL'>('MLB');
   const [games, setGames] = useState<MLBGame[]>([]);
   const [nhlGames, setNhlGames] = useState<NHLGame[]>([]);
-  const [selectedNhlDate, setSelectedNhlDate] = useState<string>('demo');
+  const [selectedNhlDate, setSelectedNhlDate] = useState<string>('today');
   const [parkFactors, setParkFactors] = useState<BallparkPalFactor[]>([]);
   const [palConfigured, setPalConfigured] = useState(true);
   const [historicalGames, setHistoricalGames] = useState<MLBGame[]>([]);
@@ -1275,108 +1275,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* NHL Date/Showcase Selector (Always visible on NHL view) */}
-        {activeSport === 'NHL' && (
-          <motion.div 
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-8 p-6 bg-slate-900/60 border border-slate-800 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-6 font-mono"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
-                <CalendarRange className="w-5 h-5 text-blue-400" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-xs font-black uppercase text-white tracking-widest">
-                  NHL Slate Selector
-                </span>
-                <span className="text-[9px] text-slate-500 uppercase tracking-wider mt-0.5">
-                  Pick a historical sheet or live ticker simulation
-                </span>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  onClick={() => setSelectedNhlDate('today')}
-                  className={cn(
-                    "px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border cursor-pointer",
-                    selectedNhlDate === 'today'
-                      ? "bg-blue-600 border-blue-500 text-white font-extrabold shadow-[0_0_12px_rgba(37,99,235,0.3)]"
-                      : "bg-slate-950/80 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700"
-                  )}
-                >
-                  📅 Today (Live API)
-                </button>
-                <button
-                  onClick={() => setSelectedNhlDate('2026-03-24')}
-                  className={cn(
-                    "px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border cursor-pointer",
-                    selectedNhlDate === '2026-03-24'
-                      ? "bg-blue-600 border-blue-500 text-white font-extrabold shadow-[0_0_12px_rgba(37,99,235,0.3)]"
-                      : "bg-slate-950/80 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700"
-                  )}
-                >
-                  🏒 March 24 (11 Gms)
-                </button>
-                <button
-                  onClick={() => setSelectedNhlDate('2026-04-11')}
-                  className={cn(
-                    "px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border cursor-pointer",
-                    selectedNhlDate === '2026-04-11'
-                      ? "bg-blue-600 border-blue-500 text-white font-extrabold shadow-[0_0_12px_rgba(37,99,235,0.3)]"
-                      : "bg-slate-950/80 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700"
-                  )}
-                >
-                  🏒 April 11 (14 Gms)
-                </button>
-                <button
-                  onClick={() => setSelectedNhlDate('demo')}
-                  className={cn(
-                    "px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border cursor-pointer relative overflow-hidden",
-                    selectedNhlDate === 'demo'
-                      ? "bg-cyan-950/60 border-cyan-500 text-cyan-300 font-extrabold shadow-[0_0_15px_rgba(6,182,212,0.4)] animate-pulse"
-                      : "bg-teal-950/25 border-teal-900/40 text-teal-400 hover:text-teal-350 hover:border-teal-700"
-                  )}
-                >
-                  <span className="inline-block w-2 h-2 bg-cyan-400 rounded-full animate-ping mr-1" />
-                  🚨 Simulated Showcase
-                </button>
-                <button
-                  onClick={() => setSelectedNhlDate('pre-slate')}
-                  className={cn(
-                    "px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border cursor-pointer relative overflow-hidden",
-                    selectedNhlDate === 'pre-slate'
-                      ? "bg-purple-950/65 border-purple-500 text-purple-300 font-extrabold shadow-[0_0_15px_rgba(168,85,247,0.4)]"
-                      : "bg-slate-950 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700"
-                  )}
-                >
-                  <span className="inline-block w-2 h-2 bg-purple-400 rounded-full mr-1 animate-pulse" />
-                  🔮 NHL Pre-Slate (Demo)
-                </button>
-              </div>
-
-              <div className="flex items-center gap-2 pl-3 border-l border-slate-850">
-                <span className="text-[9px] uppercase font-black text-slate-500">Custom:</span>
-                <input
-                  type="date"
-                  min="2025-10-01"
-                  max="2026-06-30"
-                  value={(selectedNhlDate !== 'today' && selectedNhlDate !== 'demo' && selectedNhlDate !== 'pre-slate' && selectedNhlDate !== '2026-03-24' && selectedNhlDate !== '2026-04-11') ? selectedNhlDate : ''}
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      setSelectedNhlDate(e.target.value);
-                    }
-                  }}
-                  className="bg-slate-950 border border-slate-850 hover:border-slate-700 text-slate-250 rounded-lg px-2.5 py-1.5 text-[10px] font-mono focus:outline-none focus:border-blue-500/50 cursor-pointer"
-                />
-              </div>
-            </div>
-          </motion.div>
-        )}
-
-        <div className="space-y-6">
+                <div className="space-y-6">
           {activeSport === 'MLB' && stats.hasRainRisk && (
                 <motion.div  
                   initial={{ height: 0, opacity: 0 }}
