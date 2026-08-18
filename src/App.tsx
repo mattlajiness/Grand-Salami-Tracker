@@ -1432,7 +1432,7 @@ export default function App() {
                   games={nhlGames}
                   betLine={betLine}
                   betType={betType}
-                  projectedTotal={null}
+                  projectedTotal={projectedTotal}
                   isFinished={nhlStats.isFinished}
                   voidDates={voidDates}
                   todayStr={todayStr}
@@ -1531,7 +1531,7 @@ export default function App() {
                       setBetLine={setBetLine}
                       betType={betType}
                       setBetType={setBetType}
-                      projectedTotal={activeSport === 'MLB' ? projectedTotal : null}
+                      projectedTotal={projectedTotal}
                       todayStr={todayStr}
                       onOpenHistory={() => setIsHistoryModalOpen(true)}
                       currentStreak={currentStreak}
