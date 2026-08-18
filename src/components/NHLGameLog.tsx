@@ -533,8 +533,276 @@ export function NHLGameLog({
           </div>
         ) : (
           <div>
+            
+            {/* Mobile View: Card List */}
+            <div className="block md:hidden divide-y divide-slate-800">
+              {filteredGames.map((game, index) => {                    const totalScore = (game.awayTeam.score || 0) + (game.homeTeam.score || 0);
+                    const isExpanded = expandedGameId === game.id;
+                    // Dynamic skater-strength calculation
+                    let skAway = game.situation?.awayTeam?.strength || 5;
+                    let skHome = game.situation?.homeTeam?.strength || 5;
+
+                    if (game.situation?.situationCode && game.situation.situationCode.length === 4) {
+                      const code = game.situation.situationCode;
+                      const thirdDigitVal = parseInt(code[2], 10);
+                      const isCustomLayout = !isNaN(thirdDigitVal) && thirdDigitVal > 1;
+
+                      if (isCustomLayout) {
+                        skAway = parseInt(code[1], 10) || 5;
+                        skHome = parseInt(code[2], 10) || 5;
+                      } else {
+                        skAway = parseInt(code[1], 10) || 5;
+                        skHome = parseInt(code[3], 10) || 5;
+                      }
+                    }
+
+                    const awayPP = skAway > skHome;
+                    const homePP = skHome > skAway;
+                    const isAwayB2B = isTeamB2B(game.awayTeam.abbrev, game.gameDate);
+                    const isHomeB2B = isTeamB2B(game.homeTeam.abbrev, game.gameDate);
+
+                    // Pace & GPM Calculations for active games
+                    let elapsedMins = 0;
+                    const isLive = game.gameState === 'LIVE' || game.gameState === 'CRIT';
+                    
+                    if (game.gameState === 'FINAL' || game.gameState === 'OFF') {
+                      elapsedMins = 60;
+                    } else if (isLive) {
+                      const period = game.periodDescriptor?.number || 1;
+                      if (period > 3) {
+                        elapsedMins = 60; // Standard regulation of 60m is complete
+                      } else {
+                        elapsedMins = (period - 1) * 20;
+                        if (game.clock?.timeRemaining) {
+                          const parts = game.clock.timeRemaining.split(':');
+                          const min = parseInt(parts[0], 10);
+                          const sec = parts[1] ? parseInt(parts[1], 10) : 0;
+                          if (!isNaN(min)) {
+                            const remainingSec = (min * 60) + sec;
+                            const elapsedSecInPeriod = (20 * 60) - remainingSec;
+                            elapsedMins += Math.max(0, elapsedSecInPeriod / 60);
+                          }
+                        } else if (game.clock?.inIntermission) {
+                          elapsedMins = period * 20;
+                        }
+                      }
+                    }
+
+                    const gpm = elapsedMins > 0 ? totalScore / elapsedMins : 0;
+                    const gpp = gpm * 20;
+                    const projectedPace = gpm * 60;
+                    
+                    const LEAGUE_AVG_GPG = 6.1;
+                    const HIGH_THRESHOLD = 7.3;
+                    const LOW_THRESHOLD = 4.9;
+
+                    let paceHighlight: 'NONE' | 'HIGH' | 'LOW' = 'NONE';
+                    if (isLive && elapsedMins >= 20) {
+                      if (projectedPace >= HIGH_THRESHOLD) {
+                        paceHighlight = 'HIGH';
+                      } else if (projectedPace <= LOW_THRESHOLD) {
+                        paceHighlight = 'LOW';
+                      }
+                    }
+
+                    
+                    return (
+                      <motion.div
+                        key={game.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.03 }}
+                        className="flex flex-col"
+                      >
+                        <div 
+                          className={cn(
+                            "p-4 space-y-4 cursor-pointer transition-colors relative overflow-hidden",
+                            isExpanded ? "bg-slate-800/50" : "hover:bg-slate-800/30",
+                            game.gameState === 'CRIT' && "bg-red-950/10",
+                            game.gameState === 'OFF' && "bg-amber-950/5"
+                          )}
+                          onClick={() => toggleGame(game.id)}
+                        >
+                          {game.gameState === 'CRIT' && (
+                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500 animate-pulse shadow-[0_0_10px_#ef4444]" />
+                          )}
+                          {game.gameState === 'OFF' && (
+                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500/80" />
+                          )}
+
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                               {renderNHLStatusBadge(game)}
+                            </div>
+                            <div className="flex items-center gap-2">
+                               <OULineBadge 
+                                 line={manualLines[game.id] ?? gameLines[game.id] ?? 6.5}
+                                 currentTotal={totalScore}
+                                 status={game.gameState}
+                                 isAdmin={isAdmin}
+                                 onSaveLine={(newLine) => handleSaveLine(game.id, newLine)}
+                                 size="sm"
+                                 sport="NHL"
+                               />
+                            </div>
+                          </div>
+
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-700 relative shrink-0">
+                                  <img src={game.awayTeam.logo} alt={game.awayTeam.abbrev} className="w-6 h-6 object-contain" referrerPolicy="no-referrer" />
+                                  {awayPP && <div className="absolute inset-0 bg-amber-500/20 border border-amber-500/50 animate-pulse" />}
+                                </div>
+                                <div className="flex flex-col">
+                                  <span className="font-bold text-slate-200 tracking-tight leading-none uppercase flex items-center gap-1.5">
+                                    {game.awayTeam.abbrev}
+                                    {awayPP && <Zap className="w-2 h-2 text-amber-500 fill-amber-500" />}
+                                  </span>
+                                  <span className="text-[9px] font-mono font-medium text-slate-500 mt-0.5">
+                                    {getNHLTeamRecordStr(game.awayTeam)}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-4">
+                                <span className="text-[10px] font-mono text-slate-500">{game.awayTeam.sog || '--'} SOG</span>
+                                <span className={cn(
+                                  "font-mono font-black text-xl",
+                                  game.gameState === 'FINAL' && (game.awayTeam.score ?? 0) > (game.homeTeam.score ?? 0) ? "text-white" : "text-slate-300"
+                                )}>
+                                  {(game.awayTeam.score ?? 0)}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-700 relative shrink-0">
+                                  <img src={game.homeTeam.logo} alt={game.homeTeam.abbrev} className="w-6 h-6 object-contain" referrerPolicy="no-referrer" />
+                                  {homePP && <div className="absolute inset-0 bg-amber-500/20 border border-amber-500/50 animate-pulse" />}
+                                </div>
+                                <div className="flex flex-col">
+                                  <span className="font-bold text-slate-200 tracking-tight leading-none uppercase flex items-center gap-1.5">
+                                    {game.homeTeam.abbrev}
+                                    {homePP && <Zap className="w-2 h-2 text-amber-500 fill-amber-500" />}
+                                  </span>
+                                  <span className="text-[9px] font-mono font-medium text-slate-500 mt-0.5">
+                                    {getNHLTeamRecordStr(game.homeTeam)}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-4">
+                                <span className="text-[10px] font-mono text-slate-500">{game.homeTeam.sog || '--'} SOG</span>
+                                <span className={cn(
+                                  "font-mono font-black text-xl",
+                                  game.gameState === 'FINAL' && (game.homeTeam.score ?? 0) > (game.awayTeam.score ?? 0) ? "text-white" : "text-slate-300"
+                                )}>
+                                  {(game.homeTeam.score ?? 0)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {(game.gameState === 'LIVE' || game.gameState === 'CRIT') && (
+                            <div className="pt-2 border-t border-slate-800/50 flex justify-between items-center">
+                              <div className="flex items-center gap-2">
+                                <span className={cn(
+                                  "text-xs font-mono font-black uppercase tracking-widest",
+                                  game.gameState === 'CRIT' ? "text-red-500 animate-pulse font-extrabold" :
+                                  (awayPP || homePP) ? "text-amber-500" : "text-blue-500"
+                                )}>
+                                  {game.periodDescriptor?.number === 1 ? '1st' : 
+                                   game.periodDescriptor?.number === 2 ? '2nd' : 
+                                   game.periodDescriptor?.number === 3 ? '3rd' : 
+                                   game.periodDescriptor?.periodType === 'OT' ? 'Overtime' :
+                                   game.periodDescriptor?.periodType === 'SO' ? 'Shootout' :
+                                   game.periodDescriptor?.periodType || 'LIVE'}
+                                </span>
+                                {game.clock?.inIntermission ? (
+                                  <span className="text-[9px] font-mono text-amber-500 uppercase font-black tracking-widest">
+                                    Intermission
+                                  </span>
+                                ) : (
+                                  <span className={cn(
+                                    "text-[10px] font-mono",
+                                    game.gameState === 'CRIT' ? "text-red-400 font-bold" : "text-slate-400"
+                                  )}>
+                                    {game.clock?.timeRemaining}
+                                  </span>
+                                )}
+                              </div>
+                              
+                              <div className={cn(
+                                "inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[7.5px] font-mono leading-none tracking-wider whitespace-nowrap uppercase font-black",
+                                paceHighlight === 'HIGH' 
+                                  ? "bg-red-500/15 border-red-500/40 text-red-500 animate-pulse" 
+                                  : paceHighlight === 'LOW' 
+                                    ? "bg-cyan-500/15 border-cyan-500/40 text-cyan-400" 
+                                    : "bg-slate-950/80 border-slate-800 text-slate-500"
+                              )}>
+                                {paceHighlight === 'HIGH' && <Flame className="w-2.5 h-2.5 text-red-400 animate-pulse fill-red-400/10 shrink-0" />}
+                                {paceHighlight === 'LOW' && <TrendingDown className="w-2.5 h-2.5 text-cyan-400 shrink-0" />}
+                                {paceHighlight === 'NONE' && <Activity className="w-2.5 h-2.5 text-slate-500 shrink-0" />}
+                                <span>{elapsedMins < 20 ? "AWAITING 1ST INT." : `${projectedPace.toFixed(1)} PACE`}</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Expanded details */}
+                        <AnimatePresence>
+                          {isExpanded && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              className="overflow-hidden bg-slate-950/50 border-t border-slate-800"
+                            >
+                              <div className="p-4 space-y-6">
+                                <NHLPowerPlayTracker game={game} />
+                                
+                                <div className="space-y-4">
+                                  <div className="flex items-center gap-2">
+                                    <ShieldCheck className="w-4 h-4 text-blue-400" />
+                                    <h4 className="text-[10px] font-black text-white uppercase tracking-widest">
+                                      {(game.gameState === 'LIVE' || game.gameState === 'CRIT' || game.gameState === 'OFF' || game.gameState === 'FINAL') ? (game.gameState === 'FINAL' ? 'Final Goalies' : 'In-Game Goalies') : 'Probable Goalies'}
+                                    </h4>
+                                  </div>
+                                  
+                                  {!gameDetailsCache[game.id] ? (
+                                    <div className="flex justify-center py-4">
+                                      <div className="w-4 h-4 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
+                                    </div>
+                                  ) : (
+                                    <div className="space-y-3">
+                                      {(() => {
+                                        const isLiveType = game.gameState === 'LIVE' || game.gameState === 'CRIT' || game.gameState === 'OFF' || game.gameState === 'FINAL';
+                                        const goalie = isLiveType 
+                                          ? (gameDetailsCache[game.id].awayTeam?.goaltender || gameDetailsCache[game.id].awayTeam?.probableStartingGoalie)
+                                          : gameDetailsCache[game.id].awayTeam?.probableStartingGoalie;
+                                        return <NHLGoalieStatsCard game={game} isHome={false} goalieData={goalie} />;
+                                      })()}
+                                      {(() => {
+                                        const isLiveType = game.gameState === 'LIVE' || game.gameState === 'CRIT' || game.gameState === 'OFF' || game.gameState === 'FINAL';
+                                        const goalie = isLiveType 
+                                          ? (gameDetailsCache[game.id].homeTeam?.goaltender || gameDetailsCache[game.id].homeTeam?.probableStartingGoalie)
+                                          : gameDetailsCache[game.id].homeTeam?.probableStartingGoalie;
+                                        return <NHLGoalieStatsCard game={game} isHome={true} goalieData={goalie} />;
+                                      })()}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </motion.div>
+                    );
+                  })}
+            </div>
+
             {/* Desktop View: Table */}
-            <div className="overflow-x-auto">
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-900/50 border-b border-slate-800">
@@ -608,7 +876,7 @@ export function NHLGameLog({
                     const LOW_THRESHOLD = 4.9;
 
                     let paceHighlight: 'NONE' | 'HIGH' | 'LOW' = 'NONE';
-                    if (isLive && elapsedMins >= 3) {
+                    if (isLive && elapsedMins >= 20) {
                       if (projectedPace >= HIGH_THRESHOLD) {
                         paceHighlight = 'HIGH';
                       } else if (projectedPace <= LOW_THRESHOLD) {
@@ -760,8 +1028,8 @@ export function NHLGameLog({
                                   {paceHighlight === 'LOW' && <TrendingDown className="w-2.5 h-2.5 text-cyan-400 shrink-0" />}
                                   {paceHighlight === 'NONE' && <Activity className="w-2.5 h-2.5 text-slate-500 shrink-0" />}
                                   <span>
-                                    {elapsedMins < 3 
-                                      ? "WARMING UP" 
+                                    {elapsedMins < 20 
+                                      ? "AWAITING 1ST INT." 
                                       : `${projectedPace.toFixed(1)} PACE • ${gpp.toFixed(2)} GPP`}
                                   </span>
                                 </div>
@@ -861,12 +1129,12 @@ export function NHLGameLog({
                         <AnimatePresence>
                           {isExpanded && (
                             <tr>
-                              <td colSpan={5} className="p-0 border-none">
+                              <td colSpan={5} className="p-0 border-none relative">
                                 <motion.div
                                   initial={{ height: 0, opacity: 0 }}
                                   animate={{ height: 'auto', opacity: 1 }}
                                   exit={{ height: 0, opacity: 0 }}
-                                  className="overflow-hidden bg-slate-950/50"
+                                  className="overflow-hidden bg-slate-950/50 sticky left-0 w-[calc(100vw-2rem)] lg:w-full lg:static"
                                 >
                                   <div className="px-3 py-4 sm:px-6 sm:py-6 border-b border-slate-800/50">
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -878,7 +1146,7 @@ export function NHLGameLog({
                                         <div className="flex items-center gap-2 mb-1">
                                           <ShieldCheck className="w-4 h-4 text-blue-400" />
                                           <h4 className="text-[10px] font-black text-white uppercase tracking-widest">
-                                            {(game.gameState === 'LIVE' || game.gameState === 'CRIT' || game.gameState === 'OFF') ? 'Starting & In-Game Goalies' : 'Probable Starting Goalies'}
+                                            {(game.gameState === 'LIVE' || game.gameState === 'CRIT' || game.gameState === 'OFF' || game.gameState === 'FINAL') ? (game.gameState === 'FINAL' ? 'Final Goalies' : 'Starting & In-Game Goalies') : 'Probable Starting Goalies'}
                                           </h4>
                                         </div>
                                         
@@ -890,7 +1158,7 @@ export function NHLGameLog({
                                           <div className="space-y-4 border-none">
                                             {/* Away Goalie */}
                                             {(() => {
-                                              const isLiveType = game.gameState === 'LIVE' || game.gameState === 'CRIT' || game.gameState === 'OFF';
+                                              const isLiveType = game.gameState === 'LIVE' || game.gameState === 'CRIT' || game.gameState === 'OFF' || game.gameState === 'FINAL';
                                               const goalie = isLiveType 
                                                 ? (gameDetailsCache[game.id].awayTeam?.goaltender || gameDetailsCache[game.id].awayTeam?.probableStartingGoalie)
                                                 : gameDetailsCache[game.id].awayTeam?.probableStartingGoalie;
@@ -906,7 +1174,7 @@ export function NHLGameLog({
 
                                             {/* Home Goalie */}
                                             {(() => {
-                                              const isLiveType = game.gameState === 'LIVE' || game.gameState === 'CRIT' || game.gameState === 'OFF';
+                                              const isLiveType = game.gameState === 'LIVE' || game.gameState === 'CRIT' || game.gameState === 'OFF' || game.gameState === 'FINAL';
                                               const goalie = isLiveType 
                                                 ? (gameDetailsCache[game.id].homeTeam?.goaltender || gameDetailsCache[game.id].homeTeam?.probableStartingGoalie)
                                                 : gameDetailsCache[game.id].homeTeam?.probableStartingGoalie;
@@ -952,7 +1220,7 @@ export function NHLGameLog({
                                                     <img 
                                                       src={game.awayTeam.logo} 
                                                       alt={game.awayTeam.abbrev}
-                                                      className="w-4.5 h-4.5 object-contain"
+                                                      className="w-4 h-4 object-contain"
                                                       referrerPolicy="no-referrer"
                                                     />
                                                     <span className="font-mono text-[9px] font-black text-white uppercase tracking-wider">{game.awayTeam.abbrev} Offensive Profile</span>
@@ -977,7 +1245,7 @@ export function NHLGameLog({
                                                     <img 
                                                       src={game.homeTeam.logo} 
                                                       alt={game.homeTeam.abbrev}
-                                                      className="w-4.5 h-4.5 object-contain"
+                                                      className="w-4 h-4 object-contain"
                                                       referrerPolicy="no-referrer"
                                                     />
                                                     <span className="font-mono text-[9px] font-black text-white uppercase tracking-wider">{game.homeTeam.abbrev} Offensive Profile</span>
@@ -1028,7 +1296,7 @@ export function NHLGameLog({
                                                   <div className="grid grid-cols-2 gap-2 text-center">
                                                     <div className="bg-slate-900/40 p-1.5 rounded border border-slate-800/50">
                                                       <div className="text-[14px] font-mono font-black text-white">
-                                                        {elapsedMins < 3 ? '--' : projectedPace.toFixed(1)}
+                                                        {elapsedMins < 20 ? '--' : projectedPace.toFixed(1)}
                                                       </div>
                                                       <div className="text-[7px] font-mono text-slate-500 uppercase tracking-wider">Projected GPG</div>
                                                     </div>

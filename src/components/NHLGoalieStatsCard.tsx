@@ -10,32 +10,40 @@ interface NHLGoalieStatsCardProps {
 }
 
 // Highly accurate season baseline goalie data lookup
-const SEASON_BASELINES: Record<string, { savePctg: number; gaa: string; record: string }> = {
-  'Swayman': { savePctg: 0.916, gaa: '2.45', record: '25-10-8' },
-  'Shesterkin': { savePctg: 0.912, gaa: '2.58', record: '36-17-2' },
-  'Woll': { savePctg: 0.908, gaa: '2.84', record: '12-11-1' },
-  'Montembeault': { savePctg: 0.903, gaa: '3.14', record: '16-15-9' },
-  'Skinner': { savePctg: 0.905, gaa: '2.62', record: '36-16-5' },
-  'Wolf': { savePctg: 0.899, gaa: '3.16', record: '7-7-1' },
-  'Georgiev': { savePctg: 0.901, gaa: '3.02', record: '38-18-5' },
-  'Hill': { savePctg: 0.915, gaa: '2.71', record: '19-12-2' },
-  'Mrazek': { savePctg: 0.904, gaa: '3.05', record: '18-31-4' },
-  'Lyon': { savePctg: 0.907, gaa: '3.05', record: '21-18-5' },
-  'Demko': { savePctg: 0.917, gaa: '2.45', record: '32-13-2' },
-  'Daccord': { savePctg: 0.914, gaa: '2.52', record: '18-14-10' },
-  'Vasilevskiy': { savePctg: 0.900, gaa: '2.90', record: '30-20-2' },
-  'Bobrovsky': { savePctg: 0.913, gaa: '2.37', record: '36-17-4' },
-  'Oettinger': { savePctg: 0.905, gaa: '2.72', record: '35-14-4' },
-  'Hellebuyck': { savePctg: 0.921, gaa: '2.39', record: '37-19-4' }
+const SEASON_BASELINES: Record<string, { savePctg: number; gaa: string; record: string; playerId?: number }> = {
+  'Swayman': { savePctg: 0.916, gaa: '2.45', record: '25-10-8', playerId: 8480280 },
+  'Shesterkin': { savePctg: 0.912, gaa: '2.58', record: '36-17-2', playerId: 8478048 },
+  'Woll': { savePctg: 0.908, gaa: '2.84', record: '12-11-1', playerId: 8479361 },
+  'Montembeault': { savePctg: 0.903, gaa: '3.14', record: '16-15-9', playerId: 8478470 },
+  'Skinner': { savePctg: 0.905, gaa: '2.62', record: '36-16-5', playerId: 8479973 },
+  'Wolf': { savePctg: 0.899, gaa: '3.16', record: '7-7-1', playerId: 8481635 },
+  'Georgiev': { savePctg: 0.901, gaa: '3.02', record: '38-18-5', playerId: 8480382 },
+  'Hill': { savePctg: 0.915, gaa: '2.71', record: '19-12-2', playerId: 8478499 },
+  'Mrazek': { savePctg: 0.904, gaa: '3.05', record: '18-31-4', playerId: 8475852 },
+  'Lyon': { savePctg: 0.907, gaa: '3.05', record: '21-18-5', playerId: 8477361 },
+  'Demko': { savePctg: 0.917, gaa: '2.45', record: '32-13-2', playerId: 8477967 },
+  'Daccord': { savePctg: 0.914, gaa: '2.52', record: '18-14-10', playerId: 8478916 },
+  'Vasilevskiy': { savePctg: 0.900, gaa: '2.90', record: '30-20-2', playerId: 8476883 },
+  'Bobrovsky': { savePctg: 0.913, gaa: '2.37', record: '36-17-4', playerId: 8475683 },
+  'Oettinger': { savePctg: 0.905, gaa: '2.72', record: '35-14-4', playerId: 8479979 },
+  'Hellebuyck': { savePctg: 0.921, gaa: '2.39', record: '37-19-4', playerId: 8476945 }
 };
 
 export function NHLGoalieStatsCard({ game, isHome, goalieData }: NHLGoalieStatsCardProps) {
   const team = isHome ? game.homeTeam : game.awayTeam;
   const opposingTeam = isHome ? game.awayTeam : game.homeTeam;
   const isLive = game.gameState === 'LIVE' || game.gameState === 'CRIT' || game.gameState === 'OFF';
+  const isFinal = game.gameState === 'FINAL';
 
   // Get goalie name
   const name = goalieData?.lastName || goalieData?.name?.default || 'TBD';
+
+  // Extract player ID for headshot
+  const playerId = goalieData?.playerId || SEASON_BASELINES[name]?.playerId;
+  const headshotUrl = playerId 
+    ? `https://assets.nhle.com/mugs/nhl/latest/${playerId}.png` 
+    : `https://assets.nhle.com/mugs/nhl/default-skater.png`; // Fallback image if needed
+
 
   // Retrieve base statistics
   const baseline = useMemo(() => {
@@ -76,7 +84,7 @@ export function NHLGoalieStatsCard({ game, isHome, goalieData }: NHLGoalieStatsC
 
   // Compute live statistics in real time directly driven by live shots and score
   const liveStats = useMemo(() => {
-    if (!isLive) return null;
+    if (!isLive && !isFinal) return null;
 
     // Shots on goal *against* this goaltender are the shots taken by the *opposing* team
     const shotsAgainst = opposingTeam.sog || 0;
@@ -94,7 +102,7 @@ export function NHLGoalieStatsCard({ game, isHome, goalieData }: NHLGoalieStatsC
       liveSv,
       percentageFormatted: liveSv.toFixed(3)
     };
-  }, [isLive, opposingTeam.sog, opposingTeam.score]);
+  }, [isLive, isFinal, opposingTeam.sog, opposingTeam.score]);
 
   // Determine the status color based on current live save percentage
   const liveColorClass = useMemo(() => {
@@ -111,8 +119,21 @@ export function NHLGoalieStatsCard({ game, isHome, goalieData }: NHLGoalieStatsC
       {/* Goalie Identifier Header */}
       <div className="flex items-center justify-between border-b border-slate-900 pb-2">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-[9px] font-black text-slate-400">
-            {team.abbrev}
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-[9px] font-black text-slate-400 overflow-hidden shrink-0 relative">
+            {playerId ? (
+              <img 
+                src={headshotUrl} 
+                alt={name}
+                className="w-full h-full object-cover object-top scale-110"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                  (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                }}
+              />
+            ) : null}
+            <div className={cn("absolute inset-0 flex items-center justify-center bg-slate-900", playerId ? "hidden" : "")}>
+              {team.abbrev}
+            </div>
           </div>
           <div>
             <h5 className="text-xs font-black text-white uppercase tracking-tight">
@@ -129,9 +150,10 @@ export function NHLGoalieStatsCard({ game, isHome, goalieData }: NHLGoalieStatsC
           "text-[7px] px-1.5 py-0.5 rounded border tracking-widest uppercase font-black",
           isLive
             ? "bg-emerald-950/40 border-emerald-900/60 text-emerald-400"
+            : isFinal ? "bg-slate-800 border-slate-700 text-slate-300"
             : "bg-blue-950/40 border-blue-900/40 text-blue-400"
         )}>
-          {isLive ? 'In Net' : 'Confirmed'}
+          {isLive ? 'In Net' : isFinal ? 'Final Stats' : 'Confirmed'}
         </span>
       </div>
 
@@ -152,12 +174,12 @@ export function NHLGoalieStatsCard({ game, isHome, goalieData }: NHLGoalieStatsC
       </div>
 
       {/* Live In-Game Performance Indicator */}
-      {isLive && liveStats && (
+      {(isLive || isFinal) && liveStats && (
         <div className="space-y-2 border-t border-slate-900 pt-2.5">
           <div className="flex items-center justify-between text-[8px] text-slate-400 font-bold uppercase">
             <span className="flex items-center gap-1">
-              <Activity className="w-3 h-3 text-emerald-400 animate-pulse" />
-              Live Performance
+              {isLive ? <Activity className="w-3 h-3 text-emerald-400 animate-pulse" /> : <ShieldCheck className="w-3 h-3 text-slate-400" />}
+              {isFinal ? 'Game Performance' : 'Live Performance'}
             </span>
             <span className={cn("font-black text-[10px]", liveColorClass)}>
               .{liveStats.percentageFormatted.split('.')[1] || '000'} SV%

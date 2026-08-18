@@ -31,7 +31,7 @@ export function NHLPeriodGoalsChart({
   const chartData = useMemo(() => {
     if (!games || games.length === 0) return [];
 
-    return games.map(game => {
+    return games.filter(game => game.gameState !== 'PRE').map(game => {
       const matchLabel = `${game.awayTeam.abbrev} @ ${game.homeTeam.abbrev}`;
       const line = gameLines[game.id] || 6.0; // Default line if not specified
 
@@ -354,9 +354,9 @@ export function NHLPeriodGoalsChart({
                                 : 'text-slate-500'
                           }`}>
                             {data['Total Goals'] > data['O/U Line'] 
-                              ? 'OVER OVER' 
+                              ? 'OVER' 
                               : data['Total Goals'] < data['O/U Line'] 
-                                ? 'UNDER UNDER' 
+                                ? 'UNDER' 
                                 : 'PUSH'}
                           </span>
                         </div>

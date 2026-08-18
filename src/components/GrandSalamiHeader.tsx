@@ -416,7 +416,7 @@ export function GrandSalamiHeader({
         <div className="space-y-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full border-2 flex items-center justify-center shadow-lg bg-slate-800 border-slate-700">
-              <Trophy className="w-5 h-5 text-salami-red" />
+              <img src="https://a.espncdn.com/i/teamlogos/leagues/500/mlb.png" alt="MLB" className="w-6 h-6 object-contain filter drop-shadow-md brightness-110" />
             </div>
             <div>
               <span className="data-label block">Grand Salami Tracker</span>

@@ -149,7 +149,7 @@ export function WagerHistory({
                 onClick={onClose}
                 className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 transition-colors"
               >
-                <ChevronRight className="w-4.5 h-4.5 sm:w-5 h-5 rotate-90" />
+                <ChevronRight className="w-4 h-4 sm:w-5 h-5 rotate-90" />
               </button>
             </div>
 
