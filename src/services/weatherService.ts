@@ -30,7 +30,9 @@ export async function fetchWeatherForecast(teamId: number, dateTime: string, ven
         fVenue.includes(vName) || 
         (vName.includes('great american') && fVenue.includes('great american')) ||
         (vName.includes('citizens bank') && fVenue.includes('citizens bank')) ||
-        (vName.includes('american family') && fVenue.includes('american family'))
+        (vName.includes('american family') && fVenue.includes('american family')) ||
+        ((vName.includes('daikin') || vName.includes('minute maid')) && (fVenue.includes('daikin') || fVenue.includes('minute maid'))) ||
+        (vName.includes('rate') && fVenue.includes('rate'))
       )) {
         return true;
       }
