@@ -3,7 +3,8 @@ import { NHLGame, fetchNHLGameDetails, NHLGoalie } from '../services/nhlService'
 import { SIMULATED_DETAILS } from '../services/nhlMockData';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
-import { Activity, ChevronDown, ChevronUp, Info, Clock, AlertTriangle, ShieldCheck, Zap, Edit2, Save, CalendarRange, Eye, BarChart3, Flame, TrendingDown } from 'lucide-react';
+import { Activity, ChevronDown, ChevronUp, Info, Clock, AlertTriangle, ShieldCheck, Zap, Edit2, Save, CalendarRange, Eye, BarChart3, Flame, TrendingDown, Calendar, Radio } from 'lucide-react';
+import { format, subDays, addDays } from 'date-fns';
 import { useAuth } from '../contexts/AuthContext';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { Timestamp, doc, setDoc } from 'firebase/firestore';
@@ -37,14 +38,29 @@ export const renderNHLStatusBadge = (game: NHLGame) => {
     );
   }
 
-  // Normal gameStates
+  if (game.gameState === 'FINAL' || game.gameState === 'OVER') {
+    return (
+      <div className={cn(baseClasses, "bg-emerald-600 text-white border border-emerald-500/30")}>
+        <span>FINAL</span>
+      </div>
+    );
+  }
+
+  if (game.gameState === 'PRE' || game.gameState === 'FUT') {
+    return (
+      <div className={cn(baseClasses, "bg-slate-800 text-slate-400 border border-slate-700")}>
+        <span>PRE</span>
+      </div>
+    );
+  }
+
+  // Live / Off-ice
   return (
     <div className={cn(
       baseClasses,
       game.gameState === 'LIVE' ? "bg-red-600 text-white border border-red-500/30" :
       game.gameState === 'CRIT' ? "bg-red-700 text-white border border-red-400 animate-pulse shadow-[0_0_12px_rgba(220,38,38,0.6)]" :
       game.gameState === 'OFF' ? "bg-amber-600/20 text-amber-400 border border-amber-500/50" :
-      game.gameState === 'FINAL' ? "bg-emerald-600 text-white border border-emerald-500/30" :
       "bg-slate-800 text-slate-400 border border-slate-700"
     )}>
       {game.gameState === 'CRIT' && (
@@ -437,10 +453,15 @@ export function NHLGameLog({
     setExpandedGameId(expandedGameId === gameId ? null : gameId);
   };
 
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const yesterdayStr = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+  const tomorrowStr = format(addDays(new Date(), 1), 'yyyy-MM-dd');
+
   const filteredGames = games.filter(game => {
     if (filter === 'All') return true;
     if (filter === 'LIVE') return game.gameState === 'LIVE' || game.gameState === 'CRIT';
-    if (filter === 'FINAL') return game.gameState === 'FINAL' || game.gameState === 'OFF';
+    if (filter === 'FINAL') return game.gameState === 'FINAL' || game.gameState === 'OFF' || game.gameState === 'OVER';
+    if (filter === 'PRE') return game.gameState === 'PRE' || game.gameState === 'FUT';
     return game.gameState === filter;
   });
 
@@ -460,7 +481,7 @@ export function NHLGameLog({
               )}
             </h2>
             <span className="text-[8px] font-mono text-slate-500 uppercase tracking-[0.2em] mt-0.5 flex items-center gap-2">
-              Live updates • Including critical and off-ice reviews (Beta)
+              Live updates • Preseason & regular season puck drop tracker
             </span>
           </div>
         </div>
@@ -497,6 +518,82 @@ export function NHLGameLog({
               </button>
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* Slate Date & Schedule Controls */}
+      <div className="px-6 py-3 bg-slate-950/70 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[9px] font-mono text-slate-400 uppercase tracking-widest font-black flex items-center gap-1.5">
+            <Calendar className="w-3.5 h-3.5 text-blue-400" /> Slate:
+          </span>
+          <button
+            type="button"
+            onClick={() => onSelectDate?.(yesterdayStr)}
+            className={cn(
+              "px-3 py-1.5 rounded-lg text-[9px] font-mono uppercase tracking-wider font-black transition-all border cursor-pointer",
+              selectedDate === yesterdayStr
+                ? "bg-blue-600 text-white border-blue-500 shadow-sm"
+                : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700"
+            )}
+          >
+            Yesterday ({format(subDays(new Date(), 1), 'MMM d')})
+          </button>
+          <button
+            type="button"
+            onClick={() => onSelectDate?.('today')}
+            className={cn(
+              "px-3 py-1.5 rounded-lg text-[9px] font-mono uppercase tracking-wider font-black transition-all border cursor-pointer",
+              (selectedDate === 'today' || selectedDate === todayStr)
+                ? "bg-blue-600 text-white border-blue-500 shadow-sm"
+                : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700"
+            )}
+          >
+            Today ({format(new Date(), 'MMM d')})
+          </button>
+          <button
+            type="button"
+            onClick={() => onSelectDate?.(tomorrowStr)}
+            className={cn(
+              "px-3 py-1.5 rounded-lg text-[9px] font-mono uppercase tracking-wider font-black transition-all border cursor-pointer",
+              selectedDate === tomorrowStr
+                ? "bg-blue-600 text-white border-blue-500 shadow-sm"
+                : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700"
+            )}
+          >
+            Tomorrow ({format(addDays(new Date(), 1), 'MMM d')})
+          </button>
+          
+          <div className="relative flex items-center ml-1">
+            <input
+              type="date"
+              value={selectedDate && selectedDate !== 'today' && selectedDate !== 'demo' ? selectedDate : todayStr}
+              onChange={(e) => {
+                if (e.target.value) {
+                  onSelectDate?.(e.target.value);
+                }
+              }}
+              className="bg-slate-900 text-slate-200 border border-slate-800 rounded-lg px-2.5 py-1 text-[9px] font-mono focus:outline-none focus:border-blue-500 cursor-pointer"
+              title="Select custom schedule date"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onSelectDate?.(selectedDate === 'demo' ? 'today' : 'demo')}
+            className={cn(
+              "px-3 py-1.5 rounded-lg text-[9px] font-mono uppercase tracking-wider font-black transition-all border flex items-center gap-1.5 cursor-pointer",
+              selectedDate === 'demo'
+                ? "bg-cyan-950 text-cyan-400 border-cyan-700 shadow-sm"
+                : "bg-slate-900 border-slate-800 text-slate-400 hover:text-cyan-300 hover:border-slate-700"
+            )}
+            title="Toggle live in-game simulation ticker to test live scoring and pace updates"
+          >
+            <Radio className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+            {selectedDate === 'demo' ? "Exit Simulation" : "Simulate Live Action"}
+          </button>
         </div>
       </div>
 
@@ -668,9 +765,9 @@ export function NHLGameLog({
                                 <span className="text-[10px] font-mono text-slate-500">{game.awayTeam.sog || '--'} SOG</span>
                                 <span className={cn(
                                   "font-mono font-black text-xl",
-                                  game.gameState === 'FINAL' && (game.awayTeam.score ?? 0) > (game.homeTeam.score ?? 0) ? "text-white" : "text-slate-300"
+                                  (game.gameState === 'FINAL' || game.gameState === 'OVER') && (game.awayTeam.score ?? 0) > (game.homeTeam.score ?? 0) ? "text-white" : "text-slate-300"
                                 )}>
-                                  {(game.awayTeam.score ?? 0)}
+                                  {(game.gameState === 'PRE' || game.gameState === 'FUT') ? '--' : (game.awayTeam.score ?? 0)}
                                 </span>
                               </div>
                             </div>
@@ -695,13 +792,25 @@ export function NHLGameLog({
                                 <span className="text-[10px] font-mono text-slate-500">{game.homeTeam.sog || '--'} SOG</span>
                                 <span className={cn(
                                   "font-mono font-black text-xl",
-                                  game.gameState === 'FINAL' && (game.homeTeam.score ?? 0) > (game.awayTeam.score ?? 0) ? "text-white" : "text-slate-300"
+                                  (game.gameState === 'FINAL' || game.gameState === 'OVER') && (game.homeTeam.score ?? 0) > (game.awayTeam.score ?? 0) ? "text-white" : "text-slate-300"
                                 )}>
-                                  {(game.homeTeam.score ?? 0)}
+                                  {(game.gameState === 'PRE' || game.gameState === 'FUT') ? '--' : (game.homeTeam.score ?? 0)}
                                 </span>
                               </div>
                             </div>
                           </div>
+
+                          {(game.gameState === 'PRE' || game.gameState === 'FUT') && (
+                            <div className="pt-2 border-t border-slate-800/50 flex justify-between items-center text-[10px] font-mono text-slate-400">
+                              <span className="flex items-center gap-1.5 text-slate-300">
+                                <Clock className="w-3 h-3 text-slate-500" />
+                                {new Date(game.startTimeUTC).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                              </span>
+                              <span className="text-[8px] uppercase tracking-wider text-slate-500 font-black">
+                                Scheduled Puck Drop
+                              </span>
+                            </div>
+                          )}
 
                           {(game.gameState === 'LIVE' || game.gameState === 'CRIT') && (
                             <div className="pt-2 border-t border-slate-800/50 flex justify-between items-center">
@@ -939,9 +1048,9 @@ export function NHLGameLog({
                                 </div>
                                 <span className={cn(
                                   "font-mono font-black text-lg shrink-0 ml-4",
-                                  game.gameState === 'FINAL' && (game.awayTeam.score ?? 0) > (game.homeTeam.score ?? 0) ? "text-white" : "text-slate-500"
+                                  (game.gameState === 'FINAL' || game.gameState === 'OVER') && (game.awayTeam.score ?? 0) > (game.homeTeam.score ?? 0) ? "text-white" : "text-slate-500"
                                 )}>
-                                  {(game.awayTeam.score ?? 0).toString().padStart(2, '0')}
+                                  {(game.gameState === 'PRE' || game.gameState === 'FUT') ? '--' : (game.awayTeam.score ?? 0).toString().padStart(2, '0')}
                                 </span>
                               </div>
                               <div className="flex items-center justify-between">
@@ -977,9 +1086,9 @@ export function NHLGameLog({
                                 </div>
                                 <span className={cn(
                                   "font-mono font-black text-lg shrink-0 ml-4",
-                                  game.gameState === 'FINAL' && (game.homeTeam.score ?? 0) > (game.awayTeam.score ?? 0) ? "text-white" : "text-slate-500"
+                                  (game.gameState === 'FINAL' || game.gameState === 'OVER') && (game.homeTeam.score ?? 0) > (game.awayTeam.score ?? 0) ? "text-white" : "text-slate-500"
                                 )}>
-                                  {(game.homeTeam.score ?? 0).toString().padStart(2, '0')}
+                                  {(game.gameState === 'PRE' || game.gameState === 'FUT') ? '--' : (game.homeTeam.score ?? 0).toString().padStart(2, '0')}
                                 </span>
                               </div>
                             </div>
@@ -1044,7 +1153,7 @@ export function NHLGameLog({
                                   {(game as any).gameScheduleState === 'PPD' ? 'Postponed' :
                                    (game as any).gameScheduleState === 'CNCL' ? 'Cancelled' :
                                    game.gameState === 'OFF' ? 'End on Ice' :
-                                   game.gameState === 'FINAL' ? 'Complete' : 'Scheduled'}
+                                   (game.gameState === 'FINAL' || game.gameState === 'OVER') ? 'Complete' : 'Scheduled'}
                                 </span>
                                 
                                 {game.gameState === 'OFF' && (
@@ -1104,7 +1213,7 @@ export function NHLGameLog({
                                   {game.gameState === 'CRIT' ? 'CRIT' : game.gameState === 'OFF' ? 'OFF-ICE' : game.gameState}
                                 </div>
                                 <div className="text-[9px] font-mono text-slate-400 font-bold whitespace-nowrap">
-                                  {game.gameState === 'PRE' 
+                                  {(game.gameState === 'PRE' || game.gameState === 'FUT') 
                                     ? new Date(game.startTimeUTC).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                                     : (game.gameState === 'LIVE' || game.gameState === 'CRIT') ? (
                                        <span className={cn(
@@ -1194,7 +1303,7 @@ export function NHLGameLog({
                                       {/* Game Stats / Trends */}
                                       <div className="bg-slate-900 rounded-xl border border-slate-800 p-3 sm:p-4">
                                         <div className="flex items-center gap-2 mb-4">
-                                          {game.gameState === 'PRE' ? (
+                                          {(game.gameState === 'PRE' || game.gameState === 'FUT') ? (
                                             <>
                                               <BarChart3 className="w-4 h-4 text-blue-400" />
                                               <h4 className="text-[10px] font-black text-white uppercase tracking-widest">Pre-Game Matchup Insights</h4>
@@ -1207,7 +1316,7 @@ export function NHLGameLog({
                                           )}
                                         </div>
                                         
-                                        {game.gameState === 'PRE' ? (
+                                        {(game.gameState === 'PRE' || game.gameState === 'FUT') ? (
                                           (() => {
                                             const awayStats = getDynamicTeamStats(game.awayTeam.abbrev, game.id);
                                             const homeStats = getDynamicTeamStats(game.homeTeam.abbrev, game.id);

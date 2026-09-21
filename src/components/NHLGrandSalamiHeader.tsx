@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Trophy, RefreshCw, Calendar, HelpCircle, LogIn, LogOut, Clock, Thermometer, Check, Twitter, UserPlus, ShoppingBag, Activity } from 'lucide-react';
-import { format, formatDistanceToNow } from 'date-fns';
+import { Trophy, RefreshCw, Calendar, HelpCircle, LogIn, LogOut, Clock, Thermometer, Check, Twitter, UserPlus, ShoppingBag, Activity, Target } from 'lucide-react';
+import { format, formatDistanceToNow, parseISO } from 'date-fns';
 import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../lib/utils';
 import { toast } from 'sonner';
@@ -26,6 +26,7 @@ interface NHLGrandSalamiHeaderProps {
   isFinished?: boolean;
   voidDates?: Record<string, boolean>;
   todayStr?: string;
+  selectedDate?: string;
 }
 
 export function NHLGrandSalamiHeader({ 
@@ -43,7 +44,8 @@ export function NHLGrandSalamiHeader({
   projectedTotal = null,
   isFinished = false,
   voidDates = {},
-  todayStr = ''
+  todayStr = '',
+  selectedDate = 'today'
 }: NHLGrandSalamiHeaderProps) {
   const { user, signIn, signOut } = useAuth();
   const [relativeTime, setRelativeTime] = useState(formatDistanceToNow(lastUpdated, { addSuffix: true }));
@@ -129,6 +131,17 @@ export function NHLGrandSalamiHeader({
 
   const status = getStatus();
 
+  const formattedDateStr = useMemo(() => {
+    if (!selectedDate || selectedDate === 'today' || selectedDate === 'demo') {
+      return format(new Date(), 'MMM dd');
+    }
+    try {
+      return format(parseISO(selectedDate), 'MMM dd');
+    } catch {
+      return selectedDate;
+    }
+  }, [selectedDate]);
+
   return (
     <div className="space-y-4">
       <div className="dashboard-card p-4 sm:p-6 mb-6 border-none shadow-2xl transition-colors duration-300 bg-slate-900 text-white">
@@ -146,7 +159,6 @@ export function NHLGrandSalamiHeader({
                 <h1 className="font-mono font-black tracking-tighter text-sm sm:text-xl leading-none text-white whitespace-nowrap uppercase">
                   NHL GRAND SALAMI
                 </h1>
-                <span className="px-1.5 py-0.5 rounded bg-blue-500/10 border border-blue-500/20 text-[6px] font-black text-blue-400 uppercase tracking-widest leading-none">WIP</span>
               </div>
               <span className="text-[7px] sm:text-[9px] font-mono text-blue-500 font-black tracking-[0.3em] sm:tracking-[0.4em] mt-0.5 uppercase mb-1">Hockey Live Tracker</span>
             </div>
@@ -155,7 +167,7 @@ export function NHLGrandSalamiHeader({
           <div className="flex items-center gap-3 w-full sm:w-auto sm:justify-start">
             <div className="hidden xs:flex items-center gap-2 text-[9px] font-mono px-2 py-1 rounded-full border text-slate-500 bg-slate-800/50 border-slate-800">
               <Calendar className="w-2.5 h-2.5 text-blue-500" />
-              {format(new Date(), 'MMM dd').toUpperCase()}
+              {formattedDateStr.toUpperCase()}
             </div>
 
             <div className="w-[1px] h-4 bg-slate-800 hidden xs:block" />
@@ -223,6 +235,35 @@ export function NHLGrandSalamiHeader({
           </div>
 
           <div className="flex flex-wrap items-center justify-start sm:justify-end gap-3 w-full sm:w-auto">
+            {betLine !== '' && (
+              <div className="flex flex-col items-start sm:items-end gap-1">
+                <div className="flex items-center gap-1 opacity-50 px-1">
+                  <Target className="w-2.5 h-2.5 text-blue-400" />
+                  <span className="text-[7px] font-mono font-bold uppercase tracking-[0.2em] text-slate-400">Live Wager</span>
+                </div>
+                <div className={cn(
+                  "flex items-center gap-3 px-3 py-1.5 rounded-full border shadow-lg",
+                  status === 'WON' || status === 'WINNING' || status === 'ON TRACK' ? "bg-green-500/10 border-green-500/30 text-green-400" :
+                  status === 'PUSH' ? "bg-blue-500/10 border-blue-500/30 text-blue-400" :
+                  status === 'VOID' ? "bg-amber-500/10 border-amber-500/30 text-amber-500" :
+                  "bg-red-500/10 border-red-500/30 text-red-500"
+                )}>
+                  <div className="flex flex-col items-center">
+                    <span className="text-[8px] font-mono font-bold leading-none">{betType.toUpperCase()} {betLine}</span>
+                    <span className="text-[6px] font-mono opacity-60 uppercase mt-0.5">Your Bet</span>
+                  </div>
+                  <div className="w-[1px] h-4 bg-slate-700/50" />
+                  <div className="flex flex-col items-end">
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px] font-mono font-black leading-none">{projectedTotal || '---'}</span>
+                      <span className="text-[6px] font-mono opacity-60 uppercase">PROJ</span>
+                    </div>
+                    <span className="text-[6px] font-mono font-black uppercase tracking-tighter">{status}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <button 
               onClick={() => {
                 trackEvent('refresh_data');

@@ -147,6 +147,8 @@ export default function App() {
   const isFetchingRef = useRef(false);
   const prevMlbScoresRef = useRef<Record<number, { away: number; home: number }>>({});
   const isInitialMlbLoadRef = useRef(true);
+  const prevNhlScoresRef = useRef<Record<number, { away: number; home: number }>>({});
+  const isInitialNhlLoadRef = useRef(true);
 
   useEffect(() => {
     const q = collection(db, 'gameLines');
@@ -450,6 +452,57 @@ export default function App() {
     });
   }, [games]);
 
+  // NHL Live Goal Scored Alerts System
+  useEffect(() => {
+    if (!nhlGames || nhlGames.length === 0 || selectedNhlDate === 'demo') return;
+
+    if (isInitialNhlLoadRef.current) {
+      const initialScores: Record<number, { away: number; home: number }> = {};
+      nhlGames.forEach(g => {
+        initialScores[g.id] = {
+          away: g.awayTeam?.score || 0,
+          home: g.homeTeam?.score || 0
+        };
+      });
+      prevNhlScoresRef.current = initialScores;
+      isInitialNhlLoadRef.current = false;
+      return;
+    }
+
+    nhlGames.forEach(g => {
+      const prev = prevNhlScoresRef.current[g.id];
+      if (prev) {
+        const currentAway = g.awayTeam?.score || 0;
+        const currentHome = g.homeTeam?.score || 0;
+
+        const awayDiff = currentAway - prev.away;
+        const homeDiff = currentHome - prev.home;
+
+        if (awayDiff > 0 || homeDiff > 0) {
+          const scoringTeam = (awayDiff > 0 && homeDiff > 0)
+            ? 'Both teams'
+            : awayDiff > 0
+              ? g.awayTeam.abbrev
+              : g.homeTeam.abbrev;
+          
+          const body = `🚨 GOAL! ${scoringTeam} scored! It's now ${g.awayTeam.abbrev} ${currentAway} - ${currentHome} ${g.homeTeam.abbrev}`;
+          
+          if (activeSport === 'NHL') {
+            toast(body, {
+              icon: '🏒',
+              duration: 5000
+            });
+          }
+        }
+      }
+
+      prevNhlScoresRef.current[g.id] = {
+        away: g.awayTeam?.score || 0,
+        home: g.homeTeam?.score || 0
+      };
+    });
+  }, [nhlGames, selectedNhlDate, activeSport]);
+
   const [todayStr] = useState(() => format(new Date(), 'yyyy-MM-dd'));
 
   const currentTotal = useMemo(() => {
@@ -533,12 +586,12 @@ export default function App() {
 
   const nhlStats = useMemo(() => {
     if (activeSport !== 'NHL' || !Array.isArray(nhlGames)) return null;
-    const final = nhlGames.filter(g => g.gameState === 'FINAL' || g.gameState === 'OFF').length;
+    const final = nhlGames.filter(g => g.gameState === 'FINAL' || g.gameState === 'OFF' || g.gameState === 'OVER').length;
     const live = nhlGames.filter(g => g.gameState === 'LIVE' || g.gameState === 'CRIT').length;
     
     let playedPeriods = 0;
     nhlGames.forEach(game => {
-      if (game.gameState === 'FINAL' || game.gameState === 'OFF') {
+      if (game.gameState === 'FINAL' || game.gameState === 'OFF' || game.gameState === 'OVER') {
         playedPeriods += 3;
       } else if (game.gameState === 'LIVE' || game.gameState === 'CRIT') {
         const period = game.periodDescriptor?.number || 1;
@@ -783,16 +836,16 @@ export default function App() {
     });
 
     // Populate total goals for a date only if there is at least one game,
-    // and all of them are finished (not PRE, LIVE, or CRIT)
+    // and all of them are finished (not PRE, FUT, LIVE, or CRIT)
     Object.entries(gamesByDate).forEach(([date, dateGames]) => {
       const hasPreviewOrLive = dateGames.some(g => {
         const state = g.gameState;
-        return state === 'PRE' || state === 'LIVE' || state === 'CRIT';
+        return state === 'PRE' || state === 'FUT' || state === 'LIVE' || state === 'CRIT';
       });
 
       const hasFinalOrOff = dateGames.some(g => {
         const state = g.gameState;
-        return state === 'FINAL' || state === 'OFF';
+        return state === 'FINAL' || state === 'OFF' || state === 'OVER';
       });
 
       if (hasFinalOrOff && !hasPreviewOrLive) {
@@ -1187,9 +1240,21 @@ export default function App() {
         );
       }
     } else if (activeSport === 'NHL') {
-      if (nhlStats && nhlStats.playedPeriods >= 0.5) {
-        // Simple linear projection for NHL
-        return Math.round((currentTotal / nhlStats.playedPeriods) * nhlStats.totalExpectedPeriods);
+      if (nhlStats && nhlStats.gameCount > 0) {
+        if (nhlStats.isFinished) {
+          return currentTotal;
+        }
+        if (nhlStats.playedPeriods >= 0.5) {
+          // Blended pace projection for NHL (live pace blended with baseline ~6.2 goals/game)
+          const livePace = (currentTotal / nhlStats.playedPeriods) * nhlStats.totalExpectedPeriods;
+          const baseline = nhlStats.gameCount * 6.2;
+          const progress = Math.min(1, nhlStats.playedPeriods / nhlStats.totalExpectedPeriods);
+          const blended = (livePace * progress) + (baseline * (1 - progress));
+          return Math.round(blended);
+        } else {
+          // Pre-game baseline expectation based on game count
+          return Math.round(nhlStats.gameCount * 6.2);
+        }
       }
     }
     return null;
@@ -1263,7 +1328,7 @@ export default function App() {
             >
               <div className="relative z-10 flex flex-col items-center gap-1">
                 <span>NHL Salami</span>
-                <span className="text-[7px] text-blue-400/70 font-mono tracking-widest leading-none">(Work in Progress)</span>
+                <span className="text-[7px] text-blue-400 font-mono tracking-widest leading-none">Hockey Slate</span>
               </div>
               {activeSport === 'NHL' && (
                 <motion.div 
@@ -1335,6 +1400,7 @@ export default function App() {
                   isFinished={nhlStats.isFinished}
                   voidDates={voidDates}
                   todayStr={todayStr}
+                  selectedDate={selectedNhlDate}
                 />
               )}
 
