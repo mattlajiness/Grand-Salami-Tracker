@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { NHLGame } from '../services/nhlService';
-import { ShieldCheck, Activity, Target, Flame, RefreshCw } from 'lucide-react';
+import { ShieldCheck, Activity } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 interface NHLGoalieStatsCardProps {
@@ -9,7 +9,7 @@ interface NHLGoalieStatsCardProps {
   goalieData: any;
 }
 
-// Highly accurate season baseline goalie data lookup
+// Extensive baseline season data lookup
 const SEASON_BASELINES: Record<string, { savePctg: number; gaa: string; record: string; playerId?: number }> = {
   'Swayman': { savePctg: 0.916, gaa: '2.45', record: '25-10-8', playerId: 8480280 },
   'Shesterkin': { savePctg: 0.912, gaa: '2.58', record: '36-17-2', playerId: 8478048 },
@@ -20,34 +20,115 @@ const SEASON_BASELINES: Record<string, { savePctg: number; gaa: string; record: 
   'Georgiev': { savePctg: 0.901, gaa: '3.02', record: '38-18-5', playerId: 8480382 },
   'Hill': { savePctg: 0.915, gaa: '2.71', record: '19-12-2', playerId: 8478499 },
   'Mrazek': { savePctg: 0.904, gaa: '3.05', record: '18-31-4', playerId: 8475852 },
-  'Lyon': { savePctg: 0.907, gaa: '3.05', record: '21-18-5', playerId: 8477361 },
+  'Lyon': { savePctg: 0.907, gaa: '2.77', record: '20-10-4', playerId: 8479312 },
+  'Greaves': { savePctg: 0.908, gaa: '2.60', record: '26-19-9', playerId: 8482982 },
+  'Luukkonen': { savePctg: 0.910, gaa: '2.52', record: '22-9-3', playerId: 8480045 },
+  'Murashov': { savePctg: 0.915, gaa: '2.20', record: '8-3-1', playerId: 8483703 },
+  'Blomqvist': { savePctg: 0.909, gaa: '2.65', record: '11-6-2', playerId: 8482446 },
   'Demko': { savePctg: 0.917, gaa: '2.45', record: '32-13-2', playerId: 8477967 },
   'Daccord': { savePctg: 0.914, gaa: '2.52', record: '18-14-10', playerId: 8478916 },
   'Vasilevskiy': { savePctg: 0.900, gaa: '2.90', record: '30-20-2', playerId: 8476883 },
   'Bobrovsky': { savePctg: 0.913, gaa: '2.37', record: '36-17-4', playerId: 8475683 },
   'Oettinger': { savePctg: 0.905, gaa: '2.72', record: '35-14-4', playerId: 8479979 },
-  'Hellebuyck': { savePctg: 0.921, gaa: '2.39', record: '37-19-4', playerId: 8476945 }
+  'Hellebuyck': { savePctg: 0.921, gaa: '2.39', record: '37-19-4', playerId: 8476945 },
+  'Saros': { savePctg: 0.906, gaa: '2.86', record: '35-24-5', playerId: 8477424 },
+  'Binnington': { savePctg: 0.913, gaa: '2.84', record: '28-21-5', playerId: 8476412 },
+  'Markstrom': { savePctg: 0.905, gaa: '2.78', record: '23-23-2', playerId: 8474593 },
+  'Ullmark': { savePctg: 0.915, gaa: '2.57', record: '22-10-7', playerId: 8476999 },
+  'Sorokin': { savePctg: 0.909, gaa: '2.99', record: '25-19-12', playerId: 8478009 },
+  'Kochetkov': { savePctg: 0.911, gaa: '2.33', record: '23-13-4', playerId: 8481611 },
+  'Gustavsson': { savePctg: 0.899, gaa: '3.06', record: '20-18-4', playerId: 8479406 },
+  'Talbot': { savePctg: 0.883, gaa: '3.19', record: '12-9-6', playerId: 8475660 },
+  'Jarry': { savePctg: 0.903, gaa: '2.91', record: '19-25-5', playerId: 8477465 },
+  'Lindgren': { savePctg: 0.911, gaa: '2.67', record: '25-16-7', playerId: 8479292 },
+  'Ersson': { savePctg: 0.898, gaa: '2.82', record: '23-19-7', playerId: 8481035 }
+};
+
+// Fallback lookup of primary starting netminders by team abbreviation
+const TEAM_PRIMARY_GOALIES: Record<string, { name: string; lastName: string; playerId: number; savePctg: number; gaa: string; record: string }> = {
+  BOS: { name: 'Jeremy Swayman', lastName: 'Swayman', playerId: 8480280, savePctg: 0.916, gaa: '2.45', record: '25-10-8' },
+  NYR: { name: 'Igor Shesterkin', lastName: 'Shesterkin', playerId: 8478048, savePctg: 0.912, gaa: '2.58', record: '36-17-2' },
+  TOR: { name: 'Joseph Woll', lastName: 'Woll', playerId: 8479361, savePctg: 0.908, gaa: '2.84', record: '12-11-1' },
+  MTL: { name: 'Sam Montembeault', lastName: 'Montembeault', playerId: 8478470, savePctg: 0.903, gaa: '3.14', record: '16-15-9' },
+  EDM: { name: 'Stuart Skinner', lastName: 'Skinner', playerId: 8479973, savePctg: 0.905, gaa: '2.62', record: '36-16-5' },
+  CGY: { name: 'Dustin Wolf', lastName: 'Wolf', playerId: 8481635, savePctg: 0.899, gaa: '3.16', record: '7-7-1' },
+  COL: { name: 'Alexandar Georgiev', lastName: 'Georgiev', playerId: 8480382, savePctg: 0.901, gaa: '3.02', record: '38-18-5' },
+  VGK: { name: 'Adin Hill', lastName: 'Hill', playerId: 8478499, savePctg: 0.915, gaa: '2.71', record: '19-12-2' },
+  CHI: { name: 'Petr Mrazek', lastName: 'Mrazek', playerId: 8475852, savePctg: 0.904, gaa: '3.05', record: '18-31-4' },
+  DET: { name: 'Cam Talbot', lastName: 'Talbot', playerId: 8475660, savePctg: 0.913, gaa: '2.50', record: '27-20-6' },
+  VAN: { name: 'Thatcher Demko', lastName: 'Demko', playerId: 8477967, savePctg: 0.917, gaa: '2.45', record: '32-13-2' },
+  SEA: { name: 'Joey Daccord', lastName: 'Daccord', playerId: 8478916, savePctg: 0.914, gaa: '2.52', record: '18-14-10' },
+  TBL: { name: 'Andrei Vasilevskiy', lastName: 'Vasilevskiy', playerId: 8476883, savePctg: 0.900, gaa: '2.90', record: '30-20-2' },
+  FLA: { name: 'Sergei Bobrovsky', lastName: 'Bobrovsky', playerId: 8475683, savePctg: 0.913, gaa: '2.37', record: '36-17-4' },
+  DAL: { name: 'Jake Oettinger', lastName: 'Oettinger', playerId: 8479979, savePctg: 0.905, gaa: '2.72', record: '35-14-4' },
+  WPG: { name: 'Connor Hellebuyck', lastName: 'Hellebuyck', playerId: 8476945, savePctg: 0.921, gaa: '2.39', record: '37-19-4' },
+  BUF: { name: 'Alex Lyon', lastName: 'Lyon', playerId: 8479312, savePctg: 0.907, gaa: '2.77', record: '20-10-4' },
+  CBJ: { name: 'Jet Greaves', lastName: 'Greaves', playerId: 8482982, savePctg: 0.908, gaa: '2.60', record: '26-19-9' },
+  PIT: { name: 'Sergei Murashov', lastName: 'Murashov', playerId: 8483703, savePctg: 0.915, gaa: '2.20', record: '8-3-1' },
+  WSH: { name: 'Charlie Lindgren', lastName: 'Lindgren', playerId: 8479292, savePctg: 0.911, gaa: '2.67', record: '25-16-7' },
+  PHI: { name: 'Samuel Ersson', lastName: 'Ersson', playerId: 8481035, savePctg: 0.898, gaa: '2.82', record: '23-19-7' },
+  CAR: { name: 'Pyotr Kochetkov', lastName: 'Kochetkov', playerId: 8481611, savePctg: 0.911, gaa: '2.33', record: '23-13-4' },
+  NJD: { name: 'Jacob Markstrom', lastName: 'Markstrom', playerId: 8474593, savePctg: 0.905, gaa: '2.78', record: '23-23-2' },
+  NYI: { name: 'Ilya Sorokin', lastName: 'Sorokin', playerId: 8478009, savePctg: 0.909, gaa: '2.99', record: '25-19-12' },
+  OTT: { name: 'Linus Ullmark', lastName: 'Ullmark', playerId: 8476999, savePctg: 0.915, gaa: '2.57', record: '22-10-7' },
+  NSH: { name: 'Juuse Saros', lastName: 'Saros', playerId: 8477424, savePctg: 0.906, gaa: '2.86', record: '35-24-5' },
+  STL: { name: 'Jordan Binnington', lastName: 'Binnington', playerId: 8476412, savePctg: 0.913, gaa: '2.84', record: '28-21-5' },
+  MIN: { name: 'Filip Gustavsson', lastName: 'Gustavsson', playerId: 8479406, savePctg: 0.899, gaa: '3.06', record: '20-18-4' },
+  UTA: { name: 'Connor Ingram', lastName: 'Ingram', playerId: 8479366, savePctg: 0.907, gaa: '2.91', record: '24-21-3' },
+  ANA: { name: 'Lukas Dostal', lastName: 'Dostal', playerId: 8481033, savePctg: 0.902, gaa: '3.33', record: '14-23-3' },
+  SJS: { name: 'Mackenzie Blackwood', lastName: 'Blackwood', playerId: 8478406, savePctg: 0.899, gaa: '3.45', record: '10-25-4' },
+  LAK: { name: 'Darcy Kuemper', lastName: 'Kuemper', playerId: 8475311, savePctg: 0.908, gaa: '2.85', record: '13-14-3' }
 };
 
 export function NHLGoalieStatsCard({ game, isHome, goalieData }: NHLGoalieStatsCardProps) {
   const team = isHome ? game.homeTeam : game.awayTeam;
   const opposingTeam = isHome ? game.awayTeam : game.homeTeam;
   const isLive = game.gameState === 'LIVE' || game.gameState === 'CRIT' || game.gameState === 'OFF';
-  const isFinal = game.gameState === 'FINAL';
+  const isFinal = game.gameState === 'FINAL' || game.gameState === 'OVER';
 
-  // Get goalie name
-  const name = goalieData?.lastName || goalieData?.name?.default || 'TBD';
+  // Helper to safely extract string from string or localized object { default: string }
+  const extractString = (val: any): string => {
+    if (!val) return '';
+    if (typeof val === 'string') return val;
+    if (typeof val === 'object') {
+      return val.default || val.en || Object.values(val)[0] || '';
+    }
+    return String(val);
+  };
+
+  const teamAbbrev = (team?.abbrev || '').toUpperCase().trim();
+  const teamPrimary = TEAM_PRIMARY_GOALIES[teamAbbrev];
+
+  const rawLast = extractString(goalieData?.lastName);
+  const rawFirst = extractString(goalieData?.firstName);
+  const rawName = extractString(goalieData?.name);
+
+  let name = 'TBD';
+  if (rawFirst && rawLast) {
+    name = `${rawFirst} ${rawLast}`;
+  } else if (rawLast) {
+    name = rawLast;
+  } else if (rawName) {
+    name = rawName;
+  } else if (goalieData?.fullName) {
+    name = extractString(goalieData.fullName);
+  } else if (teamPrimary) {
+    name = teamPrimary.name;
+  }
+
+  // Lookup key for season baselines
+  const lookupKey = rawLast || (name !== 'TBD' ? name.split(' ').pop() || name : '') || teamPrimary?.lastName || '';
 
   // Extract player ID for headshot
-  const playerId = goalieData?.playerId || SEASON_BASELINES[name]?.playerId;
-  const headshotUrl = playerId 
-    ? `https://assets.nhle.com/mugs/nhl/latest/${playerId}.png` 
-    : `https://assets.nhle.com/mugs/nhl/default-skater.png`; // Fallback image if needed
+  const playerId = goalieData?.playerId 
+    || (lookupKey ? SEASON_BASELINES[lookupKey]?.playerId : undefined)
+    || teamPrimary?.playerId;
 
+  const headshotUrl = goalieData?.headshot 
+    || (playerId ? `https://assets.nhle.com/mugs/nhl/latest/${playerId}.png` : `https://assets.nhle.com/mugs/nhl/default-skater.png`);
 
   // Retrieve base statistics
   const baseline = useMemo(() => {
-    // Check if stats are already explicitly returned by the API details
     if (goalieData?.savePctg && goalieData?.gaa && goalieData?.record) {
       return {
         savePctg: goalieData.savePctg,
@@ -56,8 +137,7 @@ export function NHLGoalieStatsCard({ game, isHome, goalieData }: NHLGoalieStatsC
       };
     }
     
-    // Fallback to our extensive lookup
-    const found = SEASON_BASELINES[name];
+    const found = lookupKey ? SEASON_BASELINES[lookupKey] : null;
     if (found) {
       return {
         savePctg: found.savePctg,
@@ -66,11 +146,18 @@ export function NHLGoalieStatsCard({ game, isHome, goalieData }: NHLGoalieStatsC
       };
     }
 
-    // Dynamic but highly realistic default generator for goalie if not in database
-    // This maintains excellent realism across simulated dates
-    const hash = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const savePctg = 0.895 + (hash % 25) / 1000; // e.g., 0.895 to 0.920
-    const gaaNum = 2.40 + (hash % 80) / 100; // e.g., 2.40 to 3.20
+    if (teamPrimary) {
+      return {
+        savePctg: teamPrimary.savePctg,
+        gaa: teamPrimary.gaa,
+        record: teamPrimary.record
+      };
+    }
+
+    const safeStr = typeof name === 'string' && name ? name : 'Goalie';
+    const hash = safeStr.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const savePctg = 0.895 + (hash % 25) / 1000;
+    const gaaNum = 2.40 + (hash % 80) / 100;
     const w = 15 + (hash % 20);
     const l = 10 + (hash % 15);
     const ot = 2 + (hash % 6);
@@ -80,20 +167,27 @@ export function NHLGoalieStatsCard({ game, isHome, goalieData }: NHLGoalieStatsC
       gaa: gaaNum.toFixed(2),
       record: `${w}-${l}-${ot}`
     };
-  }, [name, goalieData]);
+  }, [name, lookupKey, goalieData, teamPrimary]);
 
-  // Compute live statistics in real time directly driven by live shots and score
+  // Compute live statistics directly driven by boxscore or live score/shots
   const liveStats = useMemo(() => {
     if (!isLive && !isFinal) return null;
 
-    // Shots on goal *against* this goaltender are the shots taken by the *opposing* team
-    const shotsAgainst = opposingTeam.sog || 0;
-    const goalsAgainst = opposingTeam.score || 0;
-    const saves = Math.max(0, shotsAgainst - goalsAgainst);
+    const shotsAgainst = typeof goalieData?.shotsAgainst === 'number'
+      ? goalieData.shotsAgainst
+      : (opposingTeam?.sog || 0);
+
+    const goalsAgainst = typeof goalieData?.goalsAgainst === 'number'
+      ? goalieData.goalsAgainst
+      : (opposingTeam?.score || 0);
+
+    const saves = typeof goalieData?.saves === 'number'
+      ? goalieData.saves
+      : Math.max(0, shotsAgainst - goalsAgainst);
     
-    const liveSv = shotsAgainst > 0 
-      ? saves / shotsAgainst 
-      : 1.000;
+    const liveSv = typeof goalieData?.savePctg === 'number'
+      ? goalieData.savePctg
+      : (shotsAgainst > 0 ? saves / shotsAgainst : 1.000);
 
     return {
       saves,
@@ -102,9 +196,9 @@ export function NHLGoalieStatsCard({ game, isHome, goalieData }: NHLGoalieStatsC
       liveSv,
       percentageFormatted: liveSv.toFixed(3)
     };
-  }, [isLive, isFinal, opposingTeam.sog, opposingTeam.score]);
+  }, [isLive, isFinal, goalieData, opposingTeam?.sog, opposingTeam?.score]);
 
-  // Determine the status color based on current live save percentage
+  // Determine status color based on save percentage
   const liveColorClass = useMemo(() => {
     if (!liveStats || liveStats.shotsAgainst === 0) return 'text-blue-400';
     const sv = liveStats.liveSv;
@@ -113,6 +207,14 @@ export function NHLGoalieStatsCard({ game, isHome, goalieData }: NHLGoalieStatsC
     if (sv >= 0.850) return 'text-amber-500';
     return 'text-rose-500';
   }, [liveStats]);
+
+  const badgeText = isLive 
+    ? 'In Net' 
+    : isFinal 
+    ? 'Final Stats' 
+    : (goalieData?.confirmed || goalieData?.starter) 
+    ? 'Confirmed' 
+    : (goalieData ? 'Probable' : 'Projected');
 
   return (
     <div className="bg-slate-950 border border-slate-800/80 rounded-xl p-2.5 sm:p-3 space-y-2.5 sm:space-y-3 shadow-md hover:border-slate-700/60 transition-all font-mono">
@@ -132,7 +234,7 @@ export function NHLGoalieStatsCard({ game, isHome, goalieData }: NHLGoalieStatsC
               />
             ) : null}
             <div className={cn("absolute inset-0 flex items-center justify-center bg-slate-900", playerId ? "hidden" : "")}>
-              {team.abbrev}
+              {team?.abbrev || ''}
             </div>
           </div>
           <div>
@@ -150,10 +252,13 @@ export function NHLGoalieStatsCard({ game, isHome, goalieData }: NHLGoalieStatsC
           "text-[7px] px-1.5 py-0.5 rounded border tracking-widest uppercase font-black",
           isLive
             ? "bg-emerald-950/40 border-emerald-900/60 text-emerald-400"
-            : isFinal ? "bg-slate-800 border-slate-700 text-slate-300"
+            : isFinal 
+            ? "bg-slate-800 border-slate-700 text-slate-300"
+            : badgeText === 'Confirmed'
+            ? "bg-emerald-950/30 border-emerald-800/50 text-emerald-400"
             : "bg-blue-950/40 border-blue-900/40 text-blue-400"
         )}>
-          {isLive ? 'In Net' : isFinal ? 'Final Stats' : 'Confirmed'}
+          {badgeText}
         </span>
       </div>
 

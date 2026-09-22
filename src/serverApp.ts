@@ -62,28 +62,80 @@ app.get("/api/nhl/scores/:date", async (req, res) => {
 // NHL Game Details Proxy
 app.get("/api/nhl/game/:gameId", async (req, res) => {
   const { gameId } = req.params;
-  const url = `https://api-web.nhle.com/v1/gamecenter/${gameId}/landing`;
-  console.log(`[NHL Details Proxy] Fetching details for ${gameId}: ${url}`);
+  const landingUrl = `https://api-web.nhle.com/v1/gamecenter/${gameId}/landing`;
+  const boxscoreUrl = `https://api-web.nhle.com/v1/gamecenter/${gameId}/boxscore`;
+  console.log(`[NHL Details Proxy] Fetching details for ${gameId}`);
 
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
 
-    const response = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json'
-      }
-    });
+    const headers = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'application/json'
+    };
+
+    const [landingRes, boxscoreRes] = await Promise.allSettled([
+      fetch(landingUrl, { signal: controller.signal, headers }),
+      fetch(boxscoreUrl, { signal: controller.signal, headers })
+    ]);
     clearTimeout(timeout);
-    
-    if (!response.ok) {
-      console.warn(`[NHL Details Proxy] Failed for ${gameId} with status ${response.status}`);
-      return res.status(response.status).json({ error: "Failed to fetch NHL game details" });
+
+    let landingData: any = null;
+    if (landingRes.status === 'fulfilled' && landingRes.value.ok) {
+      landingData = await landingRes.value.json();
     }
 
-    const data = await response.json();
+    let boxscoreData: any = null;
+    if (boxscoreRes.status === 'fulfilled' && boxscoreRes.value.ok) {
+      try {
+        boxscoreData = await boxscoreRes.value.json();
+      } catch (e) {
+        console.warn(`[NHL Details Proxy] Boxscore parse failed for ${gameId}`);
+      }
+    }
+
+    if (!landingData && !boxscoreData) {
+      console.warn(`[NHL Details Proxy] Both landing and boxscore failed for ${gameId}`);
+      return res.status(502).json({ error: "Failed to fetch NHL game details" });
+    }
+
+    const data = landingData || boxscoreData;
+    if (boxscoreData) {
+      data.boxscore = boxscoreData;
+      if (boxscoreData.playerByGameStats) {
+        data.playerByGameStats = boxscoreData.playerByGameStats;
+      }
+    }
+
+    // Ensure team objects exist
+    if (!data.awayTeam) data.awayTeam = {};
+    if (!data.homeTeam) data.homeTeam = {};
+
+    // 1. Check boxscore playerByGameStats (primary source for in-game & finished games)
+    const awayBoxGoalies = boxscoreData?.playerByGameStats?.awayTeam?.goalies || [];
+    const homeBoxGoalies = boxscoreData?.playerByGameStats?.homeTeam?.goalies || [];
+
+    if (!data.awayTeam.goaltender && awayBoxGoalies.length > 0) {
+      data.awayTeam.goaltender = awayBoxGoalies[0];
+      data.awayTeam.goalies = awayBoxGoalies;
+    }
+    if (!data.homeTeam.goaltender && homeBoxGoalies.length > 0) {
+      data.homeTeam.goaltender = homeBoxGoalies[0];
+      data.homeTeam.goalies = homeBoxGoalies;
+    }
+
+    // 2. Check matchup leaders (source for upcoming pre-season & regular season games)
+    const matchupAwayLeaders = data.matchup?.goalieComparison?.awayTeam?.leaders || [];
+    const matchupHomeLeaders = data.matchup?.goalieComparison?.homeTeam?.leaders || [];
+
+    if (!data.awayTeam.probableStartingGoalie && matchupAwayLeaders.length > 0) {
+      data.awayTeam.probableStartingGoalie = matchupAwayLeaders[0];
+    }
+    if (!data.homeTeam.probableStartingGoalie && matchupHomeLeaders.length > 0) {
+      data.homeTeam.probableStartingGoalie = matchupHomeLeaders[0];
+    }
+
     res.json(data);
   } catch (error: any) {
     console.error("NHL Game Details Proxy Error:", error);

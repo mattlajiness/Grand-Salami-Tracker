@@ -3,13 +3,11 @@ import { NHLGame, fetchNHLGameDetails, NHLGoalie } from '../services/nhlService'
 import { SIMULATED_DETAILS } from '../services/nhlMockData';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
-import { Activity, ChevronDown, ChevronUp, Info, Clock, AlertTriangle, ShieldCheck, Zap, Edit2, Save, CalendarRange, Eye, BarChart3, Flame, TrendingDown, Calendar, Radio } from 'lucide-react';
-import { format, subDays, addDays } from 'date-fns';
+import { Activity, ChevronDown, ChevronUp, Info, Clock, AlertTriangle, ShieldCheck, Zap, Edit2, Save, CalendarRange, Eye, BarChart3, Flame, TrendingDown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { Timestamp, doc, setDoc } from 'firebase/firestore';
 import { toast } from 'sonner';
-import { NHLPeriodGoalsChart } from './NHLPeriodGoalsChart';
 import { NHLPowerPlayTracker } from './NHLPowerPlayTracker';
 import { NHLGoalieStatsCard } from './NHLGoalieStatsCard';
 import { OULineBadge } from './OULineBadge';
@@ -349,7 +347,6 @@ export function NHLGameLog({
   const [expandedGameId, setExpandedGameId] = useState<number | null>(null);
   const [gameDetailsCache, setGameDetailsCache] = useState<Record<number, any>>({});
   const [filter, setFilter] = useState<'All' | 'LIVE' | 'FINAL' | 'PRE'>('All');
-  const [showChart, setShowChart] = useState(true);
 
   // Helper check for team on a back-to-back (B2B) night
   const isTeamB2B = (teamAbbrev: string, gameDateStr: string) => {
@@ -453,9 +450,38 @@ export function NHLGameLog({
     setExpandedGameId(expandedGameId === gameId ? null : gameId);
   };
 
-  const todayStr = format(new Date(), 'yyyy-MM-dd');
-  const yesterdayStr = format(subDays(new Date(), 1), 'yyyy-MM-dd');
-  const tomorrowStr = format(addDays(new Date(), 1), 'yyyy-MM-dd');
+  const getGoalieData = (isHome: boolean, game: NHLGame) => {
+    const details = gameDetailsCache[game.id];
+    const isLiveType = game.gameState === 'LIVE' || game.gameState === 'CRIT' || game.gameState === 'OFF' || game.gameState === 'FINAL' || game.gameState === 'OVER';
+    
+    if (details) {
+      const teamDetails = isHome ? details.homeTeam : details.awayTeam;
+      const boxGoalies = isHome 
+        ? details.playerByGameStats?.homeTeam?.goalies 
+        : details.playerByGameStats?.awayTeam?.goalies;
+      const matchupLeaders = isHome 
+        ? details.matchup?.goalieComparison?.homeTeam?.leaders 
+        : details.matchup?.goalieComparison?.awayTeam?.leaders;
+
+      if (isLiveType) {
+        if (teamDetails?.goaltender) return teamDetails.goaltender;
+        if (boxGoalies && boxGoalies.length > 0) return boxGoalies[0];
+      }
+      
+      // Probable / starter sources
+      if (teamDetails?.probableStartingGoalie) return teamDetails.probableStartingGoalie;
+      if (teamDetails?.goaltender) return teamDetails.goaltender;
+      if (matchupLeaders && matchupLeaders.length > 0) return matchupLeaders[0];
+      if (boxGoalies && boxGoalies.length > 0) return boxGoalies[0];
+      if (teamDetails?.goalies && teamDetails.goalies.length > 0) return teamDetails.goalies[0];
+    }
+
+    // Fallback to game object goalies if available
+    if (isHome && game.homeGoalie) return game.homeGoalie;
+    if (!isHome && game.awayGoalie) return game.awayGoalie;
+
+    return null;
+  };
 
   const filteredGames = games.filter(game => {
     if (filter === 'All') return true;
@@ -481,27 +507,12 @@ export function NHLGameLog({
               )}
             </h2>
             <span className="text-[8px] font-mono text-slate-500 uppercase tracking-[0.2em] mt-0.5 flex items-center gap-2">
-              Live updates • Preseason & regular season puck drop tracker
+              Live updates
             </span>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {/* Chart Toggle Button */}
-          <button
-            onClick={() => setShowChart(!showChart)}
-            className={cn(
-              "px-3 py-1.5 rounded-lg text-[9px] font-mono font-black uppercase tracking-widest transition-all border flex items-center gap-1.5 cursor-pointer",
-              showChart
-                ? "bg-blue-950/40 border-blue-500 text-blue-400 font-extrabold shadow-sm"
-                : "bg-slate-950 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700"
-            )}
-            title="Toggle Period Scoring Charts"
-          >
-            <BarChart3 className="w-3.5 h-3.5" />
-            {showChart ? "Hide Chart" : "Show Chart"}
-          </button>
-
           <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
             {(['All', 'LIVE', 'FINAL', 'PRE'] as const).map((f) => (
               <button
@@ -520,100 +531,6 @@ export function NHLGameLog({
           </div>
         </div>
       </div>
-
-      {/* Slate Date & Schedule Controls */}
-      <div className="px-6 py-3 bg-slate-950/70 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[9px] font-mono text-slate-400 uppercase tracking-widest font-black flex items-center gap-1.5">
-            <Calendar className="w-3.5 h-3.5 text-blue-400" /> Slate:
-          </span>
-          <button
-            type="button"
-            onClick={() => onSelectDate?.(yesterdayStr)}
-            className={cn(
-              "px-3 py-1.5 rounded-lg text-[9px] font-mono uppercase tracking-wider font-black transition-all border cursor-pointer",
-              selectedDate === yesterdayStr
-                ? "bg-blue-600 text-white border-blue-500 shadow-sm"
-                : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700"
-            )}
-          >
-            Yesterday ({format(subDays(new Date(), 1), 'MMM d')})
-          </button>
-          <button
-            type="button"
-            onClick={() => onSelectDate?.('today')}
-            className={cn(
-              "px-3 py-1.5 rounded-lg text-[9px] font-mono uppercase tracking-wider font-black transition-all border cursor-pointer",
-              (selectedDate === 'today' || selectedDate === todayStr)
-                ? "bg-blue-600 text-white border-blue-500 shadow-sm"
-                : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700"
-            )}
-          >
-            Today ({format(new Date(), 'MMM d')})
-          </button>
-          <button
-            type="button"
-            onClick={() => onSelectDate?.(tomorrowStr)}
-            className={cn(
-              "px-3 py-1.5 rounded-lg text-[9px] font-mono uppercase tracking-wider font-black transition-all border cursor-pointer",
-              selectedDate === tomorrowStr
-                ? "bg-blue-600 text-white border-blue-500 shadow-sm"
-                : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700"
-            )}
-          >
-            Tomorrow ({format(addDays(new Date(), 1), 'MMM d')})
-          </button>
-          
-          <div className="relative flex items-center ml-1">
-            <input
-              type="date"
-              value={selectedDate && selectedDate !== 'today' && selectedDate !== 'demo' ? selectedDate : todayStr}
-              onChange={(e) => {
-                if (e.target.value) {
-                  onSelectDate?.(e.target.value);
-                }
-              }}
-              className="bg-slate-900 text-slate-200 border border-slate-800 rounded-lg px-2.5 py-1 text-[9px] font-mono focus:outline-none focus:border-blue-500 cursor-pointer"
-              title="Select custom schedule date"
-            />
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => onSelectDate?.(selectedDate === 'demo' ? 'today' : 'demo')}
-            className={cn(
-              "px-3 py-1.5 rounded-lg text-[9px] font-mono uppercase tracking-wider font-black transition-all border flex items-center gap-1.5 cursor-pointer",
-              selectedDate === 'demo'
-                ? "bg-cyan-950 text-cyan-400 border-cyan-700 shadow-sm"
-                : "bg-slate-900 border-slate-800 text-slate-400 hover:text-cyan-300 hover:border-slate-700"
-            )}
-            title="Toggle live in-game simulation ticker to test live scoring and pace updates"
-          >
-            <Radio className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
-            {selectedDate === 'demo' ? "Exit Simulation" : "Simulate Live Action"}
-          </button>
-        </div>
-      </div>
-
-      {/* NHL Period Goals Visualization Chart */}
-      <AnimatePresence>
-        {showChart && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden bg-slate-950/20 border-b border-slate-800"
-          >
-            <NHLPeriodGoalsChart 
-              games={games}
-              gameDetailsCache={gameDetailsCache}
-              gameLines={gameLines}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       <div className="divide-y divide-slate-800">
         {filteredGames.length === 0 ? (
@@ -878,26 +795,14 @@ export function NHLGameLog({
                                     </h4>
                                   </div>
                                   
-                                  {!gameDetailsCache[game.id] ? (
+                                  {!gameDetailsCache[game.id] && !game.awayGoalie && !game.homeGoalie ? (
                                     <div className="flex justify-center py-4">
                                       <div className="w-4 h-4 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
                                     </div>
                                   ) : (
                                     <div className="space-y-3">
-                                      {(() => {
-                                        const isLiveType = game.gameState === 'LIVE' || game.gameState === 'CRIT' || game.gameState === 'OFF' || game.gameState === 'FINAL';
-                                        const goalie = isLiveType 
-                                          ? (gameDetailsCache[game.id].awayTeam?.goaltender || gameDetailsCache[game.id].awayTeam?.probableStartingGoalie)
-                                          : gameDetailsCache[game.id].awayTeam?.probableStartingGoalie;
-                                        return <NHLGoalieStatsCard game={game} isHome={false} goalieData={goalie} />;
-                                      })()}
-                                      {(() => {
-                                        const isLiveType = game.gameState === 'LIVE' || game.gameState === 'CRIT' || game.gameState === 'OFF' || game.gameState === 'FINAL';
-                                        const goalie = isLiveType 
-                                          ? (gameDetailsCache[game.id].homeTeam?.goaltender || gameDetailsCache[game.id].homeTeam?.probableStartingGoalie)
-                                          : gameDetailsCache[game.id].homeTeam?.probableStartingGoalie;
-                                        return <NHLGoalieStatsCard game={game} isHome={true} goalieData={goalie} />;
-                                      })()}
+                                      <NHLGoalieStatsCard game={game} isHome={false} goalieData={getGoalieData(false, game)} />
+                                      <NHLGoalieStatsCard game={game} isHome={true} goalieData={getGoalieData(true, game)} />
                                     </div>
                                   )}
                                 </div>
@@ -1259,43 +1164,22 @@ export function NHLGameLog({
                                           </h4>
                                         </div>
                                         
-                                        {!gameDetailsCache[game.id] ? (
+                                        {!gameDetailsCache[game.id] && !game.awayGoalie && !game.homeGoalie ? (
                                           <div className="flex items-center justify-center py-8">
                                             <div className="w-5 h-5 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
                                           </div>
                                         ) : (
                                           <div className="space-y-4 border-none">
-                                            {/* Away Goalie */}
-                                            {(() => {
-                                              const isLiveType = game.gameState === 'LIVE' || game.gameState === 'CRIT' || game.gameState === 'OFF' || game.gameState === 'FINAL';
-                                              const goalie = isLiveType 
-                                                ? (gameDetailsCache[game.id].awayTeam?.goaltender || gameDetailsCache[game.id].awayTeam?.probableStartingGoalie)
-                                                : gameDetailsCache[game.id].awayTeam?.probableStartingGoalie;
-                                              
-                                              return (
-                                                <NHLGoalieStatsCard 
-                                                  game={game}
-                                                  isHome={false}
-                                                  goalieData={goalie}
-                                                />
-                                              );
-                                            })()}
-
-                                            {/* Home Goalie */}
-                                            {(() => {
-                                              const isLiveType = game.gameState === 'LIVE' || game.gameState === 'CRIT' || game.gameState === 'OFF' || game.gameState === 'FINAL';
-                                              const goalie = isLiveType 
-                                                ? (gameDetailsCache[game.id].homeTeam?.goaltender || gameDetailsCache[game.id].homeTeam?.probableStartingGoalie)
-                                                : gameDetailsCache[game.id].homeTeam?.probableStartingGoalie;
-                                              
-                                              return (
-                                                <NHLGoalieStatsCard 
-                                                  game={game}
-                                                  isHome={true}
-                                                  goalieData={goalie}
-                                                />
-                                              );
-                                            })()}
+                                            <NHLGoalieStatsCard 
+                                              game={game}
+                                              isHome={false}
+                                              goalieData={getGoalieData(false, game)}
+                                            />
+                                            <NHLGoalieStatsCard 
+                                              game={game}
+                                              isHome={true}
+                                              goalieData={getGoalieData(true, game)}
+                                            />
                                           </div>
                                         )}
                                       </div>

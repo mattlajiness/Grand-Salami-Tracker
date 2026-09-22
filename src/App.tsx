@@ -1320,15 +1320,15 @@ export default function App() {
             <button 
               onClick={() => setActiveSport('NHL')}
               className={cn(
-                "flex-1 py-4 rounded-2xl font-black text-[10px] sm:text-xs uppercase tracking-[0.1em] sm:tracking-[0.2em] transition-all border-2 relative group",
+                "flex-1 py-4 rounded-2xl font-black text-[10px] sm:text-xs uppercase tracking-[0.1em] sm:tracking-[0.2em] transition-all border-2 relative overflow-hidden group",
                 activeSport === 'NHL' 
                   ? "bg-slate-900 border-blue-500 text-white shadow-[0_0_20px_rgba(37,99,235,0.1)]" 
                   : "bg-slate-950 border-slate-900 text-slate-500 hover:text-slate-400"
               )}
             >
-              <div className="relative z-10 flex flex-col items-center gap-1">
-                <span>NHL Salami</span>
-                <span className="text-[7px] text-blue-400 font-mono tracking-widest leading-none">Hockey Slate</span>
+              <div className="relative z-10 flex items-center justify-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                NHL Salami
               </div>
               {activeSport === 'NHL' && (
                 <motion.div 

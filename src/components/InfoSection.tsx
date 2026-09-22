@@ -145,7 +145,7 @@ export function InfoSection({ sport = 'MLB' }: { sport?: 'MLB' | 'NHL' }) {
         <div className="h-px flex-1 bg-slate-800" />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className={cn("grid grid-cols-1 md:grid-cols-2 gap-6", isMLB && "lg:grid-cols-3")}>
         {/* What is a Grand Salami? */}
         <div className="dashboard-card p-6 bg-slate-900/50 border-slate-800 shadow-lg">
           <div className="flex items-start gap-4">
@@ -177,30 +177,32 @@ export function InfoSection({ sport = 'MLB' }: { sport?: 'MLB' | 'NHL' }) {
           </div>
         </div>
 
-        {/* Winible / Storefront */}
-        <div className="dashboard-card p-6 bg-slate-900/50 border-slate-700/50 shadow-lg relative group overflow-hidden">
-          <div className={cn("absolute inset-0 group-hover:opacity-10 transition-opacity", isMLB ? 'bg-red-600/5' : 'bg-blue-600/5')} />
-          <div className="flex items-start gap-4 relative z-10">
-            <div className={cn("w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0 border transition-colors", isMLB ? 'group-hover:border-salami-red/50' : 'group-hover:border-blue-500/50')}>
-              <Zap className={cn("w-5 h-5", accentColor)} />
-            </div>
-            <div className="flex-1">
-              <h2 className="font-black text-white uppercase tracking-tighter text-lg mb-2">Grand Salami Strategy</h2>
-              <p className="text-sm text-slate-400 leading-relaxed mb-4">
-                Get <span className="text-white font-bold">Free Picks</span> and <span className={cn(accentColor, "font-bold")}>Salami Slate Daily Updates</span> via our official Winible storefront.
-              </p>
-              <a 
-                href="https://www.winible.com/grandsalamibet" 
-                target="_blank" 
-                rel="noreferrer"
-                className={cn("inline-flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest text-white transition-all shadow-lg", isMLB ? 'bg-salami-red hover:bg-red-600 shadow-red-900/20' : 'bg-blue-600 hover:bg-blue-500 shadow-blue-900/20')}
-              >
-                <span>Daily {sport} Salami Picks</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </a>
+        {/* Winible / Storefront (MLB Only) */}
+        {isMLB && (
+          <div className="dashboard-card p-6 bg-slate-900/50 border-slate-700/50 shadow-lg relative group overflow-hidden">
+            <div className="absolute inset-0 group-hover:opacity-10 transition-opacity bg-red-600/5" />
+            <div className="flex items-start gap-4 relative z-10">
+              <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0 border transition-colors group-hover:border-salami-red/50">
+                <Zap className={cn("w-5 h-5", accentColor)} />
+              </div>
+              <div className="flex-1">
+                <h2 className="font-black text-white uppercase tracking-tighter text-lg mb-2">Grand Salami Strategy</h2>
+                <p className="text-sm text-slate-400 leading-relaxed mb-4">
+                  Get <span className="text-white font-bold">Free Picks</span> and <span className={cn(accentColor, "font-bold")}>Salami Slate Daily Updates</span> via our official Winible storefront.
+                </p>
+                <a 
+                  href="https://www.winible.com/grandsalamibet" 
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest text-white transition-all shadow-lg bg-salami-red hover:bg-red-600 shadow-red-900/20"
+                >
+                  <span>Daily MLB Salami Picks</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </a>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Pro Tips / Strategy */}
