@@ -648,17 +648,6 @@ export function NHLGameLog({
                             <div className="flex items-center gap-2">
                                {renderNHLStatusBadge(game)}
                             </div>
-                            <div className="flex items-center gap-2">
-                               <OULineBadge 
-                                 line={manualLines[game.id] ?? gameLines[game.id] ?? 6.5}
-                                 currentTotal={totalScore}
-                                 status={game.gameState}
-                                 isAdmin={isAdmin}
-                                 onSaveLine={(newLine) => handleSaveLine(game.id, newLine)}
-                                 size="sm"
-                                 sport="NHL"
-                               />
-                            </div>
                           </div>
 
                           <div className="space-y-3">
@@ -724,7 +713,7 @@ export function NHLGameLog({
                                 {new Date(game.startTimeUTC).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                               </span>
                               <span className="text-[8px] uppercase tracking-wider text-slate-500 font-black">
-                                Scheduled Puck Drop
+                                Puck Drop
                               </span>
                             </div>
                           )}
@@ -822,7 +811,6 @@ export function NHLGameLog({
                   <tr className="bg-slate-900/50 border-b border-slate-800">
                     <th className="px-6 py-3 data-label">Matchup</th>
                     <th className="px-6 py-3 data-label text-center">Period</th>
-                    <th className="px-6 py-3 data-label text-center">Goal Line</th>
                     <th className="px-6 py-3 data-label text-center">SOG</th>
                     <th className="px-6 py-3 data-label text-right">Status</th>
                   </tr>
@@ -1069,24 +1057,9 @@ export function NHLGameLog({
                                     <Activity className="w-2 h-2 text-slate-600" />
                                     <span>{totalScore.toFixed(1)} Pace • {gpp.toFixed(2)} GPP</span>
                                   </div>
-                                )}
+                                 )}
                               </div>
                             )}
-                          </td>
-                          <td className="px-6 py-5 text-center border-l border-slate-800">
-                             <div className="flex flex-col items-center justify-center">
-                               <OULineBadge 
-                                 line={manualLines[game.id] ?? gameLines[game.id] ?? 6.5}
-                                 currentTotal={totalScore}
-                                 status={game.gameState}
-                                 isAdmin={isAdmin}
-                                 onSaveLine={(newLine) => {
-                                   handleSaveLine(game.id, newLine);
-                                 }}
-                                 size="md"
-                                 sport="NHL"
-                               />
-                             </div>
                           </td>
                           <td className="px-6 py-5 text-center border-l border-slate-800 bg-slate-900/10">
                             <div className="flex flex-col items-center gap-1">

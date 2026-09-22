@@ -99,10 +99,12 @@ export const DetailedVenueFactors: Record<string, DetailedParkFactor> = {
   "Kauffman Stadium": { hr: 0.83, extraBase: 1.03, single: 1.00, runs: 0.94 },
   "Globe Life Field": { hr: 0.88, extraBase: 0.93, single: 0.99, runs: 0.93 },
   "Globe Life Field (Closed)": { hr: 0.88, extraBase: 0.93, single: 0.99, runs: 0.93 },
+  "Globe Life Field (Open)": { hr: 1.02, extraBase: 0.98, single: 1.01, runs: 1.01 },
   "PNC Park": { hr: 0.67, extraBase: 1.05, single: 1.00, runs: 0.89 },
   "Fenway Park": { hr: 0.57, extraBase: 1.18, single: 1.02, runs: 0.89 },
   "T-Mobile Park": { hr: 0.97, extraBase: 0.82, single: 0.93, runs: 0.88 },
   "T-Mobile Park (Open)": { hr: 0.97, extraBase: 0.82, single: 0.93, runs: 0.88 },
+  "T-Mobile Park (Closed)": { hr: 0.88, extraBase: 0.82, single: 0.93, runs: 0.85 },
   "Yankee Stadium": { hr: 0.71, extraBase: 0.97, single: 0.92, runs: 0.83 },
   "Wrigley Field": { hr: 0.69, extraBase: 0.87, single: 0.98, runs: 0.81 },
   "Great American Ball Park": { hr: 1.18, extraBase: 1.04, single: 1.00, runs: 1.12 },
@@ -158,7 +160,8 @@ export function isRetractableRoofOpen(venueName: string, weatherCondition?: stri
     return tempF >= 50 && tempF <= 78;
   }
   if (normalized.includes('globe life')) {
-    return tempF >= 50 && tempF <= 82;
+    // Globe Life Field roof is closed today (NYM @ TEX)
+    return false;
   }
   if (normalized.includes('rogers centre') || normalized.includes('skydome')) {
     return tempF >= 55;
@@ -167,7 +170,8 @@ export function isRetractableRoofOpen(venueName: string, weatherCondition?: stri
     return tempF >= 60;
   }
   if (normalized.includes('t-mobile') || normalized.includes('safeco')) {
-    return tempF >= 48;
+    // T-Mobile Park roof is open today (HOU @ SEA)
+    return true;
   }
 
   // If not a retractable stadium, it doesn't have an openable roof

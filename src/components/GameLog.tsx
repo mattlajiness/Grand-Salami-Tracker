@@ -146,7 +146,7 @@ const getSpecialIntelligence = (game: MLBGame, parkFactors: BallparkPalFactor[] 
   const tempF = game.weather?.temp !== undefined ? (typeof game.weather.temp === 'string' ? parseInt(game.weather.temp, 10) : game.weather.temp) : 72;
   const liveClosed = livePalFactor && livePalFactor.isClosed !== undefined ? livePalFactor.isClosed : undefined;
   const isRoofOpen = isRetractable && (liveClosed !== undefined ? !liveClosed : isRetractableRoofOpen(game.venue?.name || '', game.weather?.condition, tempF));
-  const isClosed = !isTMobile && (isTropicana || !isRoofOpen);
+  const isClosed = isTropicana || (isRetractable && !isRoofOpen);
 
   const detailedFactor = getDetailedParkFactor(game.venue?.name || '', game.weather?.condition, tempF, isRoofOpen);
 
@@ -241,7 +241,7 @@ HR: ${hrChange > 0 ? '+' : ''}${hrChange}%`;
       icon: ShieldCheck,
       title: `${game.venue?.name || 'Dome'}: Permanent indoor dome field.`
     });
-  } else if (isRetractable && !isTMobile) {
+  } else if (isRetractable) {
     if (isClosed) {
       if (!isChase) {
         badges.push({
@@ -340,7 +340,7 @@ const getParkIntelligence = (game: MLBGame, parkFactors: BallparkPalFactor[] = [
   const liveClosed = livePalFactor && livePalFactor.isClosed !== undefined ? livePalFactor.isClosed : undefined;
 
   const isRoofOpen = isRetractable && (liveClosed !== undefined ? !liveClosed : isRetractableRoofOpen(game.venue?.name || '', game.weather?.condition, temp));
-  const isStrictDome = !isRetractableSeattle && (isTropicana || (isRetractable && !isRoofOpen));
+  const isStrictDome = isTropicana || (isRetractable && !isRoofOpen);
 
   if (isStrictDome) {
     const domeName = venue.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
