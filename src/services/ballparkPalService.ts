@@ -26,205 +26,157 @@ export interface BallparkPalFactor {
 // VALUED DIRECTLY FROM THE LIVE BALLPARKPAL SCREENSHOTS PROVIDED BY THE USER
 const MANUAL_FACTORS: BallparkPalFactor[] = [
   {
-    game: "SEA @ COL",
+    game: "ARI @ COL",
     venue: "Coors Field",
-    time: "8:10",
-    runs: 1.28,
-    hr: 1.10,
-    doubleTriple: 1.34,
-    single: 1.13,
+    time: "8:40",
+    runs: 1.35,
+    hr: 1.23,
+    doubleTriple: 1.26,
+    single: 1.20,
     receptive: "Low",
-    windHours: [{ speed: 7, dir: "↓" }, { speed: 12, dir: "↙" }, { speed: 6, dir: "↙" }],
-    tempHours: [75, 68, 68],
-    humidity: 39,
-    pressure: 1013,
-    icons: ["↓", "↙", "↙", "〜"],
+    windHours: [{ speed: 9, dir: "←" }, { speed: 7, dir: "←" }, { speed: 7, dir: "→" }],
+    tempHours: [81, 79, 75],
+    humidity: 19,
+    pressure: 1008,
+    icons: ["←", "←", "→", "〜", "☀️", "H", "P"],
     isClosed: false
   },
   {
-    game: "CHC @ CIN",
-    venue: "Great American BP",
-    time: "6:40",
-    runs: 1.18,
-    hr: 1.25,
-    doubleTriple: 1.06,
-    single: 1.02,
-    receptive: "Low",
-    windHours: [{ speed: 8, dir: "↘" }, { speed: 8, dir: "→" }, { speed: 9, dir: "↘" }],
-    tempHours: [77, 75, 72],
-    humidity: 73,
-    pressure: 1019,
-    icons: ["↘", "→", "↘", "〜", "☀️", "P"],
-    isClosed: false
-  },
-  {
-    game: "KC @ PIT",
-    venue: "PNC Park",
-    time: "6:40",
-    runs: 1.02,
-    hr: 0.87,
-    doubleTriple: 1.16,
-    single: 1.00,
-    receptive: "Med-High",
-    windHours: [{ speed: 5, dir: "↗" }, { speed: 5, dir: "↗" }, { speed: 6, dir: "↗" }],
-    tempHours: [72, 72, 70],
-    humidity: 56,
-    pressure: 1020,
-    icons: ["↗", "↗", "↗", "〜", "P"],
-    isClosed: false
-  },
-  {
-    game: "SF @ LAD",
-    venue: "Dodger Stadium",
-    time: "10:15",
-    runs: 1.02,
-    hr: 1.15,
-    doubleTriple: 0.97,
-    single: 0.98,
-    receptive: "Consistent",
-    windHours: [{ speed: 7, dir: "↗" }, { speed: 7, dir: "↗" }, { speed: 6, dir: "↗" }],
-    tempHours: [73, 72, 72],
-    humidity: 56,
-    pressure: 1014,
-    icons: ["↗", "↗", "↗", "〜"],
-    isClosed: false
-  },
-  {
-    game: "NYY @ ARI",
-    venue: "Chase Field",
+    game: "LAA @ ATH",
+    venue: "Sutter Health Park",
     time: "9:40",
-    runs: 1.01,
-    hr: 0.92,
-    doubleTriple: 1.12,
-    single: 1.00,
-    receptive: "Roof Closed",
-    windHours: [],
-    tempHours: [],
-    humidity: 0,
-    pressure: 0,
-    icons: ["🏟️"],
-    isClosed: true
-  },
-  {
-    game: "WAS @ STL",
-    venue: "Busch Stadium",
-    time: "8:15",
-    runs: 0.97,
-    hr: 0.99,
-    doubleTriple: 0.94,
-    single: 1.04,
-    receptive: "Med-High",
-    windHours: [{ speed: 4, dir: "↑" }, { speed: 4, dir: "↖" }, { speed: 3, dir: "↙" }],
-    tempHours: [93, 91, 90],
-    humidity: 39,
-    pressure: 1015,
-    icons: ["↑", "↖", "↙", "💥"],
+    runs: 1.20,
+    hr: 1.28,
+    doubleTriple: 1.11,
+    single: 1.05,
+    receptive: "Very High",
+    windHours: [{ speed: 8, dir: "↑" }, { speed: 9, dir: "↑" }, { speed: 8, dir: "↑" }],
+    tempHours: [84, 75, 70],
+    humidity: 27,
+    pressure: 1008,
+    icons: ["↑", "↑", "↑", "〜", "☀️", "P"],
     isClosed: false
   },
   {
-    game: "MIN @ LAA",
-    venue: "Angel Stadium",
-    time: "9:38",
-    runs: 0.97,
-    hr: 0.95,
-    doubleTriple: 0.90,
-    single: 1.03,
-    receptive: "Consistent",
-    windHours: [{ speed: 9, dir: "↑" }, { speed: 8, dir: "↑" }, { speed: 7, dir: "↑" }],
-    tempHours: [73, 72, 72],
-    humidity: 59,
-    pressure: 1014,
-    icons: ["↑", "↑", "↑", "〜"],
-    isClosed: false
-  },
-  {
-    game: "MIL @ BAL",
+    game: "TOR @ BAL",
     venue: "Oriole Park",
-    time: "7:05",
-    runs: 0.97,
-    hr: 0.85,
-    doubleTriple: 1.06,
-    single: 1.03,
+    time: "6:35",
+    runs: 1.05,
+    hr: 0.72,
+    doubleTriple: 1.18,
+    single: 1.13,
     receptive: "Med-High",
-    windHours: [{ speed: 9, dir: "↘" }, { speed: 9, dir: "↘" }, { speed: 11, dir: "↓" }],
-    tempHours: [77, 75, 73],
-    humidity: 48,
-    pressure: 1019,
-    icons: ["↘", "↘", "↓", "〜", "☀️", "P"],
+    windHours: [{ speed: 19, dir: "↙" }, { speed: 22, dir: "↙" }, { speed: 18, dir: "↙" }],
+    tempHours: [61, 59, 59],
+    humidity: 93,
+    pressure: 1023,
+    icons: ["↙", "↙", "↙", "≈", "H", "P"],
     isClosed: false
   },
   {
-    game: "ATL @ HOU",
-    venue: "Daikin Park",
-    time: "8:10",
-    runs: 0.95,
-    hr: 1.05,
-    doubleTriple: 0.88,
-    single: 0.96,
-    receptive: "Roof Closed",
-    windHours: [],
-    tempHours: [],
-    humidity: 0,
-    pressure: 0,
-    icons: ["🏟️"],
-    isClosed: true
-  },
-  {
-    game: "MIA @ SD",
-    venue: "Petco Park",
-    time: "9:40",
-    runs: 0.95,
-    hr: 0.98,
-    doubleTriple: 0.96,
-    single: 0.93,
-    receptive: "Low",
-    windHours: [{ speed: 9, dir: "↘" }, { speed: 8, dir: "↘" }, { speed: 7, dir: "↘" }],
-    tempHours: [72, 70, 70],
-    humidity: 68,
-    pressure: 1014,
-    icons: ["↘", "↘", "↘", "〜"],
+    game: "SD @ LAD",
+    venue: "Dodger Stadium",
+    time: "10:10",
+    runs: 0.99,
+    hr: 1.20,
+    doubleTriple: 0.91,
+    single: 0.94,
+    receptive: "Consistent",
+    windHours: [{ speed: 7, dir: "↗" }, { speed: 6, dir: "↗" }, { speed: 5, dir: "↑" }],
+    tempHours: [72, 72, 72],
+    humidity: 65,
+    pressure: 1009,
+    icons: ["↗", "↗", "↑", "〜", "P"],
     isClosed: false
   },
   {
-    game: "ATH @ CLE",
-    venue: "Progressive Field",
-    time: "7:10",
+    game: "MIL @ PHI",
+    venue: "Citizens Bank Park",
+    time: "6:40",
+    runs: 0.98,
+    hr: 0.82,
+    doubleTriple: 1.01,
+    single: 1.06,
+    receptive: "Very High",
+    windHours: [{ speed: 12, dir: "↙" }, { speed: 11, dir: "↙" }, { speed: 9, dir: "↙" }],
+    tempHours: [55, 55, 55],
+    humidity: 93,
+    pressure: 1025,
+    icons: ["↙", "↙", "↙", "≈", "❄️", "H", "P"],
+    isClosed: false
+  },
+  {
+    game: "CIN @ ATL",
+    venue: "Truist Park",
+    time: "7:15",
+    runs: 0.97,
+    hr: 1.01,
+    doubleTriple: 0.89,
+    single: 1.03,
+    receptive: "Medium",
+    windHours: [{ speed: 4, dir: "↗" }, { speed: 8, dir: "→" }, { speed: 8, dir: "→" }],
+    tempHours: [82, 79, 75],
+    humidity: 55,
+    pressure: 1013,
+    icons: ["↗", "→", "→", "〜", "☀️"],
+    isClosed: false
+  },
+  {
+    game: "WAS @ DET",
+    venue: "Comerica Park",
+    time: "6:40",
+    runs: 0.97,
+    hr: 0.80,
+    doubleTriple: 1.00,
+    single: 1.10,
+    receptive: "High",
+    windHours: [{ speed: 15, dir: "→" }, { speed: 15, dir: "→" }, { speed: 16, dir: "→" }],
+    tempHours: [61, 61, 61],
+    humidity: 66,
+    pressure: 1023,
+    icons: ["→", "→", "→", "≈", "P"],
+    isClosed: false
+  },
+  {
+    game: "MIN @ SF",
+    venue: "Oracle Park",
+    time: "9:45",
+    runs: 0.95,
+    hr: 0.79,
+    doubleTriple: 1.05,
+    single: 1.06,
+    receptive: "Consistent",
+    windHours: [{ speed: 11, dir: "↑" }, { speed: 7, dir: "↑" }, { speed: 8, dir: "↑" }],
+    tempHours: [61, 59, 59],
+    humidity: 82,
+    pressure: 1011,
+    icons: ["↑", "↑", "↑", "〜", "H"],
+    isClosed: false
+  },
+  {
+    game: "CHW @ KC",
+    venue: "Kauffman Stadium",
+    time: "7:40",
     runs: 0.94,
     hr: 0.83,
-    doubleTriple: 1.05,
-    single: 0.96,
+    doubleTriple: 1.03,
+    single: 1.00,
     receptive: "High",
-    windHours: [{ speed: 9, dir: "↙" }, { speed: 9, dir: "↙" }, { speed: 9, dir: "↙" }],
-    tempHours: [66, 66, 66],
-    humidity: 60,
-    pressure: 1022,
-    icons: ["↙", "↙", "↙", "〜", "P"],
+    windHours: [{ speed: 7, dir: "↓" }, { speed: 7, dir: "↓" }, { speed: 9, dir: "↓" }],
+    tempHours: [64, 63, 63],
+    humidity: 65,
+    pressure: 1021,
+    icons: ["↓", "↓", "↓", "〜", "P"],
     isClosed: false
   },
   {
-    game: "BOS @ TB",
-    venue: "Tropicana Field",
-    time: "7:10",
-    runs: 0.94,
-    hr: 0.98,
-    doubleTriple: 0.93,
-    single: 0.92,
-    receptive: "Roof Closed",
-    windHours: [],
-    tempHours: [],
-    humidity: 0,
-    pressure: 0,
-    icons: ["🏟️"],
-    isClosed: true
-  },
-  {
-    game: "TOR @ TEX",
+    game: "NYM @ TEX",
     venue: "Globe Life Field",
     time: "8:05",
     runs: 0.93,
-    hr: 0.89,
+    hr: 0.88,
     doubleTriple: 0.93,
-    single: 0.98,
+    single: 0.99,
     receptive: "Roof Closed",
     windHours: [],
     tempHours: [],
@@ -234,35 +186,99 @@ const MANUAL_FACTORS: BallparkPalFactor[] = [
     isClosed: true
   },
   {
-    game: "DET @ CHW",
-    venue: "Rate Field",
-    time: "7:40",
-    runs: 0.92,
-    hr: 0.89,
-    doubleTriple: 0.98,
-    single: 0.95,
+    game: "STL @ PIT",
+    venue: "PNC Park",
+    time: "6:40",
+    runs: 0.89,
+    hr: 0.67,
+    doubleTriple: 1.05,
+    single: 1.00,
     receptive: "Med-High",
-    windHours: [{ speed: 9, dir: "↓" }, { speed: 8, dir: "↘" }, { speed: 7, dir: "↓" }],
-    tempHours: [68, 66, 66],
-    humidity: 66,
-    pressure: 1020,
-    icons: ["↓", "↘", "↓", "〜", "P"],
+    windHours: [{ speed: 12, dir: "↘" }, { speed: 11, dir: "↘" }, { speed: 12, dir: "↘" }],
+    tempHours: [54, 54, 54],
+    humidity: 95,
+    pressure: 1022,
+    icons: ["↘", "↘", "↘", "≈", "❄️", "H", "P"],
     isClosed: false
   },
   {
-    game: "PHI @ NYM",
-    venue: "Citi Field",
-    time: "7:15",
-    runs: 0.91,
+    game: "CLE @ BOS",
+    venue: "Fenway Park",
+    time: "6:45",
+    runs: 0.89,
+    hr: 0.57,
+    doubleTriple: 1.18,
+    single: 1.02,
+    receptive: "High",
+    windHours: [{ speed: 12, dir: "↓" }, { speed: 11, dir: "↙" }, { speed: 12, dir: "↙" }],
+    tempHours: [55, 55, 55],
+    humidity: 62,
+    pressure: 1030,
+    icons: ["↓", "↙", "↙", "≈", "❄️", "P"],
+    isClosed: false
+  },
+  {
+    game: "HOU @ SEA",
+    venue: "T-Mobile Park",
+    time: "9:40",
+    runs: 0.88,
     hr: 0.97,
     doubleTriple: 0.82,
-    single: 0.95,
-    receptive: "Low",
-    windHours: [{ speed: 12, dir: "↓" }, { speed: 11, dir: "↓" }, { speed: 11, dir: "↓" }],
-    tempHours: [77, 75, 73],
-    humidity: 36,
-    pressure: 1019,
-    icons: ["↓", "↓", "↓", "≈", "☀️", "P"],
+    single: 0.93,
+    receptive: "Medium",
+    windHours: [{ speed: 4, dir: "↘" }, { speed: 3, dir: "↘" }, { speed: 2, dir: "↗" }],
+    tempHours: [64, 61, 59],
+    humidity: 56,
+    pressure: 1016,
+    icons: ["↓", "↘", "↗"],
+    isClosed: false
+  },
+  {
+    game: "TB @ NYY",
+    venue: "Yankee Stadium",
+    time: "1:05",
+    runs: 0.84,
+    hr: 0.72,
+    doubleTriple: 0.98,
+    single: 0.91,
+    receptive: "High",
+    windHours: [{ speed: 15, dir: "↘" }, { speed: 14, dir: "↘" }, { speed: 14, dir: "↘" }],
+    tempHours: [61, 61, 61],
+    humidity: 65,
+    pressure: 1026,
+    icons: ["↓", "↓", "↓", "≈", "P"],
+    isClosed: false
+  },
+  {
+    game: "TB @ NYY",
+    venue: "Yankee Stadium",
+    time: "7:05",
+    runs: 0.83,
+    hr: 0.70,
+    doubleTriple: 0.97,
+    single: 0.92,
+    receptive: "High",
+    windHours: [{ speed: 12, dir: "↓" }, { speed: 14, dir: "↓" }, { speed: 15, dir: "↓" }],
+    tempHours: [63, 63, 63],
+    humidity: 49,
+    pressure: 1026,
+    icons: ["↓", "↓", "↓", "≈", "P"],
+    isClosed: false
+  },
+  {
+    game: "MIA @ CHC",
+    venue: "Wrigley Field",
+    time: "7:40",
+    runs: 0.81,
+    hr: 0.69,
+    doubleTriple: 0.87,
+    single: 0.98,
+    receptive: "Extreme",
+    windHours: [{ speed: 13, dir: "↓" }, { speed: 11, dir: "↓" }, { speed: 11, dir: "↓" }],
+    tempHours: [63, 61, 63],
+    humidity: 52,
+    pressure: 1023,
+    icons: ["↓", "↓", "↓", "≈", "P"],
     isClosed: false
   }
 ];
@@ -310,7 +326,14 @@ function normalizeAbbr(abbr: string): string[] {
   return TEAM_MAPPINGS[upper] || [upper];
 }
 
-export function findGameFactor(factors: BallparkPalFactor[], awayAbbr: string, homeAbbr: string, awayName: string = '', homeName: string = ''): BallparkPalFactor | null {
+export function findGameFactor(
+  factors: BallparkPalFactor[], 
+  awayAbbr: string, 
+  homeAbbr: string, 
+  awayName: string = '', 
+  homeName: string = '',
+  gameDateOrTime?: string
+): BallparkPalFactor | null {
   if (!factors || factors.length === 0) return null;
   
   const aAbbrs = normalizeAbbr(awayAbbr);
@@ -318,35 +341,65 @@ export function findGameFactor(factors: BallparkPalFactor[], awayAbbr: string, h
   const aName = (awayName || '').toUpperCase();
   const hName = (homeName || '').toUpperCase();
 
+  const matched: BallparkPalFactor[] = [];
+
   // Try matching by abbreviation variants
   for (const a of aAbbrs) {
     for (const h of hAbbrs) {
-      const matched = factors.find(f => {
+      for (const f of factors) {
         const gameStr = f.game.toUpperCase();
         const parts = gameStr.split(/[@vs]/).map(p => p.trim());
         if (parts.length >= 2) {
           const palAway = parts[0];
           const palHome = parts[parts.length - 1];
-          return (palAway.includes(a) || a.includes(palAway)) && (palHome.includes(h) || h.includes(palHome));
+          if ((palAway.includes(a) || a.includes(palAway)) && (palHome.includes(h) || h.includes(palHome))) {
+            if (!matched.includes(f)) matched.push(f);
+          }
+        } else if (gameStr.includes(a) && gameStr.includes(h)) {
+          if (!matched.includes(f)) matched.push(f);
         }
-        return gameStr.includes(a) && gameStr.includes(h);
-      });
-      if (matched) return matched;
+      }
     }
   }
 
   // Fallback to name-based matching
-  return factors.find(f => {
-    const gameStr = f.game.toUpperCase();
-    const parts = gameStr.split(/[@vs]/).map(p => p.trim());
-    if (parts.length < 2) return false;
-    
-    const palAway = parts[0];
-    const palHome = parts[parts.length - 1];
+  if (matched.length === 0) {
+    for (const f of factors) {
+      const gameStr = f.game.toUpperCase();
+      const parts = gameStr.split(/[@vs]/).map(p => p.trim());
+      if (parts.length >= 2) {
+        const palAway = parts[0];
+        const palHome = parts[parts.length - 1];
 
-    const matchAway = aName.includes(palAway) || palAway.includes(aName.split(' ').pop() || '!!!');
-    const matchHome = hName.includes(palHome) || palHome.includes(hName.split(' ').pop() || '!!!');
+        const matchAway = aName.includes(palAway) || palAway.includes(aName.split(' ').pop() || '!!!');
+        const matchHome = hName.includes(palHome) || palHome.includes(hName.split(' ').pop() || '!!!');
 
-    return matchAway && matchHome;
-  }) || null;
+        if (matchAway && matchHome && !matched.includes(f)) {
+          matched.push(f);
+        }
+      }
+    }
+  }
+
+  if (matched.length === 0) return null;
+  if (matched.length === 1) return matched[0];
+
+  // If multiple candidates matched (e.g. doubleheader TB @ NYY), resolve by game time
+  if (gameDateOrTime) {
+    const dt = new Date(gameDateOrTime);
+    if (!isNaN(dt.getTime())) {
+      const utcHour = dt.getUTCHours();
+      if (utcHour <= 20) {
+        // Afternoon game (1:05)
+        const early = matched.find(m => m.time.startsWith('1:'));
+        if (early) return early;
+      } else {
+        // Evening game (7:05)
+        const late = matched.find(m => m.time.startsWith('7:'));
+        if (late) return late;
+      }
+    }
+  }
+
+  return matched[0];
 }
