@@ -57,9 +57,9 @@ export async function fetchWeatherForecast(teamId: number, dateTime: string, ven
       if (!isNaN(dt.getTime())) {
         const utcHour = dt.getUTCHours();
         if (utcHour <= 20) {
-          matchedFactor = matchedFactors.find(m => m.time.startsWith('1:')) || matchedFactors[0];
+          matchedFactor = matchedFactors.find(m => m.time.startsWith('1:') || m.time.startsWith('3:')) || matchedFactors[0];
         } else {
-          matchedFactor = matchedFactors.find(m => m.time.startsWith('7:')) || matchedFactors[0];
+          matchedFactor = matchedFactors.find(m => m.time.startsWith('6:') || m.time.startsWith('7:') || m.time.startsWith('8:') || m.time.startsWith('9:') || m.time.startsWith('10:')) || matchedFactors[matchedFactors.length - 1];
         }
       }
     }

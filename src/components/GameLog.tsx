@@ -1689,6 +1689,26 @@ function GameDetailView({ game, parkFactors = [] }: { game: MLBGame, parkFactors
           </div>
         </div>
 
+        {livePalFactor && (
+          <div className="mt-2.5 py-1.5 px-2.5 rounded-lg bg-slate-950/60 border border-slate-800/60 flex items-center justify-between text-[8px] font-mono relative z-10">
+            {livePalFactor.isClosed || livePalFactor.receptive?.toLowerCase().includes('close') ? (
+              <span className="text-amber-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                Roof Closed (Regulated)
+              </span>
+            ) : (
+              <>
+                <span className="text-slate-300 font-bold uppercase tracking-wider">
+                  {livePalFactor.receptive} Receptive
+                </span>
+                <span className="text-slate-400">
+                  {livePalFactor.humidity ? `Hum: ${livePalFactor.humidity}%` : ''} {livePalFactor.pressure ? `| Pres: ${livePalFactor.pressure}` : ''}
+                </span>
+              </>
+            )}
+          </div>
+        )}
+
         <div className="mt-auto pt-3 relative z-10 flex items-center justify-between border-t border-slate-800/40">
           <p className="text-[8px] font-mono text-slate-500 uppercase tracking-tighter leading-relaxed">
             Data calibrated for 2026 environments.
