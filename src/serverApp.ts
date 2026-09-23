@@ -59,16 +59,49 @@ app.get("/api/nhl/scores/:date", async (req, res) => {
   }
 });
 
+// In-memory cache for NHL Game Details to prevent throttling and redundant remote calls
+interface NHLDetailsCacheEntry {
+  data: any;
+  timestamp: number;
+}
+const nhlDetailsCache = new Map<string, NHLDetailsCacheEntry>();
+
+// Helper to determine the starter/active goalie from boxscore goalies
+function findActiveGoalie(goalies: any[]): any {
+  if (!goalies || goalies.length === 0) return null;
+  // Look for goalie with actual ice time or shots faced or decision
+  const active = goalies.find((g: any) => {
+    const toi = g.toi || '';
+    const hasToi = toi && toi !== '00:00' && toi !== '0:00';
+    const hasShots = typeof g.shotsAgainst === 'number' && g.shotsAgainst > 0;
+    const hasDecision = !!g.decision;
+    return hasToi || hasShots || hasDecision;
+  });
+  return active || goalies[0];
+}
+
 // NHL Game Details Proxy
 app.get("/api/nhl/game/:gameId", async (req, res) => {
   const { gameId } = req.params;
+  const now = Date.now();
+
+  // Check cache first
+  const cached = nhlDetailsCache.get(gameId);
+  if (cached) {
+    const isLive = cached.data?.gameState === 'LIVE' || cached.data?.gameState === 'CRIT';
+    const isFinal = cached.data?.gameState === 'FINAL' || cached.data?.gameState === 'OFF' || cached.data?.gameState === 'OVER';
+    const ttl = isLive ? 30000 : (isFinal ? 300000 : 120000); // 30s live, 5m final, 2m pre
+    if (now - cached.timestamp < ttl) {
+      return res.json(cached.data);
+    }
+  }
+
   const landingUrl = `https://api-web.nhle.com/v1/gamecenter/${gameId}/landing`;
   const boxscoreUrl = `https://api-web.nhle.com/v1/gamecenter/${gameId}/boxscore`;
-  console.log(`[NHL Details Proxy] Fetching details for ${gameId}`);
 
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
+    const timeout = setTimeout(() => controller.abort(), 8000);
 
     const headers = {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -96,7 +129,10 @@ app.get("/api/nhl/game/:gameId", async (req, res) => {
     }
 
     if (!landingData && !boxscoreData) {
-      console.warn(`[NHL Details Proxy] Both landing and boxscore failed for ${gameId}`);
+      if (cached) {
+        console.warn(`[NHL Details Proxy] Upstream failed for ${gameId}, returning cached data`);
+        return res.json(cached.data);
+      }
       return res.status(502).json({ error: "Failed to fetch NHL game details" });
     }
 
@@ -116,12 +152,18 @@ app.get("/api/nhl/game/:gameId", async (req, res) => {
     const awayBoxGoalies = boxscoreData?.playerByGameStats?.awayTeam?.goalies || [];
     const homeBoxGoalies = boxscoreData?.playerByGameStats?.homeTeam?.goalies || [];
 
-    if (!data.awayTeam.goaltender && awayBoxGoalies.length > 0) {
-      data.awayTeam.goaltender = awayBoxGoalies[0];
+    if (awayBoxGoalies.length > 0) {
+      const activeAway = findActiveGoalie(awayBoxGoalies);
+      if (activeAway) {
+        data.awayTeam.goaltender = activeAway;
+      }
       data.awayTeam.goalies = awayBoxGoalies;
     }
-    if (!data.homeTeam.goaltender && homeBoxGoalies.length > 0) {
-      data.homeTeam.goaltender = homeBoxGoalies[0];
+    if (homeBoxGoalies.length > 0) {
+      const activeHome = findActiveGoalie(homeBoxGoalies);
+      if (activeHome) {
+        data.homeTeam.goaltender = activeHome;
+      }
       data.homeTeam.goalies = homeBoxGoalies;
     }
 
@@ -136,9 +178,16 @@ app.get("/api/nhl/game/:gameId", async (req, res) => {
       data.homeTeam.probableStartingGoalie = matchupHomeLeaders[0];
     }
 
+    // Update in-memory cache
+    nhlDetailsCache.set(gameId, { data, timestamp: now });
+
     res.json(data);
   } catch (error: any) {
     console.error("NHL Game Details Proxy Error:", error);
+    if (cached) {
+      console.warn(`[NHL Details Proxy] Error fetching ${gameId}, serving cached copy`);
+      return res.json(cached.data);
+    }
     const isTimeout = error.name === 'AbortError';
     res.status(isTimeout ? 504 : 500).json({ 
       error: isTimeout ? "Gateway Timeout" : "Internal Server Error",

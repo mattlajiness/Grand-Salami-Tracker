@@ -1,4 +1,4 @@
-import { useState, Fragment, useEffect } from 'react';
+import { useState, Fragment, useEffect, useRef } from 'react';
 import { NHLGame, fetchNHLGameDetails, NHLGoalie } from '../services/nhlService';
 import { SIMULATED_DETAILS } from '../services/nhlMockData';
 import { motion, AnimatePresence } from 'motion/react';
@@ -347,6 +347,7 @@ export function NHLGameLog({
   const [expandedGameId, setExpandedGameId] = useState<number | null>(null);
   const [gameDetailsCache, setGameDetailsCache] = useState<Record<number, any>>({});
   const [filter, setFilter] = useState<'All' | 'LIVE' | 'FINAL' | 'PRE'>('All');
+  const fetchingIdsRef = useRef<Set<number>>(new Set());
 
   // Helper check for team on a back-to-back (B2B) night
   const isTeamB2B = (teamAbbrev: string, gameDateStr: string) => {
@@ -363,12 +364,15 @@ export function NHLGameLog({
     if (!games || games.length === 0) return;
 
     const fetchAllDetails = async () => {
-      // Find missing game IDs that are not present in the details cache
+      // Find missing game IDs that are not present in the details cache and not currently fetching
       const missingIds = games
         .map(g => g.id)
-        .filter(id => !gameDetailsCache[id]);
+        .filter(id => !gameDetailsCache[id] && !fetchingIdsRef.current.has(id));
 
       if (missingIds.length === 0) return;
+
+      // Mark as fetching to avoid duplicate concurrent calls
+      missingIds.forEach(id => fetchingIdsRef.current.add(id));
 
       // Fetch details in parallel in the background
       const results = await Promise.all(
@@ -378,10 +382,12 @@ export function NHLGameLog({
           }
           try {
             const details = await fetchNHLGameDetails(id);
-            return { id, details };
+            return { id, details: details || { _empty: true } };
           } catch (error) {
-            console.error(`Error fetching NHL game details for ID ${id}:`, error);
-            return { id, details: null };
+            console.warn(`Error fetching NHL game details for ID ${id}:`, error);
+            return { id, details: { _empty: true } };
+          } finally {
+            fetchingIdsRef.current.delete(id);
           }
         })
       );
@@ -400,26 +406,51 @@ export function NHLGameLog({
     fetchAllDetails();
   }, [games]);
 
+  // Fetch details immediately on demand when a user expands a game
   useEffect(() => {
-    if (expandedGameId && !gameDetailsCache[expandedGameId]) {
-      if (expandedGameId >= 9990) {
-        // Return simulated details
-        const details = SIMULATED_DETAILS[expandedGameId];
-        if (details) {
-          setGameDetailsCache(prev => ({ ...prev, [expandedGameId]: details }));
-        }
-        return;
-      }
+    if (!expandedGameId) return;
 
-      const fetchDetails = async () => {
-        const details = await fetchNHLGameDetails(expandedGameId);
-        if (details) {
-          setGameDetailsCache(prev => ({ ...prev, [expandedGameId]: details }));
-        }
-      };
-      fetchDetails();
+    if (expandedGameId >= 9990) {
+      const details = SIMULATED_DETAILS[expandedGameId];
+      if (details) {
+        setGameDetailsCache(prev => ({ ...prev, [expandedGameId]: details }));
+      }
+      return;
     }
-  }, [expandedGameId, gameDetailsCache]);
+
+    if (gameDetailsCache[expandedGameId] || fetchingIdsRef.current.has(expandedGameId)) {
+      return;
+    }
+
+    fetchingIdsRef.current.add(expandedGameId);
+    let isCancelled = false;
+
+    fetchNHLGameDetails(expandedGameId)
+      .then(details => {
+        if (!isCancelled) {
+          setGameDetailsCache(prev => ({
+            ...prev,
+            [expandedGameId]: details || { _empty: true }
+          }));
+        }
+      })
+      .catch(err => {
+        console.warn(`Failed to fetch details for expanded game ${expandedGameId}:`, err);
+        if (!isCancelled) {
+          setGameDetailsCache(prev => ({
+            ...prev,
+            [expandedGameId]: { _empty: true }
+          }));
+        }
+      })
+      .finally(() => {
+        fetchingIdsRef.current.delete(expandedGameId);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [expandedGameId]);
 
   const [editingLineId, setEditingLineId] = useState<number | null>(null);
   const [tempLine, setTempLine] = useState<string>('');
@@ -454,7 +485,7 @@ export function NHLGameLog({
     const details = gameDetailsCache[game.id];
     const isLiveType = game.gameState === 'LIVE' || game.gameState === 'CRIT' || game.gameState === 'OFF' || game.gameState === 'FINAL' || game.gameState === 'OVER';
     
-    if (details) {
+    if (details && !details._empty) {
       const teamDetails = isHome ? details.homeTeam : details.awayTeam;
       const boxGoalies = isHome 
         ? details.playerByGameStats?.homeTeam?.goalies 
@@ -463,17 +494,27 @@ export function NHLGameLog({
         ? details.matchup?.goalieComparison?.homeTeam?.leaders 
         : details.matchup?.goalieComparison?.awayTeam?.leaders;
 
+      // Helper to find the netminder with actual ice time, shots faced, or decision
+      const selectActiveGoalie = (goalies: any[]) => {
+        if (!goalies || goalies.length === 0) return null;
+        const active = goalies.find((g: any) => {
+          const toi = g.toi || '';
+          return (toi && toi !== '00:00' && toi !== '0:00') || (typeof g.shotsAgainst === 'number' && g.shotsAgainst > 0) || !!g.decision;
+        });
+        return active || goalies[0];
+      };
+
       if (isLiveType) {
         if (teamDetails?.goaltender) return teamDetails.goaltender;
-        if (boxGoalies && boxGoalies.length > 0) return boxGoalies[0];
+        if (boxGoalies && boxGoalies.length > 0) return selectActiveGoalie(boxGoalies);
       }
       
       // Probable / starter sources
       if (teamDetails?.probableStartingGoalie) return teamDetails.probableStartingGoalie;
       if (teamDetails?.goaltender) return teamDetails.goaltender;
       if (matchupLeaders && matchupLeaders.length > 0) return matchupLeaders[0];
-      if (boxGoalies && boxGoalies.length > 0) return boxGoalies[0];
-      if (teamDetails?.goalies && teamDetails.goalies.length > 0) return teamDetails.goalies[0];
+      if (boxGoalies && boxGoalies.length > 0) return selectActiveGoalie(boxGoalies);
+      if (teamDetails?.goalies && teamDetails.goalies.length > 0) return selectActiveGoalie(teamDetails.goalies);
     }
 
     // Fallback to game object goalies if available
@@ -784,16 +825,10 @@ export function NHLGameLog({
                                     </h4>
                                   </div>
                                   
-                                  {!gameDetailsCache[game.id] && !game.awayGoalie && !game.homeGoalie ? (
-                                    <div className="flex justify-center py-4">
-                                      <div className="w-4 h-4 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
-                                    </div>
-                                  ) : (
-                                    <div className="space-y-3">
-                                      <NHLGoalieStatsCard game={game} isHome={false} goalieData={getGoalieData(false, game)} />
-                                      <NHLGoalieStatsCard game={game} isHome={true} goalieData={getGoalieData(true, game)} />
-                                    </div>
-                                  )}
+                                  <div className="space-y-3">
+                                    <NHLGoalieStatsCard game={game} isHome={false} goalieData={getGoalieData(false, game)} />
+                                    <NHLGoalieStatsCard game={game} isHome={true} goalieData={getGoalieData(true, game)} />
+                                  </div>
                                 </div>
                               </div>
                             </motion.div>
@@ -1137,24 +1172,18 @@ export function NHLGameLog({
                                           </h4>
                                         </div>
                                         
-                                        {!gameDetailsCache[game.id] && !game.awayGoalie && !game.homeGoalie ? (
-                                          <div className="flex items-center justify-center py-8">
-                                            <div className="w-5 h-5 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
-                                          </div>
-                                        ) : (
-                                          <div className="space-y-4 border-none">
-                                            <NHLGoalieStatsCard 
-                                              game={game}
-                                              isHome={false}
-                                              goalieData={getGoalieData(false, game)}
-                                            />
-                                            <NHLGoalieStatsCard 
-                                              game={game}
-                                              isHome={true}
-                                              goalieData={getGoalieData(true, game)}
-                                            />
-                                          </div>
-                                        )}
+                                        <div className="space-y-4 border-none">
+                                          <NHLGoalieStatsCard 
+                                            game={game}
+                                            isHome={false}
+                                            goalieData={getGoalieData(false, game)}
+                                          />
+                                          <NHLGoalieStatsCard 
+                                            game={game}
+                                            isHome={true}
+                                            goalieData={getGoalieData(true, game)}
+                                          />
+                                        </div>
                                       </div>
 
                                       {/* Game Stats / Trends */}
