@@ -66,6 +66,13 @@ export function ParkFactorsReport({ factors, onHide }: ParkFactorsReportProps) {
       return 'ROOF CLOSED';
     }
     const parts = [];
+    const venueLower = (f.venue || '').toLowerCase();
+    const isRetractable = venueLower.includes('t-mobile') || venueLower.includes('safeco') || venueLower.includes('globe life') || venueLower.includes('chase') || venueLower.includes('american family') || venueLower.includes('minute maid') || venueLower.includes('daikin') || venueLower.includes('rogers') || venueLower.includes('loandepot');
+    
+    if (isRetractable && f.isClosed === false) {
+      parts.push('ROOF OPEN');
+    }
+
     if (f.humidity) {
       parts.push(`HUM: ${f.humidity}%`);
     }

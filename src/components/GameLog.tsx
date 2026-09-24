@@ -1630,6 +1630,8 @@ function GameDetailView({ game, parkFactors = [] }: { game: MLBGame, parkFactors
     const awayAbbr = game.teams.away.team.abbreviation || '';
     const homeAbbr = game.teams.home.team.abbreviation || '';
     const livePalFactor = findGameFactor(parkFactors, awayAbbr, homeAbbr);
+    const venueLower = (game.venue?.name || '').toLowerCase();
+    const isRetractable = venueLower.includes('globe life') || venueLower.includes('t-mobile') || venueLower.includes('safeco') || venueLower.includes('chase field') || venueLower.includes('american family') || venueLower.includes('minute maid') || venueLower.includes('daikin') || venueLower.includes('rogers centre') || venueLower.includes('skydome') || venueLower.includes('loandepot');
 
     const staticFactors = getDetailedParkFactor(game.venue?.name || '', game.weather?.condition);
     
@@ -1696,6 +1698,16 @@ function GameDetailView({ game, parkFactors = [] }: { game: MLBGame, parkFactors
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
                 Roof Closed (Regulated)
               </span>
+            ) : isRetractable && livePalFactor.isClosed === false ? (
+              <>
+                <span className="text-emerald-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  Roof Open ({livePalFactor.receptive} Receptive)
+                </span>
+                <span className="text-slate-400">
+                  {livePalFactor.humidity ? `Hum: ${livePalFactor.humidity}%` : ''} {livePalFactor.pressure ? `| Pres: ${livePalFactor.pressure}` : ''}
+                </span>
+              </>
             ) : (
               <>
                 <span className="text-slate-300 font-bold uppercase tracking-wider">
