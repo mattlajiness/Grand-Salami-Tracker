@@ -184,7 +184,7 @@ export function Leaderboard({ currentUserId, activeSport: initialSport }: Leader
               <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-950/60 p-2.5 rounded-xl border border-slate-900">
                 {/* Sport switch */}
                 <div className="flex gap-1 bg-slate-900 p-0.5 rounded-lg border border-slate-800/80">
-                  {(['MLB', 'NHL'] as const).map(s => (
+                  {(['NHL', 'MLB'] as const).map(s => (
                     <button
                       key={s}
                       onClick={() => setSport(s)}

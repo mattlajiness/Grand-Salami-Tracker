@@ -110,7 +110,7 @@ function calculateStreakStats(sportWagers: any[], totals: Record<string, number>
 
 export default function App() {
   const { user, profile, isOnline, loading: authLoading } = useAuth();
-  const [activeSport, setActiveSport] = useState<'MLB' | 'NHL'>('MLB');
+  const [activeSport, setActiveSport] = useState<'MLB' | 'NHL'>('NHL');
   const [games, setGames] = useState<MLBGame[]>([]);
   const [nhlGames, setNhlGames] = useState<NHLGame[]>([]);
   const [selectedNhlDate, setSelectedNhlDate] = useState<string>('today');
@@ -1298,26 +1298,6 @@ export default function App() {
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mb-8 pt-4">
           <div className="flex-1 flex gap-3 sm:gap-4">
             <button 
-              onClick={() => setActiveSport('MLB')}
-              className={cn(
-                "flex-1 py-4 rounded-2xl font-black text-[10px] sm:text-xs uppercase tracking-[0.1em] sm:tracking-[0.2em] transition-all border-2 relative overflow-hidden group",
-                activeSport === 'MLB' 
-                  ? "bg-slate-900 border-salami-red text-white shadow-[0_0_20px_rgba(225,29,72,0.1)]" 
-                  : "bg-slate-950 border-slate-900 text-slate-500 hover:text-slate-400"
-              )}
-            >
-              <div className="relative z-10 flex items-center justify-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-salami-red animate-pulse" />
-                MLB Salami
-              </div>
-              {activeSport === 'MLB' && (
-                <motion.div 
-                  layoutId="activeTab"
-                  className="absolute inset-0 bg-gradient-to-r from-salami-red/10 to-transparent opacity-50"
-                />
-              )}
-            </button>
-            <button 
               onClick={() => setActiveSport('NHL')}
               className={cn(
                 "flex-1 py-4 rounded-2xl font-black text-[10px] sm:text-xs uppercase tracking-[0.1em] sm:tracking-[0.2em] transition-all border-2 relative overflow-hidden group",
@@ -1334,6 +1314,26 @@ export default function App() {
                 <motion.div 
                   layoutId="activeTab"
                   className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-transparent opacity-50"
+                />
+              )}
+            </button>
+            <button 
+              onClick={() => setActiveSport('MLB')}
+              className={cn(
+                "flex-1 py-4 rounded-2xl font-black text-[10px] sm:text-xs uppercase tracking-[0.1em] sm:tracking-[0.2em] transition-all border-2 relative overflow-hidden group",
+                activeSport === 'MLB' 
+                  ? "bg-slate-900 border-salami-red text-white shadow-[0_0_20px_rgba(225,29,72,0.1)]" 
+                  : "bg-slate-950 border-slate-900 text-slate-500 hover:text-slate-400"
+              )}
+            >
+              <div className="relative z-10 flex items-center justify-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-salami-red animate-pulse" />
+                MLB Salami
+              </div>
+              {activeSport === 'MLB' && (
+                <motion.div 
+                  layoutId="activeTab"
+                  className="absolute inset-0 bg-gradient-to-r from-salami-red/10 to-transparent opacity-50"
                 />
               )}
             </button>
