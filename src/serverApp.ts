@@ -66,6 +66,20 @@ interface NHLDetailsCacheEntry {
 }
 const nhlDetailsCache = new Map<string, NHLDetailsCacheEntry>();
 
+// In-memory cache for 2026-2027 NHL Goalies by team
+interface NHLGoaliesCacheEntry {
+  goaliesByTeam: Record<string, any[]>;
+  timestamp: number;
+}
+let nhlGoaliesCache: NHLGoaliesCacheEntry | null = null;
+
+const NHL_ALL_TEAMS = [
+  'ANA', 'BOS', 'BUF', 'CAR', 'CBJ', 'CGY', 'CHI', 'COL', 
+  'DAL', 'DET', 'EDM', 'FLA', 'LAK', 'MIN', 'MTL', 'NJD', 
+  'NSH', 'NYI', 'NYR', 'OTT', 'PHI', 'PIT', 'SEA', 'SJS', 
+  'STL', 'TBL', 'TOR', 'UTA', 'VAN', 'VGK', 'WPG', 'WSH'
+];
+
 // Helper to determine the starter/active goalie from boxscore goalies
 function findActiveGoalie(goalies: any[]): any {
   if (!goalies || goalies.length === 0) return null;
@@ -79,6 +93,74 @@ function findActiveGoalie(goalies: any[]): any {
   });
   return active || goalies[0];
 }
+
+// Fetch 2026-2027 goalies from nhl.com for a single team
+async function fetchTeamGoaliesFromNHL(teamAbbrev: string) {
+  try {
+    const res = await fetch(`https://api-web.nhle.com/v1/roster/${teamAbbrev}/current`, {
+      redirect: 'follow',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json'
+      }
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.goalies || []).map((g: any) => ({
+      playerId: g.id,
+      id: g.id,
+      firstName: g.firstName?.default || g.firstName || '',
+      lastName: g.lastName?.default || g.lastName || '',
+      sweaterNumber: g.sweaterNumber,
+      headshot: g.headshot || `https://assets.nhle.com/mugs/nhl/20262027/${teamAbbrev}/${g.id}.png`,
+      teamAbbrev
+    }));
+  } catch (e) {
+    return [];
+  }
+}
+
+// Route to get 2026-2027 goalies for all teams pulled directly from nhl.com
+app.get("/api/nhl/rosters/goalies", async (req, res) => {
+  const now = Date.now();
+  if (nhlGoaliesCache && now - nhlGoaliesCache.timestamp < 3600000) { // 1 hour cache
+    return res.json(nhlGoaliesCache.goaliesByTeam);
+  }
+
+  try {
+    const results = await Promise.all(
+      NHL_ALL_TEAMS.map(async (team) => {
+        const goalies = await fetchTeamGoaliesFromNHL(team);
+        return { team, goalies };
+      })
+    );
+
+    const goaliesByTeam: Record<string, any[]> = {};
+    for (const r of results) {
+      goaliesByTeam[r.team] = r.goalies;
+    }
+
+    nhlGoaliesCache = { goaliesByTeam, timestamp: now };
+    res.json(goaliesByTeam);
+  } catch (error: any) {
+    console.error("Error fetching NHL goalies from nhl.com:", error);
+    if (nhlGoaliesCache) {
+      return res.json(nhlGoaliesCache.goaliesByTeam);
+    }
+    res.status(500).json({ error: "Failed to fetch goalies from nhl.com", message: error.message });
+  }
+});
+
+// Route to get current roster for a single team
+app.get("/api/nhl/roster/:team", async (req, res) => {
+  const team = (req.params.team || '').toUpperCase();
+  try {
+    const goalies = await fetchTeamGoaliesFromNHL(team);
+    res.json({ team, goalies });
+  } catch (error: any) {
+    res.status(500).json({ error: `Failed to fetch roster for ${team}` });
+  }
+});
 
 // NHL Game Details Proxy
 app.get("/api/nhl/game/:gameId", async (req, res) => {
@@ -176,6 +258,25 @@ app.get("/api/nhl/game/:gameId", async (req, res) => {
     }
     if (!data.homeTeam.probableStartingGoalie && matchupHomeLeaders.length > 0) {
       data.homeTeam.probableStartingGoalie = matchupHomeLeaders[0];
+    }
+
+    if (!data.awayTeam.goaltender && data.awayTeam.probableStartingGoalie) {
+      data.awayTeam.goaltender = data.awayTeam.probableStartingGoalie;
+    }
+    if (!data.homeTeam.goaltender && data.homeTeam.probableStartingGoalie) {
+      data.homeTeam.goaltender = data.homeTeam.probableStartingGoalie;
+    }
+
+    // Attach team roster goalies if available
+    const awayAbbrev = (data.awayTeam?.abbrev || '').toUpperCase();
+    const homeAbbrev = (data.homeTeam?.abbrev || '').toUpperCase();
+    if (nhlGoaliesCache?.goaliesByTeam) {
+      if (!data.awayTeam.goalies && awayAbbrev && nhlGoaliesCache.goaliesByTeam[awayAbbrev]) {
+        data.awayTeam.goalies = nhlGoaliesCache.goaliesByTeam[awayAbbrev];
+      }
+      if (!data.homeTeam.goalies && homeAbbrev && nhlGoaliesCache.goaliesByTeam[homeAbbrev]) {
+        data.homeTeam.goalies = nhlGoaliesCache.goaliesByTeam[homeAbbrev];
+      }
     }
 
     // Update in-memory cache

@@ -172,11 +172,6 @@ export function NHLGoalTrends({
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-white font-black text-sm uppercase tracking-widest font-sans">Hockey Pulse</h3>
-              {trends.isNewSeason && (
-                <span className="text-[8px] font-mono font-bold text-cyan-400 bg-cyan-950 border border-cyan-800 px-1.5 py-0.5 rounded uppercase tracking-wider">
-                  Day 1 • Season Opener
-                </span>
-              )}
             </div>
             <p className="text-[10px] font-mono text-slate-500 uppercase tracking-tighter">7-Day Goal Velocity</p>
           </div>

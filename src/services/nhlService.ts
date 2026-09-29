@@ -209,3 +209,15 @@ export async function fetchNHLGameDetails(gameId: number): Promise<any> {
   return requestPromise;
 }
 
+// Fetch current 2026-2027 goalies pulled from nhl.com
+export async function fetchNHLCurrentGoalies(): Promise<Record<string, any[]>> {
+  try {
+    const res = await fetch('/api/nhl/rosters/goalies');
+    if (!res.ok) return {};
+    return await res.json();
+  } catch (e) {
+    console.warn("Could not fetch 2026-2027 goalies from nhl.com:", e);
+    return {};
+  }
+}
+
