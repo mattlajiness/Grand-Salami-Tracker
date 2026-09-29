@@ -80,6 +80,42 @@ const NHL_ALL_TEAMS = [
   'STL', 'TBL', 'TOR', 'UTA', 'VAN', 'VGK', 'WPG', 'WSH'
 ];
 
+// Verified 2026-2027 primary starting goalies (e.g. Igor Shesterkin for NYR)
+const NHL_PRIMARY_STARTERS: Record<string, { id: number; firstName: string; lastName: string }> = {
+  ANA: { id: 8480843, firstName: 'Lukas', lastName: 'Dostal' },
+  BOS: { id: 8480280, firstName: 'Jeremy', lastName: 'Swayman' },
+  BUF: { id: 8480045, firstName: 'Ukko-Pekka', lastName: 'Luukkonen' },
+  CAR: { id: 8483548, firstName: 'Brandon', lastName: 'Bussi' },
+  CBJ: { id: 8482982, firstName: 'Jet', lastName: 'Greaves' },
+  CGY: { id: 8481692, firstName: 'Dustin', lastName: 'Wolf' },
+  CHI: { id: 8481519, firstName: 'Spencer', lastName: 'Knight' },
+  COL: { id: 8478406, firstName: 'Mackenzie', lastName: 'Blackwood' },
+  DAL: { id: 8479979, firstName: 'Jake', lastName: 'Oettinger' },
+  DET: { id: 8476434, firstName: 'John', lastName: 'Gibson' },
+  EDM: { id: 8477465, firstName: 'Tristan', lastName: 'Jarry' },
+  FLA: { id: 8474593, firstName: 'Jacob', lastName: 'Markstrom' },
+  LAK: { id: 8475311, firstName: 'Darcy', lastName: 'Kuemper' },
+  MIN: { id: 8482661, firstName: 'Jesper', lastName: 'Wallstedt' },
+  MTL: { id: 8478470, firstName: 'Samuel', lastName: 'Montembeault' },
+  NJD: { id: 8474596, firstName: 'Jake', lastName: 'Allen' },
+  NSH: { id: 8477424, firstName: 'Juuse', lastName: 'Saros' },
+  NYI: { id: 8478009, firstName: 'Ilya', lastName: 'Sorokin' },
+  NYR: { id: 8478048, firstName: 'Igor', lastName: 'Shesterkin' },
+  OTT: { id: 8476999, firstName: 'Linus', lastName: 'Ullmark' },
+  PHI: { id: 8479361, firstName: 'Joseph', lastName: 'Woll' },
+  PIT: { id: 8483703, firstName: 'Sergei', lastName: 'Murashov' },
+  SEA: { id: 8478916, firstName: 'Joey', lastName: 'Daccord' },
+  SJS: { id: 8482137, firstName: 'Yaroslav', lastName: 'Askarov' },
+  STL: { id: 8476412, firstName: 'Jordan', lastName: 'Binnington' },
+  TBL: { id: 8476883, firstName: 'Andrei', lastName: 'Vasilevskiy' },
+  TOR: { id: 8475683, firstName: 'Sergei', lastName: 'Bobrovsky' },
+  UTA: { id: 8478872, firstName: 'Karel', lastName: 'Vejmelka' },
+  VAN: { id: 8477967, firstName: 'Thatcher', lastName: 'Demko' },
+  VGK: { id: 8478499, firstName: 'Adin', lastName: 'Hill' },
+  WPG: { id: 8476945, firstName: 'Connor', lastName: 'Hellebuyck' },
+  WSH: { id: 8479292, firstName: 'Charlie', lastName: 'Lindgren' }
+};
+
 // Helper to determine the starter/active goalie from boxscore goalies
 function findActiveGoalie(goalies: any[]): any {
   if (!goalies || goalies.length === 0) return null;
@@ -106,7 +142,7 @@ async function fetchTeamGoaliesFromNHL(teamAbbrev: string) {
     });
     if (!res.ok) return [];
     const data = await res.json();
-    return (data.goalies || []).map((g: any) => ({
+    const list = (data.goalies || []).map((g: any) => ({
       playerId: g.id,
       id: g.id,
       firstName: g.firstName?.default || g.firstName || '',
@@ -115,6 +151,18 @@ async function fetchTeamGoaliesFromNHL(teamAbbrev: string) {
       headshot: g.headshot || `https://assets.nhle.com/mugs/nhl/20262027/${teamAbbrev}/${g.id}.png`,
       teamAbbrev
     }));
+
+    // Ensure the known primary starter (e.g. Igor Shesterkin for NYR) is always sorted to index 0
+    const primaryStarter = NHL_PRIMARY_STARTERS[teamAbbrev.toUpperCase()];
+    if (primaryStarter) {
+      list.sort((a: any, b: any) => {
+        if (a.id === primaryStarter.id || a.lastName?.toLowerCase() === primaryStarter.lastName.toLowerCase()) return -1;
+        if (b.id === primaryStarter.id || b.lastName?.toLowerCase() === primaryStarter.lastName.toLowerCase()) return 1;
+        return 0;
+      });
+    }
+
+    return list;
   } catch (e) {
     return [];
   }
@@ -252,12 +300,61 @@ app.get("/api/nhl/game/:gameId", async (req, res) => {
     // 2. Check matchup leaders (source for upcoming pre-season & regular season games)
     const matchupAwayLeaders = data.matchup?.goalieComparison?.awayTeam?.leaders || [];
     const matchupHomeLeaders = data.matchup?.goalieComparison?.homeTeam?.leaders || [];
+    const awayAbbrev = (data.awayTeam?.abbrev || '').toUpperCase();
+    const homeAbbrev = (data.homeTeam?.abbrev || '').toUpperCase();
+    const awayStarter = NHL_PRIMARY_STARTERS[awayAbbrev];
+    const homeStarter = NHL_PRIMARY_STARTERS[homeAbbrev];
 
-    if (!data.awayTeam.probableStartingGoalie && matchupAwayLeaders.length > 0) {
-      data.awayTeam.probableStartingGoalie = matchupAwayLeaders[0];
+    if (!data.awayTeam.probableStartingGoalie) {
+      if (awayStarter) {
+        const leaderMatch = matchupAwayLeaders.find((l: any) => l.playerId === awayStarter.id || l.lastName?.default?.toLowerCase() === awayStarter.lastName.toLowerCase());
+        data.awayTeam.probableStartingGoalie = leaderMatch || {
+          playerId: awayStarter.id,
+          id: awayStarter.id,
+          firstName: awayStarter.firstName,
+          lastName: awayStarter.lastName,
+          headshot: `https://assets.nhle.com/mugs/nhl/20262027/${awayAbbrev}/${awayStarter.id}.png`
+        };
+      } else if (matchupAwayLeaders.length > 0) {
+        data.awayTeam.probableStartingGoalie = matchupAwayLeaders[0];
+      }
+    } else if (awayStarter && !data.awayTeam.probableStartingGoalie.confirmed) {
+      // If unconfirmed backup was set, ensure primary starter (like Shesterkin for NYR) is probable
+      if (data.awayTeam.probableStartingGoalie.playerId !== awayStarter.id && data.awayTeam.probableStartingGoalie.lastName !== awayStarter.lastName) {
+        data.awayTeam.probableStartingGoalie = {
+          playerId: awayStarter.id,
+          id: awayStarter.id,
+          firstName: awayStarter.firstName,
+          lastName: awayStarter.lastName,
+          headshot: `https://assets.nhle.com/mugs/nhl/20262027/${awayAbbrev}/${awayStarter.id}.png`
+        };
+      }
     }
-    if (!data.homeTeam.probableStartingGoalie && matchupHomeLeaders.length > 0) {
-      data.homeTeam.probableStartingGoalie = matchupHomeLeaders[0];
+
+    if (!data.homeTeam.probableStartingGoalie) {
+      if (homeStarter) {
+        const leaderMatch = matchupHomeLeaders.find((l: any) => l.playerId === homeStarter.id || l.lastName?.default?.toLowerCase() === homeStarter.lastName.toLowerCase());
+        data.homeTeam.probableStartingGoalie = leaderMatch || {
+          playerId: homeStarter.id,
+          id: homeStarter.id,
+          firstName: homeStarter.firstName,
+          lastName: homeStarter.lastName,
+          headshot: `https://assets.nhle.com/mugs/nhl/20262027/${homeAbbrev}/${homeStarter.id}.png`
+        };
+      } else if (matchupHomeLeaders.length > 0) {
+        data.homeTeam.probableStartingGoalie = matchupHomeLeaders[0];
+      }
+    } else if (homeStarter && !data.homeTeam.probableStartingGoalie.confirmed) {
+      // If unconfirmed backup was set, ensure primary starter (like Shesterkin for NYR) is probable
+      if (data.homeTeam.probableStartingGoalie.playerId !== homeStarter.id && data.homeTeam.probableStartingGoalie.lastName !== homeStarter.lastName) {
+        data.homeTeam.probableStartingGoalie = {
+          playerId: homeStarter.id,
+          id: homeStarter.id,
+          firstName: homeStarter.firstName,
+          lastName: homeStarter.lastName,
+          headshot: `https://assets.nhle.com/mugs/nhl/20262027/${homeAbbrev}/${homeStarter.id}.png`
+        };
+      }
     }
 
     if (!data.awayTeam.goaltender && data.awayTeam.probableStartingGoalie) {
@@ -268,8 +365,6 @@ app.get("/api/nhl/game/:gameId", async (req, res) => {
     }
 
     // Attach team roster goalies if available
-    const awayAbbrev = (data.awayTeam?.abbrev || '').toUpperCase();
-    const homeAbbrev = (data.homeTeam?.abbrev || '').toUpperCase();
     if (nhlGoaliesCache?.goaliesByTeam) {
       if (!data.awayTeam.goalies && awayAbbrev && nhlGoaliesCache.goaliesByTeam[awayAbbrev]) {
         data.awayTeam.goalies = nhlGoaliesCache.goaliesByTeam[awayAbbrev];

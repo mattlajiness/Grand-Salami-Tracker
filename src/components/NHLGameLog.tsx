@@ -615,6 +615,8 @@ export function NHLGameLog({
   const getGoalieData = (isHome: boolean, game: NHLGame) => {
     const details = gameDetailsCache[game.id];
     const isLiveType = game.gameState === 'LIVE' || game.gameState === 'CRIT' || game.gameState === 'OFF' || game.gameState === 'FINAL' || game.gameState === 'OVER';
+    const abbrev = ((isHome ? game.homeTeam?.abbrev : game.awayTeam?.abbrev) || '').toUpperCase();
+    const primaryStarter = abbrev ? NHL_PRIMARY_GOALIES[abbrev] : null;
     
     if (details && !details._empty) {
       const teamDetails = isHome ? details.homeTeam : details.awayTeam;
@@ -640,8 +642,22 @@ export function NHLGameLog({
         if (boxGoalies && boxGoalies.length > 0) return selectActiveGoalie(boxGoalies);
       }
       
-      // Probable / starter sources
-      if (teamDetails?.probableStartingGoalie) return teamDetails.probableStartingGoalie;
+      // Probable / starter sources for pre-game
+      if (teamDetails?.probableStartingGoalie) {
+        const prob = teamDetails.probableStartingGoalie;
+        if (prob.confirmed || prob.starter) return prob;
+        // If team has verified primary starter (e.g. Shesterkin for NYR), prioritize them over unconfirmed backups
+        if (primaryStarter) {
+          const probLast = extractString(prob.lastName || prob.name || '').toLowerCase();
+          if (probLast && probLast === primaryStarter.lastName.toLowerCase()) {
+            return { ...primaryStarter, ...prob };
+          }
+          return primaryStarter;
+        }
+        return prob;
+      }
+
+      if (primaryStarter) return primaryStarter;
       if (teamDetails?.goaltender) return teamDetails.goaltender;
       if (matchupLeaders && matchupLeaders.length > 0) return matchupLeaders[0];
       if (boxGoalies && boxGoalies.length > 0) return selectActiveGoalie(boxGoalies);
@@ -652,19 +668,22 @@ export function NHLGameLog({
     if (isHome && game.homeGoalie) return game.homeGoalie;
     if (!isHome && game.awayGoalie) return game.awayGoalie;
 
-    const abbrev = (isHome ? game.homeTeam?.abbrev : game.awayTeam?.abbrev) || '';
-
     // Check dynamic 2026-2027 roster pulled from nhl.com
-    if (abbrev && liveGoalieRosters[abbrev.toUpperCase()]?.length) {
-      const topRosterGoalie = liveGoalieRosters[abbrev.toUpperCase()][0];
-      if (topRosterGoalie) {
-        return topRosterGoalie;
+    if (abbrev && liveGoalieRosters[abbrev]?.length) {
+      const roster = liveGoalieRosters[abbrev];
+      if (primaryStarter) {
+        const matchingStarter = roster.find((g: any) => 
+          (primaryStarter.playerId && g.playerId === primaryStarter.playerId) ||
+          (primaryStarter.lastName && g.lastName?.toLowerCase() === primaryStarter.lastName.toLowerCase())
+        );
+        if (matchingStarter) return { ...primaryStarter, ...matchingStarter };
       }
+      return roster[0];
     }
 
-    // Fallback to verified primary starting netminder by team
-    if (abbrev && NHL_PRIMARY_GOALIES[abbrev.toUpperCase()]) {
-      return NHL_PRIMARY_GOALIES[abbrev.toUpperCase()];
+    // Fallback to verified primary starting netminder by team (e.g. Shesterkin for NYR)
+    if (primaryStarter) {
+      return primaryStarter;
     }
 
     return null;
@@ -1020,20 +1039,28 @@ export function NHLGameLog({
                                       </div>
                                     </div>
 
-                                    {/* Goalie Duel Cards */}
+                                    {/* Goalie Cards with Team Logos */}
                                     <div className="space-y-3">
-                                      <div className="space-y-1">
-                                        <div className="flex items-center justify-between text-[8px] uppercase tracking-wider text-slate-400 px-1 font-bold">
-                                          <span>{game.awayTeam.abbrev} Starting Goalie</span>
-                                          <span className="text-cyan-400">Away</span>
+                                      <div className="space-y-2">
+                                        <div className="flex items-center justify-center py-2 px-3 bg-slate-900/80 rounded-lg border border-slate-800/70 shadow-inner">
+                                          <img 
+                                            src={game.awayTeam.logo} 
+                                            alt={game.awayTeam.abbrev} 
+                                            className="h-7 sm:h-8 w-auto max-w-[68px] sm:max-w-[76px] object-contain filter drop-shadow-md" 
+                                            referrerPolicy="no-referrer" 
+                                          />
                                         </div>
                                         <NHLGoalieStatsCard game={game} isHome={false} goalieData={getGoalieData(false, game)} />
                                       </div>
 
-                                      <div className="space-y-1">
-                                        <div className="flex items-center justify-between text-[8px] uppercase tracking-wider text-slate-400 px-1 font-bold">
-                                          <span>{game.homeTeam.abbrev} Starting Goalie</span>
-                                          <span className="text-emerald-400">Home Ice</span>
+                                      <div className="space-y-2">
+                                        <div className="flex items-center justify-center py-2 px-3 bg-slate-900/80 rounded-lg border border-slate-800/70 shadow-inner">
+                                          <img 
+                                            src={game.homeTeam.logo} 
+                                            alt={game.homeTeam.abbrev} 
+                                            className="h-7 sm:h-8 w-auto max-w-[68px] sm:max-w-[76px] object-contain filter drop-shadow-md" 
+                                            referrerPolicy="no-referrer" 
+                                          />
                                         </div>
                                         <NHLGoalieStatsCard game={game} isHome={true} goalieData={getGoalieData(true, game)} />
                                       </div>
@@ -1460,11 +1487,15 @@ export function NHLGameLog({
                                         </div>
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                                          {/* Column 1: Away Starting Goalie */}
-                                          <div className="bg-slate-900 rounded-xl border border-slate-800 p-3 sm:p-4 space-y-2">
-                                            <div className="flex items-center justify-between text-[8px] font-mono uppercase tracking-wider text-slate-400 pb-1.5 border-b border-slate-800/60">
-                                              <span className="font-bold text-slate-300">{game.awayTeam.abbrev} Starting Goalie</span>
-                                              <span className="text-cyan-400 font-bold bg-cyan-950/60 px-1.5 py-0.5 rounded border border-cyan-800/60">Away</span>
+                                          {/* Column 1: Away Goalie with Team Logo */}
+                                          <div className="bg-slate-900 rounded-xl border border-slate-800 p-3 sm:p-4 space-y-3">
+                                            <div className="flex items-center justify-center py-2.5 px-3 bg-slate-950/70 rounded-lg border border-slate-800/80 shadow-inner">
+                                              <img 
+                                                src={game.awayTeam.logo} 
+                                                alt={game.awayTeam.abbrev} 
+                                                className="h-8 sm:h-9 w-auto max-w-[76px] sm:max-w-[88px] object-contain filter drop-shadow-md transition-transform hover:scale-105" 
+                                                referrerPolicy="no-referrer" 
+                                              />
                                             </div>
                                             <NHLGoalieStatsCard 
                                               game={game}
@@ -1473,11 +1504,15 @@ export function NHLGameLog({
                                             />
                                           </div>
 
-                                          {/* Column 2: Home Starting Goalie */}
-                                          <div className="bg-slate-900 rounded-xl border border-slate-800 p-3 sm:p-4 space-y-2">
-                                            <div className="flex items-center justify-between text-[8px] font-mono uppercase tracking-wider text-slate-400 pb-1.5 border-b border-slate-800/60">
-                                              <span className="font-bold text-slate-300">{game.homeTeam.abbrev} Starting Goalie</span>
-                                              <span className="text-emerald-400 font-bold bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800/60">Home Ice</span>
+                                          {/* Column 2: Home Goalie with Team Logo */}
+                                          <div className="bg-slate-900 rounded-xl border border-slate-800 p-3 sm:p-4 space-y-3">
+                                            <div className="flex items-center justify-center py-2.5 px-3 bg-slate-950/70 rounded-lg border border-slate-800/80 shadow-inner">
+                                              <img 
+                                                src={game.homeTeam.logo} 
+                                                alt={game.homeTeam.abbrev} 
+                                                className="h-8 sm:h-9 w-auto max-w-[76px] sm:max-w-[88px] object-contain filter drop-shadow-md transition-transform hover:scale-105" 
+                                                referrerPolicy="no-referrer" 
+                                              />
                                             </div>
                                             <NHLGoalieStatsCard 
                                               game={game}
