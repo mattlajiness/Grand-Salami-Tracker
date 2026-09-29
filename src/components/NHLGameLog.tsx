@@ -1014,20 +1014,17 @@ export function NHLGameLog({
                                             Starting Goalie Matchup
                                           </h4>
                                           <span className="text-[8.5px] text-slate-400">
-                                            {game.awayTeam.abbrev} at {game.homeTeam.abbrev} • Netminder Duel
+                                            {game.awayTeam.abbrev} at {game.homeTeam.abbrev}
                                           </span>
                                         </div>
                                       </div>
-                                      <span className="text-[8px] text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800 font-bold shrink-0">
-                                        {venue.arena}
-                                      </span>
                                     </div>
 
                                     {/* Goalie Duel Cards */}
                                     <div className="space-y-3">
                                       <div className="space-y-1">
                                         <div className="flex items-center justify-between text-[8px] uppercase tracking-wider text-slate-400 px-1 font-bold">
-                                          <span>{game.awayTeam.abbrev} Starting Netminder</span>
+                                          <span>{game.awayTeam.abbrev} Starting Goalie</span>
                                           <span className="text-cyan-400">Away</span>
                                         </div>
                                         <NHLGoalieStatsCard game={game} isHome={false} goalieData={getGoalieData(false, game)} />
@@ -1035,7 +1032,7 @@ export function NHLGameLog({
 
                                       <div className="space-y-1">
                                         <div className="flex items-center justify-between text-[8px] uppercase tracking-wider text-slate-400 px-1 font-bold">
-                                          <span>{game.homeTeam.abbrev} Starting Netminder</span>
+                                          <span>{game.homeTeam.abbrev} Starting Goalie</span>
                                           <span className="text-emerald-400">Home Ice</span>
                                         </div>
                                         <NHLGoalieStatsCard game={game} isHome={true} goalieData={getGoalieData(true, game)} />
@@ -1456,15 +1453,9 @@ export function NHLGameLog({
                                                 Probable Starting Goalie Matchup
                                               </h4>
                                               <span className="text-[9px] text-slate-400">
-                                                {game.awayTeam.abbrev} at {game.homeTeam.abbrev} • Netminder Duel
+                                                {game.awayTeam.abbrev} at {game.homeTeam.abbrev}
                                               </span>
                                             </div>
-                                          </div>
-                                          <div className="flex items-center gap-2 text-[9px] font-mono text-slate-400">
-                                            <span className="bg-slate-900 px-3 py-1 rounded border border-slate-800 flex items-center gap-1.5">
-                                              <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                                              <span>Home Stadium: <strong className="text-white">{venue.arena}</strong> • {venue.location}</span>
-                                            </span>
                                           </div>
                                         </div>
 
@@ -1472,7 +1463,7 @@ export function NHLGameLog({
                                           {/* Column 1: Away Starting Goalie */}
                                           <div className="bg-slate-900 rounded-xl border border-slate-800 p-3 sm:p-4 space-y-2">
                                             <div className="flex items-center justify-between text-[8px] font-mono uppercase tracking-wider text-slate-400 pb-1.5 border-b border-slate-800/60">
-                                              <span className="font-bold text-slate-300">{game.awayTeam.abbrev} Starting Netminder</span>
+                                              <span className="font-bold text-slate-300">{game.awayTeam.abbrev} Starting Goalie</span>
                                               <span className="text-cyan-400 font-bold bg-cyan-950/60 px-1.5 py-0.5 rounded border border-cyan-800/60">Away</span>
                                             </div>
                                             <NHLGoalieStatsCard 
@@ -1485,7 +1476,7 @@ export function NHLGameLog({
                                           {/* Column 2: Home Starting Goalie */}
                                           <div className="bg-slate-900 rounded-xl border border-slate-800 p-3 sm:p-4 space-y-2">
                                             <div className="flex items-center justify-between text-[8px] font-mono uppercase tracking-wider text-slate-400 pb-1.5 border-b border-slate-800/60">
-                                              <span className="font-bold text-slate-300">{game.homeTeam.abbrev} Starting Netminder</span>
+                                              <span className="font-bold text-slate-300">{game.homeTeam.abbrev} Starting Goalie</span>
                                               <span className="text-emerald-400 font-bold bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800/60">Home Ice</span>
                                             </div>
                                             <NHLGoalieStatsCard 
