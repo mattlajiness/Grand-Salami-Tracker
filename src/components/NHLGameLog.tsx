@@ -576,10 +576,10 @@ export function NHLPreGameMatchupInsights({
 
       {/* Head-to-Head Skater Leaders if available from official API */}
       {leaders && leaders.length > 0 && (
-        <div className="bg-slate-950/50 p-3 rounded-lg border border-slate-800/60 space-y-2.5">
+        <div className="bg-slate-950/50 p-2.5 sm:p-3 rounded-lg border border-slate-800/60 space-y-2.5">
           <div className="flex items-center justify-between border-b border-slate-800/50 pb-1.5">
             <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest font-black">
-              Key Matchup Leaders
+              Key Players & Matchup Leaders
             </span>
             <div className="flex items-center gap-2 text-[8px] font-mono">
               <span className="text-slate-300 font-bold">{game.awayTeam.abbrev}</span>
@@ -588,7 +588,86 @@ export function NHLPreGameMatchupInsights({
             </div>
           </div>
 
-          <div className="space-y-2">
+          {/* Mobile View: Dedicated cards ensuring full player names fit with zero truncation */}
+          <div className="block sm:hidden space-y-2">
+            {leaders.map((leader: any, idx: number) => {
+              const catName = leader.category ? leader.category.toUpperCase() : 'LEADER';
+              const awayName = extractString(leader.awayLeader?.name) || `${leader.awayLeader?.firstName?.default || ''} ${leader.awayLeader?.lastName?.default || ''}`.trim() || 'Leader';
+              const homeName = extractString(leader.homeLeader?.name) || `${leader.homeLeader?.firstName?.default || ''} ${leader.homeLeader?.lastName?.default || ''}`.trim() || 'Leader';
+              const awayVal = leader.awayLeader?.value ?? '--';
+              const homeVal = leader.homeLeader?.value ?? '--';
+
+              return (
+                <div key={idx} className="bg-slate-900/70 p-2 rounded-lg border border-slate-800/60 space-y-1.5 font-mono">
+                  {/* Category Header */}
+                  <div className="flex items-center justify-between border-b border-slate-800/40 pb-1">
+                    <span className="text-[7.5px] uppercase tracking-wider text-cyan-400 font-black bg-cyan-950/80 border border-cyan-800/60 px-1.5 py-0.5 rounded">
+                      {catName === 'POINTS' ? '⚡ POINTS LEADER' : catName === 'GOALS' ? '🎯 GOALS LEADER' : catName === 'ASSISTS' ? '🏒 ASSISTS LEADER' : `${catName} LEADER`}
+                    </span>
+                    <span className="text-[7px] text-slate-500 font-bold uppercase tracking-wider">
+                      {game.awayTeam.abbrev} vs {game.homeTeam.abbrev}
+                    </span>
+                  </div>
+
+                  {/* 2-Column Responsive Player Grid */}
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {/* Away Player */}
+                    <div className="bg-slate-950/80 p-1.5 rounded border border-slate-800/50 flex items-center gap-2 min-w-0">
+                      {leader.awayLeader?.headshot ? (
+                        <img 
+                          src={leader.awayLeader.headshot} 
+                          alt={awayName} 
+                          className="w-7 h-7 rounded-full object-cover border border-slate-700 bg-slate-800 shrink-0" 
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <div className="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[7.5px] font-black text-slate-400 shrink-0">
+                          {game.awayTeam.abbrev}
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="text-white font-bold text-[9.5px] leading-tight break-words tracking-tight" title={awayName}>
+                          {awayName}
+                        </div>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <span className="text-[7px] text-slate-400 font-bold uppercase">{game.awayTeam.abbrev}</span>
+                          <span className="text-cyan-400 font-black text-[8.5px]">{awayVal}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Home Player */}
+                    <div className="bg-slate-950/80 p-1.5 rounded border border-slate-800/50 flex items-center gap-2 min-w-0">
+                      {leader.homeLeader?.headshot ? (
+                        <img 
+                          src={leader.homeLeader.headshot} 
+                          alt={homeName} 
+                          className="w-7 h-7 rounded-full object-cover border border-slate-700 bg-slate-800 shrink-0" 
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <div className="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[7.5px] font-black text-slate-400 shrink-0">
+                          {game.homeTeam.abbrev}
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="text-white font-bold text-[9.5px] leading-tight break-words tracking-tight" title={homeName}>
+                          {homeName}
+                        </div>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <span className="text-[7px] text-slate-400 font-bold uppercase">{game.homeTeam.abbrev}</span>
+                          <span className="text-cyan-400 font-black text-[8.5px]">{homeVal}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop / Tablet View (sm:block): Sleek horizontal comparison rows */}
+          <div className="hidden sm:block space-y-2">
             {leaders.map((leader: any, idx: number) => {
               const catName = leader.category ? leader.category.toUpperCase() : 'LEADER';
               const awayName = extractString(leader.awayLeader?.name) || `${leader.awayLeader?.firstName?.default || ''} ${leader.awayLeader?.lastName?.default || ''}`.trim() || 'Leader';
@@ -607,7 +686,7 @@ export function NHLPreGameMatchupInsights({
                         referrerPolicy="no-referrer"
                       />
                     )}
-                    <span className="text-slate-200 font-semibold truncate text-[8.5px] sm:text-[9px]">{awayName}</span>
+                    <span className="text-slate-200 font-semibold truncate text-[8.5px] sm:text-[9.5px]" title={awayName}>{awayName}</span>
                     <span className="text-cyan-400 font-black shrink-0">{awayVal}</span>
                   </div>
 
@@ -617,7 +696,7 @@ export function NHLPreGameMatchupInsights({
 
                   <div className="flex items-center gap-2 justify-end min-w-0 flex-1">
                     <span className="text-cyan-400 font-black shrink-0">{homeVal}</span>
-                    <span className="text-slate-200 font-semibold truncate text-right text-[8.5px] sm:text-[9px]">{homeName}</span>
+                    <span className="text-slate-200 font-semibold truncate text-right text-[8.5px] sm:text-[9.5px]" title={homeName}>{homeName}</span>
                     {leader.homeLeader?.headshot && (
                       <img 
                         src={leader.homeLeader.headshot} 
@@ -736,14 +815,6 @@ function NHLLiveAnalytics({
   gpp,
   paceHighlight
 }: NHLLiveAnalyticsProps) {
-  if (!gameDetails || gameDetails._empty) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <div className="w-5 h-5 border-2 border-amber-500/20 border-t-amber-500 rounded-full animate-spin" />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
       {/* Live Pace Monitor Card */}
@@ -822,21 +893,28 @@ function NHLLiveAnalytics({
       <div className="space-y-2">
         <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest font-black">Recent Scoring</span>
         <div className="space-y-2 max-h-32 overflow-y-auto pr-2 custom-scrollbar">
-          {gameDetails.summary?.scoring?.map((period: any, pIdx: number) => (
-            <div key={pIdx} className="space-y-1">
-              {period.goals?.map((goal: any, gIdx: number) => (
-                <div key={gIdx} className="flex items-center justify-between text-[9px] bg-slate-950 p-2 rounded border border-slate-800/50">
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded-full bg-slate-800 flex items-center justify-center text-[7px] font-black">
-                      {goal.teamAbbrev}
+          {gameDetails?.summary?.scoring?.length > 0 ? (
+            gameDetails.summary.scoring.map((period: any, pIdx: number) => (
+              <div key={pIdx} className="space-y-1">
+                {period.goals?.map((goal: any, gIdx: number) => (
+                  <div key={gIdx} className="flex items-center justify-between text-[9px] bg-slate-950 p-2 rounded border border-slate-800/50">
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 rounded-full bg-slate-800 flex items-center justify-center text-[7px] font-black">
+                        {goal.teamAbbrev}
+                      </div>
+                      <span className="text-white font-bold">{goal.name} ({goal.goalsToDate})</span>
                     </div>
-                    <span className="text-white font-bold">{goal.name} ({goal.goalsToDate})</span>
+                    <span className="font-mono text-slate-500">{goal.timeInPeriod} - P{period.period}</span>
                   </div>
-                  <span className="font-mono text-slate-500">{goal.timeInPeriod} - P{period.period}</span>
-                </div>
-              ))}
+                ))}
+              </div>
+            ))
+          ) : !gameDetails ? (
+            <div className="flex items-center gap-2 text-[9px] font-mono text-slate-500 italic py-2">
+              <div className="w-3 h-3 border-2 border-blue-500/20 border-t-blue-400 rounded-full animate-spin" />
+              Syncing live scoring plays...
             </div>
-          )) || (
+          ) : (
             <div className="text-[9px] font-mono text-slate-600 italic py-2">No goals scored yet</div>
           )}
         </div>
@@ -1327,62 +1405,31 @@ export function NHLGameLog({
                           </div>
 
                           {(game.gameState === 'PRE' || game.gameState === 'FUT') && (
-                            <div className="pt-2 border-t border-slate-800/50 space-y-2">
-                              <div className="flex justify-between items-center text-[10px] font-mono text-slate-400">
-                                <span className="flex items-center gap-1.5 text-slate-300">
-                                  <Clock className="w-3 h-3 text-cyan-400" />
-                                  {new Date(game.startTimeUTC).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-                                </span>
-                                <span className="text-[8px] uppercase tracking-wider text-cyan-400 font-black bg-cyan-950/60 border border-cyan-800/60 px-2 py-0.5 rounded">
-                                  Season Opener Matchup
-                                </span>
-                              </div>
-
-                              {/* Pre-Game Matchup Preview Bar on Mobile */}
-                              {(() => {
-                                const awayStats = getDynamicTeamStats(game.awayTeam.abbrev, game.id);
-                                const homeStats = getDynamicTeamStats(game.homeTeam.abbrev, game.id);
-                                const awayGoalie = getGoalieData(false, game);
-                                const homeGoalie = getGoalieData(true, game);
-                                const awayGoalieName = awayGoalie?.lastName || awayGoalie?.name || 'TBD';
-                                const homeGoalieName = homeGoalie?.lastName || homeGoalie?.name || 'TBD';
-
-                                return (
-                                  <div className="bg-slate-950/80 rounded-lg p-2.5 border border-slate-800/80 space-y-1.5 font-mono text-[8.5px]">
-                                    <div className="flex items-center justify-between text-slate-400">
-                                      <div className="flex items-center gap-1 text-slate-300">
-                                        <span className="font-bold text-white">{awayStats.gpg}</span>
-                                        <span className="text-slate-500">GPG</span>
-                                        <span className="text-slate-600">({awayStats.ppPct} PP)</span>
-                                      </div>
-                                      <span className="text-[7.5px] uppercase tracking-widest text-slate-500 font-black">OFFENSE</span>
-                                      <div className="flex items-center gap-1 text-slate-300">
-                                        <span className="text-slate-600">({homeStats.ppPct} PP)</span>
-                                        <span className="font-bold text-white">{homeStats.gpg}</span>
-                                        <span className="text-slate-500">GPG</span>
-                                      </div>
-                                    </div>
-
-                                    <div className="flex items-center justify-between pt-1 border-t border-slate-800/50 text-[8px] text-slate-400">
-                                      <span className="truncate max-w-[45%] text-slate-300">
-                                        🥅 <strong className="text-cyan-400">{awayGoalieName}</strong>
-                                      </span>
-                                      <span className="text-slate-600 font-black">VS</span>
-                                      <span className="truncate max-w-[45%] text-right text-slate-300">
-                                        <strong className="text-cyan-400">{homeGoalieName}</strong> 🥅
-                                      </span>
-                                    </div>
-
-                                    <div className="flex items-center justify-center pt-1 text-[7.5px] text-cyan-400 font-bold tracking-wider uppercase">
-                                      <span>{isExpanded ? '▲ Hide Pre-Game Matchup Insights' : '▼ Tap for Full Pre-Game Matchup Insights & Skater Leaders'}</span>
-                                    </div>
-                                  </div>
-                                );
-                              })()}
+                            <div className="pt-2 border-t border-slate-800/50 flex justify-between items-center text-[10px] font-mono text-slate-400">
+                              <span className="flex items-center gap-1.5 text-slate-300 font-semibold">
+                                <Clock className="w-3.5 h-3.5 text-cyan-400" />
+                                {new Date(game.startTimeUTC).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleGame(game.id);
+                                }}
+                                className={cn(
+                                  "inline-flex items-center gap-1 px-2.5 py-1 rounded border text-[8px] font-mono font-black uppercase tracking-wider transition-all cursor-pointer",
+                                  isExpanded
+                                    ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-400 shadow-sm"
+                                    : "bg-slate-900 border-slate-700/80 text-slate-300 hover:text-white hover:border-slate-600 hover:bg-slate-800"
+                                )}
+                              >
+                                <span>{isExpanded ? 'Close Menu' : 'Pre-Game Menu'}</span>
+                                <ChevronDown className={cn("w-3 h-3 transition-transform duration-200", isExpanded && "rotate-180 text-cyan-400")} />
+                              </button>
                             </div>
                           )}
 
-                          {(game.gameState === 'LIVE' || game.gameState === 'CRIT') && (
+                          {(isLive || game.gameState === 'LIVE' || game.gameState === 'CRIT' || game.gameState === 'OFF') && (
                             <div className="pt-2 border-t border-slate-800/50 flex justify-between items-center">
                               <div className="flex items-center gap-2">
                                 <span className={cn(
@@ -1426,6 +1473,18 @@ export function NHLGameLog({
                               </div>
                             </div>
                           )}
+
+                          {(game.gameState === 'FINAL' || game.gameState === 'OVER') && (
+                            <div className="pt-2 border-t border-slate-800/50 flex justify-between items-center text-[10px] font-mono text-slate-400">
+                              <span className="flex items-center gap-1.5 text-slate-300 font-bold">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
+                                FINAL {game.periodDescriptor?.periodType === 'OT' ? '(OT)' : game.periodDescriptor?.periodType === 'SO' ? '(SO)' : ''}
+                              </span>
+                              <span className="text-[8px] uppercase tracking-wider text-slate-500 font-black">
+                                Total SOG: {(game.awayTeam.sog || 0) + (game.homeTeam.sog || 0)} • {(game.awayTeam.score ?? 0) + (game.homeTeam.score ?? 0)} Goals
+                              </span>
+                            </div>
+                          )}
                         </div>
 
                         {/* Expanded details */}
@@ -1440,6 +1499,73 @@ export function NHLGameLog({
                               <div className="p-4 space-y-6">
                                 {(game.gameState === 'PRE' || game.gameState === 'FUT') ? (
                                   <>
+                                    {/* Quick Matchup Snapshot inside dropdown menu */}
+                                    {(() => {
+                                      const awayStats = getDynamicTeamStats(game.awayTeam.abbrev, game.id);
+                                      const homeStats = getDynamicTeamStats(game.homeTeam.abbrev, game.id);
+                                      const awayGoalie = getGoalieData(false, game);
+                                      const homeGoalie = getGoalieData(true, game);
+                                      const awayGoalieName = awayGoalie?.lastName || awayGoalie?.name || 'TBD';
+                                      const homeGoalieName = homeGoalie?.lastName || homeGoalie?.name || 'TBD';
+
+                                      const skaterComp = getMatchupSkaterComparison(game.awayTeam.abbrev, game.homeTeam.abbrev);
+                                      const awayTopSkater = skaterComp[0]?.awayLeader?.name || `${game.awayTeam.abbrev} Leader`;
+                                      const homeTopSkater = skaterComp[0]?.homeLeader?.name || `${game.homeTeam.abbrev} Leader`;
+
+                                      return (
+                                        <div className="bg-slate-950/80 rounded-lg p-2.5 border border-slate-800/80 space-y-2 font-mono text-[8.5px]">
+                                          {/* Team Offensive Output Comparison */}
+                                          <div className="flex items-center justify-between text-slate-400">
+                                            <div className="flex items-center gap-1 text-slate-300">
+                                              <span className="font-bold text-white">{awayStats.gpg}</span>
+                                              <span className="text-slate-500">GPG</span>
+                                              <span className="text-slate-600">({awayStats.ppPct} PP)</span>
+                                            </div>
+                                            <span className="text-[7.5px] uppercase tracking-widest text-slate-500 font-black">OFFENSE</span>
+                                            <div className="flex items-center gap-1 text-slate-300">
+                                              <span className="text-slate-600">({homeStats.ppPct} PP)</span>
+                                              <span className="font-bold text-white">{homeStats.gpg}</span>
+                                              <span className="text-slate-500">GPG</span>
+                                            </div>
+                                          </div>
+
+                                          {/* Key Starting Goalies */}
+                                          <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-800/50 text-[8px] text-slate-400">
+                                            <div className="flex items-center gap-1 min-w-0 flex-1 text-slate-300">
+                                              <span className="shrink-0 text-[9px]">🥅</span>
+                                              <strong className="text-cyan-400 font-bold truncate text-[8.5px]" title={awayGoalieName}>
+                                                {awayGoalieName}
+                                              </strong>
+                                            </div>
+                                            <span className="text-slate-600 font-black shrink-0 text-[7px]">GOALIES</span>
+                                            <div className="flex items-center justify-end gap-1 min-w-0 flex-1 text-right text-slate-300">
+                                              <strong className="text-cyan-400 font-bold truncate text-[8.5px]" title={homeGoalieName}>
+                                                {homeGoalieName}
+                                              </strong>
+                                              <span className="shrink-0 text-[9px]">🥅</span>
+                                            </div>
+                                          </div>
+
+                                          {/* Key Skaters */}
+                                          <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-800/40 text-[8px] text-slate-400">
+                                            <div className="flex items-center gap-1 min-w-0 flex-1 text-slate-300">
+                                              <span className="shrink-0 text-[9px]">⚡</span>
+                                              <span className="text-white font-bold truncate text-[8.5px]" title={awayTopSkater}>
+                                                {awayTopSkater}
+                                              </span>
+                                            </div>
+                                            <span className="text-slate-600 font-black shrink-0 text-[7px]">KEY SKATERS</span>
+                                            <div className="flex items-center justify-end gap-1 min-w-0 flex-1 text-right text-slate-300">
+                                              <span className="text-white font-bold truncate text-[8.5px]" title={homeTopSkater}>
+                                                {homeTopSkater}
+                                              </span>
+                                              <span className="shrink-0 text-[9px]">⚡</span>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      );
+                                    })()}
+
                                     <div className="space-y-4">
                                       <div className="flex items-center gap-2">
                                         <ShieldCheck className="w-4 h-4 text-cyan-400" />
@@ -1812,6 +1938,25 @@ export function NHLGameLog({
                                       )
                                     : "FINAL"}
                                 </div>
+
+                                {(game.gameState === 'PRE' || game.gameState === 'FUT') && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleGame(game.id);
+                                    }}
+                                    className={cn(
+                                      "mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[7.5px] font-mono font-black uppercase tracking-wider transition-all cursor-pointer",
+                                      isExpanded
+                                        ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-400 shadow-sm"
+                                        : "bg-slate-900 border-slate-700/80 text-slate-300 hover:text-white hover:border-slate-600 hover:bg-slate-800"
+                                    )}
+                                  >
+                                    <span>{isExpanded ? 'Close Menu' : 'Pre-Game Menu'}</span>
+                                    <ChevronDown className={cn("w-2.5 h-2.5 transition-transform duration-200", isExpanded && "rotate-180 text-cyan-400")} />
+                                  </button>
+                                )}
                             </div>
                           </td>
                         </motion.tr>
@@ -1828,197 +1973,88 @@ export function NHLGameLog({
                                   className="overflow-hidden bg-slate-950/50 sticky left-0 w-[calc(100vw-2rem)] lg:w-full lg:static"
                                 >
                                   <div className="px-3 py-4 sm:px-6 sm:py-6 border-b border-slate-800/50">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                                      {/* Live Power Play / Situation Monitor */}
-                                      <NHLPowerPlayTracker game={game} />
-
-                                      {/* Starting & Live Goalie Performance Stats */}
-                                      <div className="bg-slate-900 rounded-xl border border-slate-800 p-3 sm:p-4 space-y-3 sm:space-y-4">
-                                        <div className="flex items-center gap-2 mb-1">
-                                          <ShieldCheck className="w-4 h-4 text-blue-400" />
-                                          <h4 className="text-[10px] font-black text-white uppercase tracking-widest">
-                                            {(game.gameState === 'LIVE' || game.gameState === 'CRIT' || game.gameState === 'OFF' || game.gameState === 'FINAL') ? (game.gameState === 'FINAL' ? 'Final Goalies' : 'Starting & In-Game Goalies') : 'Probable Starting Goalies'}
-                                          </h4>
-                                        </div>
-                                        
-                                        <div className="space-y-4 border-none">
-                                          <NHLGoalieStatsCard 
-                                            game={game}
-                                            isHome={false}
-                                            goalieData={getGoalieData(false, game)}
-                                          />
-                                          <NHLGoalieStatsCard 
-                                            game={game}
-                                            isHome={true}
-                                            goalieData={getGoalieData(true, game)}
-                                          />
-                                        </div>
-                                      </div>
-
-                                      {/* Game Stats / Trends */}
-                                      <div className="bg-slate-900 rounded-xl border border-slate-800 p-3 sm:p-4">
-                                        <div className="flex items-center gap-2 mb-4">
-                                          {(game.gameState === 'PRE' || game.gameState === 'FUT') ? (
-                                            <>
-                                              <BarChart3 className="w-4 h-4 text-blue-400" />
-                                              <h4 className="text-[10px] font-black text-white uppercase tracking-widest">Pre-Game Matchup Insights</h4>
-                                            </>
-                                          ) : (
-                                            <>
-                                              <Zap className="w-4 h-4 text-amber-500" />
-                                              <h4 className="text-[10px] font-black text-white uppercase tracking-widest">Live Performance Analytics</h4>
-                                            </>
-                                          )}
-                                        </div>
-                                        
-                                        {(game.gameState === 'PRE' || game.gameState === 'FUT') ? (
+                                    {(game.gameState === 'PRE' || game.gameState === 'FUT') ? (
+                                      /* Pre-game expanded layout: 2-column wide Pre-Game Matchup Insights + 1-column Probable Netminders */
+                                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+                                        <div className="lg:col-span-2 bg-slate-900 rounded-xl border border-slate-800 p-3 sm:p-4">
+                                          <div className="flex items-center gap-2 mb-4">
+                                            <BarChart3 className="w-4 h-4 text-cyan-400" />
+                                            <h4 className="text-[10px] font-black text-white uppercase tracking-widest">
+                                              Pre-Game Matchup Insights & Skater Leaders
+                                            </h4>
+                                          </div>
                                           <NHLPreGameMatchupInsights game={game} gameDetails={gameDetailsCache[game.id]} />
-                                        ) : (
-                                          !gameDetailsCache[game.id] ? (
-                                            <div className="flex items-center justify-center py-8">
-                                              <div className="w-5 h-5 border-2 border-amber-500/20 border-t-amber-500 rounded-full animate-spin" />
-                                            </div>
-                                          ) : (
-                                            <div className="space-y-4">
-                                              {/* Live Pace Monitor Card */}
-                                              {isLive && (
-                                                <div className="bg-slate-950 p-3 rounded-lg border border-slate-800/80 space-y-2">
-                                                  <div className="flex items-center justify-between">
-                                                    <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest font-black">Live Pace Metric</span>
-                                                    <span className={cn(
-                                                      "text-[8px] font-mono font-black uppercase px-1.5 py-0.5 rounded",
-                                                      paceHighlight === 'HIGH' ? "bg-red-500/20 text-red-400" :
-                                                      paceHighlight === 'LOW' ? "bg-cyan-500/20 text-cyan-400" :
-                                                      "bg-slate-800 text-slate-500"
-                                                    )}>
-                                                      {paceHighlight === 'HIGH' ? '🔥 HIGH PACE' :
-                                                       paceHighlight === 'LOW' ? '❄️ LOW PACE' :
-                                                       'NORMAL PACE'}
-                                                    </span>
-                                                  </div>
-                                                  <div className="grid grid-cols-2 gap-2 text-center">
-                                                    <div className="bg-slate-900/40 p-1.5 rounded border border-slate-800/50">
-                                                      <div className="text-[14px] font-mono font-black text-white">
-                                                        {elapsedMins < 20 ? '--' : projectedPace.toFixed(1)}
-                                                      </div>
-                                                      <div className="text-[7px] font-mono text-slate-500 uppercase tracking-wider">Projected GPG</div>
-                                                    </div>
-                                                    <div className="bg-slate-900/40 p-1.5 rounded border border-slate-800/50">
-                                                      <div className="text-[14px] font-mono font-black text-blue-400">
-                                                        {gpp.toFixed(2)}
-                                                      </div>
-                                                      <div className="text-[7px] font-mono text-slate-500 uppercase tracking-wider">Goals Per Period (GPP)</div>
-                                                    </div>
-                                                  </div>
-                                                  
-                                                  {/* Pace Gauge representation vs League Average of 6.1 */}
-                                                  {elapsedMins >= 3 && (
-                                                    <div className="space-y-1.5 pt-1">
-                                                      <div className="flex justify-between text-[7px] font-mono text-slate-500 uppercase tracking-wider font-bold">
-                                                        <span>Low Pace (&lt;4.9 G)</span>
-                                                        <span className="text-slate-400">Avg: 6.1 G</span>
-                                                        <span>High Pace (&gt;7.3 G)</span>
-                                                      </div>
-                                                      <div className="h-1.5 w-full bg-slate-900 rounded-full overflow-hidden border border-slate-800 relative">
-                                                        {/* Marker for average (6.1) */}
-                                                        <div className="absolute top-0 bottom-0 w-0.5 bg-slate-700 h-full left-[55%] z-10" />
-                                                        
-                                                        {/* Progress bar representing pacing */}
-                                                        {(() => {
-                                                          // Map projected pace (say, from 2 to 10) to percentage (0% to 100%)
-                                                          const minPace = 2;
-                                                          const maxPace = 10;
-                                                          const normPace = Math.min(maxPace, Math.max(minPace, projectedPace));
-                                                          const percentage = ((normPace - minPace) / (maxPace - minPace)) * 100;
-                                                          
-                                                          return (
-                                                            <div 
-                                                              className={cn(
-                                                                "h-full transition-all duration-500 rounded-full",
-                                                                paceHighlight === 'HIGH' ? "bg-red-500" :
-                                                                paceHighlight === 'LOW' ? "bg-cyan-500" :
-                                                                "bg-blue-500"
-                                                              )} 
-                                                              style={{ width: `${percentage}%` }} 
-                                                            />
-                                                          );
-                                                        })()}
-                                                      </div>
-                                                      <p className="text-[7.5px] font-mono text-slate-500 italic mt-1 leading-normal text-center uppercase tracking-wider">
-                                                        {projectedPace > 6.1 
-                                                          ? `Trending ${((projectedPace - 6.1) / 6.1 * 100).toFixed(0)}% ABOVE league average`
-                                                          : projectedPace < 6.1
-                                                            ? `Trending ${((6.1 - projectedPace) / 6.1 * 100).toFixed(0)}% BELOW league average`
-                                                            : "Aligned with league GPG average"
-                                                        }
-                                                      </p>
-                                                    </div>
-                                                  )}
-                                                </div>
-                                              )}
+                                        </div>
 
-                                              {/* Scoring Summary */}
-                                              <div className="space-y-2">
-                                                <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest font-black">Recent Scoring</span>
-                                                <div className="space-y-2 max-h-32 overflow-y-auto pr-2 custom-scrollbar">
-                                                  {gameDetailsCache[game.id].summary?.scoring?.map((period: any, pIdx: number) => (
-                                                    <div key={pIdx} className="space-y-1">
-                                                      {period.goals?.map((goal: any, gIdx: number) => (
-                                                        <div key={gIdx} className="flex items-center justify-between text-[9px] bg-slate-950 p-2 rounded border border-slate-800/50">
-                                                          <div className="flex items-center gap-2">
-                                                            <div className="w-4 h-4 rounded-full bg-slate-800 flex items-center justify-center text-[7px] font-black">
-                                                              {goal.teamAbbrev}
-                                                            </div>
-                                                            <span className="text-white font-bold">{goal.name} ({goal.goalsToDate})</span>
-                                                          </div>
-                                                          <span className="font-mono text-slate-500">{goal.timeInPeriod} - P{period.period}</span>
-                                                        </div>
-                                                      ))}
-                                                    </div>
-                                                  )) || (
-                                                    <div className="text-[9px] font-mono text-slate-600 italic py-2">No goals scored yet</div>
-                                                  )}
-                                                </div>
-                                              </div>
-
-                                              {/* Shot Differential Analytics */}
-                                              {gameDetailsCache[game.id].summary?.teamStats && (
-                                                <div className="space-y-3 pt-2 border-t border-slate-800/50">
-                                                  <div className="flex flex-col gap-1">
-                                                    <div className="flex justify-between text-[8px] font-mono text-slate-500 uppercase tracking-widest mb-1">
-                                                      <span>Offensive Volume (SOG)</span>
-                                                      <span className="text-white">
-                                                        {gameDetailsCache[game.id].awayTeam.abbrev} {gameDetailsCache[game.id].summary.teamStats.find((s: any) => s.category === 'sog')?.awayValue} 
-                                                        • 
-                                                        {gameDetailsCache[game.id].homeTeam.abbrev} {gameDetailsCache[game.id].summary.teamStats.find((s: any) => s.category === 'sog')?.homeValue}
-                                                      </span>
-                                                    </div>
-                                                    {(() => {
-                                                      const sogStat = gameDetailsCache[game.id].summary.teamStats.find((s: any) => s.category === 'sog');
-                                                      if (!sogStat) return null;
-                                                      const awayVal = parseInt(sogStat.awayValue);
-                                                      const homeVal = parseInt(sogStat.homeValue);
-                                                      const total = awayVal + homeVal || 1;
-                                                      const pct = (awayVal / total) * 100;
-                                                      return (
-                                                        <div className="h-1.5 w-full bg-slate-950 rounded-full overflow-hidden border border-slate-800 flex">
-                                                          <div className="h-full bg-blue-500 transition-all duration-700" style={{ width: `${pct}%` }} />
-                                                          <div className="h-full bg-emerald-500 transition-all duration-700" style={{ width: `${100-pct}%` }} />
-                                                        </div>
-                                                      );
-                                                    })()}
-                                                  </div>
-                                                </div>
-                                              )}
-
-                                              <p className="text-[9px] font-mono text-slate-500 uppercase tracking-tighter leading-relaxed">
-                                                Shot volume analytics updated following every on-ice transition. Strength indicators reflect active penalty clock status.
-                                              </p>
-                                            </div>
-                                          )
-                                        )}
+                                        <div className="bg-slate-900 rounded-xl border border-slate-800 p-3 sm:p-4 space-y-3 sm:space-y-4">
+                                          <div className="flex items-center gap-2 mb-1">
+                                            <ShieldCheck className="w-4 h-4 text-cyan-400" />
+                                            <h4 className="text-[10px] font-black text-white uppercase tracking-widest">
+                                              Probable Starting Netminders
+                                            </h4>
+                                          </div>
+                                          
+                                          <div className="space-y-4 border-none">
+                                            <NHLGoalieStatsCard 
+                                              game={game}
+                                              isHome={false}
+                                              goalieData={getGoalieData(false, game)}
+                                            />
+                                            <NHLGoalieStatsCard 
+                                              game={game}
+                                              isHome={true}
+                                              goalieData={getGoalieData(true, game)}
+                                            />
+                                          </div>
+                                        </div>
                                       </div>
-                                    </div>
+                                    ) : (
+                                      /* Live & Final in-game layout: Pre-game info goes away completely for Live Situation Tracker, In-Game Goalies & Live Analytics */
+                                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                                        {/* Live Power Play / Situation Monitor */}
+                                        <NHLPowerPlayTracker game={game} />
+
+                                        {/* Starting & Live Goalie Performance Stats */}
+                                        <div className="bg-slate-900 rounded-xl border border-slate-800 p-3 sm:p-4 space-y-3 sm:space-y-4">
+                                          <div className="flex items-center gap-2 mb-1">
+                                            <ShieldCheck className="w-4 h-4 text-blue-400" />
+                                            <h4 className="text-[10px] font-black text-white uppercase tracking-widest">
+                                              {(game.gameState === 'FINAL' || game.gameState === 'OVER') ? 'Final Goalies' : 'Starting & In-Game Goalies'}
+                                            </h4>
+                                          </div>
+                                          
+                                          <div className="space-y-4 border-none">
+                                            <NHLGoalieStatsCard 
+                                              game={game}
+                                              isHome={false}
+                                              goalieData={getGoalieData(false, game)}
+                                            />
+                                            <NHLGoalieStatsCard 
+                                              game={game}
+                                              isHome={true}
+                                              goalieData={getGoalieData(true, game)}
+                                            />
+                                          </div>
+                                        </div>
+
+                                        {/* Live Performance Analytics */}
+                                        <div className="bg-slate-900 rounded-xl border border-slate-800 p-3 sm:p-4">
+                                          <div className="flex items-center gap-2 mb-4">
+                                            <Zap className="w-4 h-4 text-amber-500" />
+                                            <h4 className="text-[10px] font-black text-white uppercase tracking-widest">Live Performance Analytics</h4>
+                                          </div>
+                                          <NHLLiveAnalytics
+                                            game={game}
+                                            gameDetails={gameDetailsCache[game.id]}
+                                            isLive={isLive}
+                                            elapsedMins={elapsedMins}
+                                            projectedPace={projectedPace}
+                                            gpp={gpp}
+                                            paceHighlight={paceHighlight}
+                                          />
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
                                 </motion.div>
                               </td>

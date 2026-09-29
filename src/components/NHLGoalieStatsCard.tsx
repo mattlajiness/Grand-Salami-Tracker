@@ -221,8 +221,8 @@ export function NHLGoalieStatsCard({ game, isHome, goalieData }: NHLGoalieStatsC
   return (
     <div className="bg-slate-950 border border-slate-800/80 rounded-xl p-2.5 sm:p-3 space-y-2.5 sm:space-y-3 shadow-md hover:border-slate-700/60 transition-all font-mono">
       {/* Goalie Identifier Header */}
-      <div className="flex items-center justify-between border-b border-slate-900 pb-2">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-2 border-b border-slate-900 pb-2">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
           <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-[9px] font-black text-slate-400 overflow-hidden shrink-0 relative">
             {playerId ? (
               <img 
@@ -239,11 +239,11 @@ export function NHLGoalieStatsCard({ game, isHome, goalieData }: NHLGoalieStatsC
               {team?.abbrev || ''}
             </div>
           </div>
-          <div>
-            <h5 className="text-xs font-black text-white uppercase tracking-tight">
+          <div className="min-w-0 flex-1">
+            <h5 className="text-[11px] sm:text-xs font-black text-white uppercase tracking-tight leading-tight truncate" title={name}>
               {name}
             </h5>
-            <span className="text-[7px] uppercase tracking-widest block font-bold text-slate-500">
+            <span className="text-[7px] uppercase tracking-widest block font-bold text-slate-500 truncate">
               {isHome ? 'Home Goaltender' : 'Away Goaltender'}
             </span>
           </div>
@@ -251,7 +251,7 @@ export function NHLGoalieStatsCard({ game, isHome, goalieData }: NHLGoalieStatsC
 
         {/* Goalie Status Badge (In Net vs Probable) */}
         <span className={cn(
-          "text-[7px] px-1.5 py-0.5 rounded border tracking-widest uppercase font-black",
+          "text-[7px] px-1.5 py-0.5 rounded border tracking-widest uppercase font-black shrink-0",
           isLive
             ? "bg-emerald-950/40 border-emerald-900/60 text-emerald-400"
             : isFinal 

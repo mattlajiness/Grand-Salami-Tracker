@@ -175,8 +175,11 @@ export function NHLPowerPlayTracker({ game }: NHLPowerPlayTrackerProps) {
   // We keep a local state keyed by period + remaining clock to mock the actual power play timer
   const [ppTimeLeft, setPpTimeLeft] = useState(115); // Default with 1:55 remains
 
+  const isPreGame = game.gameState === 'PRE' || game.gameState === 'FUT';
+  const isFinalGame = game.gameState === 'FINAL' || game.gameState === 'OVER';
+
   useEffect(() => {
-    if (!situation.hasPowerPlay) return;
+    if (!situation.hasPowerPlay || isPreGame || isFinalGame) return;
 
     // Reset countdown to a random value if game ticks or changes
     // But since games tick every 3s, let's decrement our internal countdown by 3s
@@ -191,7 +194,7 @@ export function NHLPowerPlayTracker({ game }: NHLPowerPlayTrackerProps) {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [situation.hasPowerPlay, game.clock?.timeRemaining]);
+  }, [situation.hasPowerPlay, game.clock?.timeRemaining, isPreGame, isFinalGame]);
 
   // Calculate simulated score impact metrics
   // In sports-betting models, power plays increase live expected goal output (xG)
@@ -234,7 +237,7 @@ export function NHLPowerPlayTracker({ game }: NHLPowerPlayTrackerProps) {
 
   const currentProgress = (ppTimeLeft / 120) * 100; // standard 2min penalty
 
-  if (game.gameState === 'PRE' || game.gameState === 'FINAL') {
+  if (isPreGame || isFinalGame) {
     return (
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col justify-center items-center h-full text-center">
         <ShieldAlert className="w-6 h-6 text-slate-600 mb-2" />
@@ -242,7 +245,7 @@ export function NHLPowerPlayTracker({ game }: NHLPowerPlayTrackerProps) {
           Situation Monitor
         </span>
         <span className="text-[9px] font-mono text-slate-600 uppercase mt-0.5">
-          {game.gameState === 'PRE' ? 'Available once puck drops' : 'Game finalized • Even strength'}
+          {isPreGame ? 'Available once puck drops' : 'Game finalized • Even strength'}
         </span>
       </div>
     );
