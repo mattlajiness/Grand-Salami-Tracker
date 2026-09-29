@@ -43,7 +43,11 @@ const SEASON_BASELINES: Record<string, { savePctg: number; gaa: string; record: 
   'Lindgren': { savePctg: 0.911, gaa: '2.67', record: '25-16-7', playerId: 8479292 },
   'Ersson': { savePctg: 0.898, gaa: '2.82', record: '23-19-7', playerId: 8481035 },
   'Silovs': { savePctg: 0.908, gaa: '2.61', record: '13-5-2', playerId: 8481617 },
-  'Merzlikins': { savePctg: 0.897, gaa: '3.45', record: '13-17-8', playerId: 8478007 }
+  'Merzlikins': { savePctg: 0.897, gaa: '3.45', record: '13-17-8', playerId: 8478007 },
+  'Kuemper': { savePctg: 0.908, gaa: '2.85', record: '13-14-3', playerId: 8475311 },
+  'Dostal': { savePctg: 0.902, gaa: '3.33', record: '14-23-3', playerId: 8481033 },
+  'Blackwood': { savePctg: 0.899, gaa: '3.45', record: '10-25-4', playerId: 8478406 },
+  'Ingram': { savePctg: 0.907, gaa: '2.91', record: '24-21-3', playerId: 8479366 }
 };
 
 // Fallback lookup of primary starting netminders by team abbreviation

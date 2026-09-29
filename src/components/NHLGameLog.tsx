@@ -3,7 +3,7 @@ import { NHLGame, fetchNHLGameDetails, NHLGoalie } from '../services/nhlService'
 import { SIMULATED_DETAILS } from '../services/nhlMockData';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
-import { Activity, ChevronDown, ChevronUp, Info, Clock, AlertTriangle, ShieldCheck, Zap, Edit2, Save, CalendarRange, Eye, BarChart3, Flame, TrendingDown } from 'lucide-react';
+import { Activity, ChevronDown, ChevronUp, Info, Clock, AlertTriangle, ShieldCheck, Zap, Edit2, Save, CalendarRange, Eye, BarChart3, Flame, TrendingDown, MapPin } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { Timestamp, doc, setDoc } from 'firebase/firestore';
@@ -73,208 +73,6 @@ export const renderNHLStatusBadge = (game: NHLGame) => {
 };
 
 
-interface TeamProfile {
-  trend: string;
-  gpg: string;
-  ppPct: string;
-  injuries: string;
-}
-
-const REAL_NHL_TEAMS_DATA: Record<string, TeamProfile> = {
-  EDM: {
-    trend: "High-octane rush attack led by Connor McDavid & Leon Draisaitl. Generated 4.20 GPG baseline with an elite 31.5% powerplay. Title quest begins at Rogers Place.",
-    gpg: "4.20",
-    ppPct: "31.5%",
-    injuries: "Evander Kane (IR - Abdominal surgery), Viktor Arvidsson (Probable)"
-  },
-  TOR: {
-    trend: "Heavy cycle system with high shot volume (34.2 SOG/game), averaging 3.80 GPG. Explosive 26.4% PP unit with Auston Matthews as captain opens at Scotiabank Arena.",
-    gpg: "3.80",
-    ppPct: "26.4%",
-    injuries: "Auston Matthews (Probable - Full Clearance), Connor Dewar (IR), Jani Hakanpää (IR)"
-  },
-  FLA: {
-    trend: "Defending Stanley Cup champion forecheck. Elite sustained o-zone pressure and high-danger chance creation (14.5 HDCF/60) led by Barkov and Reinhart.",
-    gpg: "3.65",
-    ppPct: "24.8%",
-    injuries: "Aleksander Barkov (Active/Probable), Sam Bennett (Probable), Tomas Nosek (IR)"
-  },
-  NYR: {
-    trend: "Lethal 32.0% powerplay anchored by Panarin and Zibanejad. Clinical on odd-man rush conversions; opens campaign with heavy shot volume.",
-    gpg: "4.10",
-    ppPct: "32.0%",
-    injuries: "Filip Chytil (Probable - Full Health), Jimmy Vesey (IR - Lower Body)"
-  },
-  CAR: {
-    trend: "Rod Brind'Amour's dominant shot-volume system (59.2% CF%). Relentless dump-and-chase pressure and quick defensive transitions at Lenovo Center.",
-    gpg: "3.40",
-    ppPct: "22.1%",
-    injuries: "Frederik Andersen (IR - Lower Body), Jesper Fast (IR - Neck)"
-  },
-  BOS: {
-    trend: "Disciplined defensive structure with methodical cycle play producing 2.95 GPG. Heavy reliance on Pastrnak (110 pts) and Swayman in goal.",
-    gpg: "2.95",
-    ppPct: "20.5%",
-    injuries: "Brad Marchand (Active - Full Clearance), Hampus Lindholm (Active), Matthew Poitras (Probable)"
-  },
-  TBL: {
-    trend: "Dynamic transition offense producing 3.90 GPG with Jake Guentzel joining Nikita Kucherov. Elite 29.2% powerplay efficiency.",
-    gpg: "3.90",
-    ppPct: "29.2%",
-    injuries: "Brayden Point (Active/Probable)"
-  },
-  COL: {
-    trend: "High-octane transition averaging 4.40 GPG led by Nathan MacKinnon (140 pts) and Cale Makar. Elite rush speed generates clean zone entries and 30.8% PP.",
-    gpg: "4.40",
-    ppPct: "30.8%",
-    injuries: "Gabriel Landeskog (IR - Knee), Valeri Nichushkin (Suspended)"
-  },
-  VGK: {
-    trend: "Balanced 4-line scoring depth and physical blue-line transition at T-Mobile Arena. Jack Eichel, Tomas Hertl, and Mark Stone drive 3.75 GPG baseline.",
-    gpg: "3.75",
-    ppPct: "23.5%",
-    injuries: "Mark Stone (Active/Probable), William Karlsson (Day-to-day - Undisclosed)"
-  },
-  VAN: {
-    trend: "Rick Tocchet's structured cycle looking to counter fast transition teams. Dangerous deflection threat around crease; 20.8% PP quarterbacked by Quinn Hughes.",
-    gpg: "3.10",
-    ppPct: "20.8%",
-    injuries: "Thatcher Demko (IR - Knee Rehabilitation), Dakota Joshua (IR)"
-  },
-  DAL: {
-    trend: "Deep defensive-to-offensive transitions yielding 3.70 goals/game. 5-on-5 penalty margins and young scoring depth among the best in the league.",
-    gpg: "3.70",
-    ppPct: "25.0%",
-    injuries: "Tyler Seguin (Active/Probable)"
-  },
-  WPG: {
-    trend: "Heavy puck-protection style averaging 3.60 goals/game. Exceptional rush defense and reigning Vezina goaltender Connor Hellebuyck anchoring counter-attacks.",
-    gpg: "3.60",
-    ppPct: "27.5%",
-    injuries: "Gabriel Vilardi (Active/Probable)"
-  },
-  NJD: {
-    trend: "Elite speed-driven offense averaging 4.05 goals/game. Spearheaded by Jack Hughes, Jesper Bratt, and new starting netminder Jacob Markstrom.",
-    gpg: "4.05",
-    ppPct: "28.1%",
-    injuries: "Timo Meier (Active), Luke Hughes (Probable), Curtis Lazar (IR)"
-  },
-  MIN: {
-    trend: "Lockdown counter-punch style producing 3.25 goals/game. Kirill Kaprizov and Matt Boldy carrying high-danger shot conversions.",
-    gpg: "3.25",
-    ppPct: "21.6%",
-    injuries: "Mats Zuccarello (Active)"
-  },
-  LAK: {
-    trend: "Highly disciplined 1-3-1 neutral zone trap limiting opposing flow and converting on 3.15 goals/game from high-slot turnovers.",
-    gpg: "3.15",
-    ppPct: "18.9%",
-    injuries: "Drew Doughty (IR - Ankle)"
-  },
-  PIT: {
-    trend: "Sidney Crosby continuing playmaking dominance, offense averaging 3.45 goals/game. Cycle is stable with high offensive generation.",
-    gpg: "3.45",
-    ppPct: "20.2%",
-    injuries: "Cody Glass (Active), Erik Karlsson (Active)"
-  },
-  DET: {
-    trend: "Averaging 2.95 goals/game. Forward group led by Dylan Larkin, Alex DeBrincat, Patrick Kane, and Lucas Raymond.",
-    gpg: "2.95",
-    ppPct: "21.5%",
-    injuries: "Alex DeBrincat (Active - Full Cleared)"
-  },
-  WSH: {
-    trend: "Heavy physical cycle averaging 3.50 goals/game. Alex Ovechkin continues historic chase with clinical power-play left-circle execution.",
-    gpg: "3.50",
-    ppPct: "22.5%",
-    injuries: "T.J. Oshie (IR - Back), Nicklas Backstrom (IR)"
-  },
-  PHI: {
-    trend: "High-energy attack energized by rookie phenom Matvei Michkov alongside Travis Konecny and Owen Tippett. Averaging 2.75 goals/game.",
-    gpg: "2.75",
-    ppPct: "17.8%",
-    injuries: "Ryan Ellis (IR - Back)"
-  },
-  MTL: {
-    trend: "Young speed-first squad featuring Nick Suzuki (101 pts), Cole Caufield, Juraj Slafkovsky, and Lane Hutson. Fast transition exits.",
-    gpg: "2.85",
-    ppPct: "18.5%",
-    injuries: "Patrik Laine (IR - Knee), Rafael Harvey-Pinard (IR)"
-  },
-  OTT: {
-    trend: "Averaging 3.35 goals/game with aggressive zone entries. Power play clicking at an elite 26.5% behind Stützle and Tkachuk, with Ullmark in net.",
-    gpg: "3.35",
-    ppPct: "26.5%",
-    injuries: "Artem Zub (Active)"
-  },
-  BUF: {
-    trend: "Averaging 3.25 goals/game. Strong transition off the rush with Tage Thompson anchoring heavy one-timer looks; Luukkonen in net.",
-    gpg: "3.25",
-    ppPct: "19.8%",
-    injuries: "Tage Thompson (Active)"
-  },
-  NSH: {
-    trend: "Revamped heavyweight offense scoring 3.45 goals/game with marquee additions Steven Stamkos & Jonathan Marchessault joining Filip Forsberg and Roman Josi.",
-    gpg: "3.45",
-    ppPct: "23.5%",
-    injuries: "Filip Forsberg (Active), Steven Stamkos (Active)"
-  },
-  STL: {
-    trend: "Scoring 2.75 goals/game. Balanced checking group reliant on rapid counter-rushes and low-to-high point shots from Robert Thomas and Jordan Kyrou.",
-    gpg: "2.75",
-    ppPct: "17.4%",
-    injuries: "Robert Thomas (Active), Torey Krug (IR)"
-  },
-  CGY: {
-    trend: "Averaging 2.95 goals/game with hard work along the boards. Transition forecheck led by Nazem Kadri and Dustin Wolf in goal.",
-    gpg: "2.95",
-    ppPct: "18.0%",
-    injuries: "Anthony Mantha (Active)"
-  },
-  SEA: {
-    trend: "Extremely balanced depth scoring averaging 3.10 goals/game bolstered by free agent signings Chandler Stephenson & Brandon Montour. Relentless checking lines.",
-    gpg: "3.10",
-    ppPct: "20.5%",
-    injuries: "Vince Dunn (Active)"
-  },
-  UTA: {
-    trend: "Exciting inaugural franchise core at Delta Center playing fast transition hockey, averaging 3.25 goals/game behind Clayton Keller, Logan Cooley, and Sergachev.",
-    gpg: "3.25",
-    ppPct: "22.0%",
-    injuries: "Sean Durzi (Active)"
-  },
-  ANA: {
-    trend: "Scoring 2.50 goals/game with emerging young skill lines featuring Leo Carlsson, Cutter Gauthier, and Trevor Zegras.",
-    gpg: "2.50",
-    ppPct: "16.0%",
-    injuries: "Cam Fowler (Active)"
-  },
-  SJS: {
-    trend: "New era in San Jose led by No. 1 overall pick Macklin Celebrini, Will Smith, and Tyler Toffoli. Improving 5-on-5 high-danger generation.",
-    gpg: "2.40",
-    ppPct: "16.8%",
-    injuries: "Logan Couture (IR - Groin), Macklin Celebrini (Active/Probable)"
-  },
-  CHI: {
-    trend: "Connor Bedard surrounded by veteran finishers Teuvo Teravainen and Tyler Bertuzzi. Dynamic rush offense and creative man-advantage unit.",
-    gpg: "2.80",
-    ppPct: "19.5%",
-    injuries: "Taylor Hall (Active), Laurent Brossoit (IR - Meniscus)"
-  },
-  CBJ: {
-    trend: "Resilient transition style producing 2.90 goals/game. Sean Monahan, Adam Fantilli, Kirill Marchenko, and Zach Werenski anchor high rebound volume.",
-    gpg: "2.90",
-    ppPct: "18.2%",
-    injuries: "Boone Jenner (IR - Shoulder)"
-  },
-  NYI: {
-    trend: "Scoring 2.75 goals/game. Strong defensive structure limits opponent chances, resulting in disciplined, cycle-heavy offense with Mathew Barzal and Bo Horvat.",
-    gpg: "2.75",
-    ppPct: "17.5%",
-    injuries: "Mathew Barzal (Active), Anthony Duclair (Active)"
-  }
-};
-
 const NHL_PRIMARY_GOALIES: Record<string, { lastName: string; firstName?: string; record?: string; savePctg?: number; gaa?: string; playerId?: number }> = {
   BOS: { lastName: 'Swayman', firstName: 'Jeremy', playerId: 8480280, savePctg: 0.916, gaa: '2.45', record: '25-10-8' },
   NYR: { lastName: 'Shesterkin', firstName: 'Igor', playerId: 8478048, savePctg: 0.912, gaa: '2.58', record: '36-17-2' },
@@ -310,233 +108,6 @@ const NHL_PRIMARY_GOALIES: Record<string, { lastName: string; firstName?: string
   LAK: { lastName: 'Kuemper', firstName: 'Darcy', playerId: 8475311, savePctg: 0.908, gaa: '2.85', record: '13-14-3' }
 };
 
-const TEAM_KEY_SKATERS: Record<string, Array<{ name: string; category: string; value: string | number; headshot?: string }>> = {
-  EDM: [
-    { name: 'Connor McDavid', category: 'POINTS', value: '132 Pts', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8478402.png' },
-    { name: 'Zach Hyman', category: 'GOALS', value: '54 G', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8475780.png' },
-    { name: 'Leon Draisaitl', category: 'ASSISTS', value: '65 A', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8477934.png' }
-  ],
-  TOR: [
-    { name: 'William Nylander', category: 'POINTS', value: '98 Pts', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8477939.png' },
-    { name: 'Auston Matthews', category: 'GOALS', value: '69 G', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8479318.png' },
-    { name: 'Mitch Marner', category: 'ASSISTS', value: '59 A', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8478483.png' }
-  ],
-  FLA: [
-    { name: 'Aleksander Barkov', category: 'POINTS', value: '80 Pts', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8477493.png' },
-    { name: 'Sam Reinhart', category: 'GOALS', value: '57 G', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8477933.png' },
-    { name: 'Matthew Tkachuk', category: 'ASSISTS', value: '62 A', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8479314.png' }
-  ],
-  NYR: [
-    { name: 'Artemi Panarin', category: 'POINTS', value: '120 Pts', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8478550.png' },
-    { name: 'Chris Kreider', category: 'GOALS', value: '39 G', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8475184.png' },
-    { name: 'Adam Fox', category: 'ASSISTS', value: '56 A', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8479323.png' }
-  ],
-  BOS: [
-    { name: 'David Pastrnak', category: 'POINTS', value: '110 Pts', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8477956.png' },
-    { name: 'David Pastrnak', category: 'GOALS', value: '47 G', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8477956.png' },
-    { name: 'Brad Marchand', category: 'ASSISTS', value: '38 A', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8473419.png' }
-  ],
-  VAN: [
-    { name: 'J.T. Miller', category: 'POINTS', value: '103 Pts', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8476468.png' },
-    { name: 'Brock Boeser', category: 'GOALS', value: '40 G', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8478444.png' },
-    { name: 'Quinn Hughes', category: 'ASSISTS', value: '75 A', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8480800.png' }
-  ],
-  SEA: [
-    { name: 'Jared McCann', category: 'POINTS', value: '62 Pts', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8477955.png' },
-    { name: 'Jared McCann', category: 'GOALS', value: '29 G', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8477955.png' },
-    { name: 'Vince Dunn', category: 'ASSISTS', value: '35 A', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8478469.png' }
-  ],
-  COL: [
-    { name: 'Nathan MacKinnon', category: 'POINTS', value: '140 Pts', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8477492.png' },
-    { name: 'Nathan MacKinnon', category: 'GOALS', value: '51 G', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8477492.png' },
-    { name: 'Cale Makar', category: 'ASSISTS', value: '69 A', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8480069.png' }
-  ],
-  VGK: [
-    { name: 'Jack Eichel', category: 'POINTS', value: '68 Pts', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8478403.png' },
-    { name: 'Jack Eichel', category: 'GOALS', value: '31 G', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8478403.png' },
-    { name: 'Mark Stone', category: 'ASSISTS', value: '37 A', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8475913.png' }
-  ],
-  DAL: [
-    { name: 'Jason Robertson', category: 'POINTS', value: '80 Pts', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8480027.png' },
-    { name: 'Wyatt Johnston', category: 'GOALS', value: '32 G', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8482684.png' },
-    { name: 'Miro Heiskanen', category: 'ASSISTS', value: '45 A', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8480036.png' }
-  ],
-  WPG: [
-    { name: 'Mark Scheifele', category: 'POINTS', value: '72 Pts', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8476460.png' },
-    { name: 'Kyle Connor', category: 'GOALS', value: '34 G', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8478398.png' },
-    { name: 'Josh Morrissey', category: 'ASSISTS', value: '59 A', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8477504.png' }
-  ],
-  TBL: [
-    { name: 'Nikita Kucherov', category: 'POINTS', value: '144 Pts', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8476453.png' },
-    { name: 'Brayden Point', category: 'GOALS', value: '46 G', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8478010.png' },
-    { name: 'Nikita Kucherov', category: 'ASSISTS', value: '100 A', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8476453.png' }
-  ],
-  CAR: [
-    { name: 'Sebastian Aho', category: 'POINTS', value: '89 Pts', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8478427.png' },
-    { name: 'Seth Jarvis', category: 'GOALS', value: '33 G', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8482093.png' },
-    { name: 'Martin Necas', category: 'ASSISTS', value: '49 A', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8480039.png' }
-  ],
-  NJD: [
-    { name: 'Jesper Bratt', category: 'POINTS', value: '83 Pts', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8479407.png' },
-    { name: 'Jack Hughes', category: 'GOALS', value: '27 G', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8481559.png' },
-    { name: 'Nico Hischier', category: 'ASSISTS', value: '40 A', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8480002.png' }
-  ],
-  MIN: [
-    { name: 'Kirill Kaprizov', category: 'POINTS', value: '96 Pts', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8478864.png' },
-    { name: 'Kirill Kaprizov', category: 'GOALS', value: '46 G', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8478864.png' },
-    { name: 'Matt Boldy', category: 'ASSISTS', value: '37 A', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8481533.png' }
-  ],
-  LAK: [
-    { name: 'Adrian Kempe', category: 'POINTS', value: '75 Pts', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8477960.png' },
-    { name: 'Trevor Moore', category: 'GOALS', value: '31 G', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8479675.png' },
-    { name: 'Kevin Fiala', category: 'ASSISTS', value: '44 A', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8477942.png' }
-  ],
-  PIT: [
-    { name: 'Sidney Crosby', category: 'POINTS', value: '94 Pts', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8471675.png' },
-    { name: 'Sidney Crosby', category: 'GOALS', value: '42 G', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8471675.png' },
-    { name: 'Erik Karlsson', category: 'ASSISTS', value: '45 A', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8474578.png' }
-  ],
-  DET: [
-    { name: 'Dylan Larkin', category: 'POINTS', value: '69 Pts', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8477946.png' },
-    { name: 'Alex DeBrincat', category: 'GOALS', value: '27 G', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8479337.png' },
-    { name: 'Lucas Raymond', category: 'ASSISTS', value: '41 A', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8482078.png' }
-  ],
-  WSH: [
-    { name: 'Dylan Strome', category: 'POINTS', value: '67 Pts', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8478440.png' },
-    { name: 'Alex Ovechkin', category: 'GOALS', value: '31 G', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8471214.png' },
-    { name: 'John Carlson', category: 'ASSISTS', value: '42 A', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8474590.png' }
-  ],
-  PHI: [
-    { name: 'Travis Konecny', category: 'POINTS', value: '68 Pts', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8478439.png' },
-    { name: 'Travis Konecny', category: 'GOALS', value: '33 G', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8478439.png' },
-    { name: 'Matvei Michkov', category: 'ASSISTS', value: '38 A', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8484166.png' }
-  ],
-  MTL: [
-    { name: 'Nick Suzuki', category: 'POINTS', value: '77 Pts', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8480018.png' },
-    { name: 'Cole Caufield', category: 'GOALS', value: '28 G', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8481540.png' },
-    { name: 'Mike Matheson', category: 'ASSISTS', value: '51 A', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8476875.png' }
-  ],
-  OTT: [
-    { name: 'Brady Tkachuk', category: 'POINTS', value: '74 Pts', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8480801.png' },
-    { name: 'Brady Tkachuk', category: 'GOALS', value: '37 G', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8480801.png' },
-    { name: 'Tim Stützle', category: 'ASSISTS', value: '52 A', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8482116.png' }
-  ],
-  BUF: [
-    { name: 'Alex Tuch', category: 'POINTS', value: '59 Pts', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8477949.png' },
-    { name: 'JJ Peterka', category: 'GOALS', value: '28 G', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8482149.png' },
-    { name: 'Rasmus Dahlin', category: 'ASSISTS', value: '39 A', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8480839.png' }
-  ],
-  NSH: [
-    { name: 'Filip Forsberg', category: 'POINTS', value: '94 Pts', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8476887.png' },
-    { name: 'Filip Forsberg', category: 'GOALS', value: '48 G', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8476887.png' },
-    { name: 'Roman Josi', category: 'ASSISTS', value: '62 A', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8474600.png' }
-  ],
-  STL: [
-    { name: 'Robert Thomas', category: 'POINTS', value: '86 Pts', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8480023.png' },
-    { name: 'Jordan Kyrou', category: 'GOALS', value: '31 G', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8479385.png' },
-    { name: 'Robert Thomas', category: 'ASSISTS', value: '60 A', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8480023.png' }
-  ],
-  CGY: [
-    { name: 'Nazem Kadri', category: 'POINTS', value: '75 Pts', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8475172.png' },
-    { name: 'Yegor Sharangovich', category: 'GOALS', value: '31 G', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8481068.png' },
-    { name: 'MacKenzie Weegar', category: 'ASSISTS', value: '32 A', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8477346.png' }
-  ],
-  UTA: [
-    { name: 'Clayton Keller', category: 'POINTS', value: '76 Pts', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8479343.png' },
-    { name: 'Clayton Keller', category: 'GOALS', value: '33 G', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8479343.png' },
-    { name: 'Mikhail Sergachev', category: 'ASSISTS', value: '42 A', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8479350.png' }
-  ],
-  ANA: [
-    { name: 'Frank Vatrano', category: 'POINTS', value: '60 Pts', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8478366.png' },
-    { name: 'Frank Vatrano', category: 'GOALS', value: '37 G', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8478366.png' },
-    { name: 'Troy Terry', category: 'ASSISTS', value: '34 A', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8478873.png' }
-  ],
-  SJS: [
-    { name: 'Macklin Celebrini', category: 'POINTS', value: '65 Pts', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8484807.png' },
-    { name: 'Tyler Toffoli', category: 'GOALS', value: '33 G', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8475790.png' },
-    { name: 'William Eklund', category: 'ASSISTS', value: '32 A', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8482683.png' }
-  ],
-  CHI: [
-    { name: 'Connor Bedard', category: 'POINTS', value: '61 Pts', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8484144.png' },
-    { name: 'Connor Bedard', category: 'GOALS', value: '22 G', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8484144.png' },
-    { name: 'Teuvo Teravainen', category: 'ASSISTS', value: '38 A', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8476882.png' }
-  ],
-  CBJ: [
-    { name: 'Kirill Marchenko', category: 'POINTS', value: '42 Pts', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8480893.png' },
-    { name: 'Kirill Marchenko', category: 'GOALS', value: '23 G', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8480893.png' },
-    { name: 'Zach Werenski', category: 'ASSISTS', value: '46 A', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8478460.png' }
-  ],
-  NYI: [
-    { name: 'Mathew Barzal', category: 'POINTS', value: '80 Pts', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8478445.png' },
-    { name: 'Brock Nelson', category: 'GOALS', value: '34 G', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8475754.png' },
-    { name: 'Noah Dobson', category: 'ASSISTS', value: '60 A', headshot: 'https://assets.nhle.com/mugs/nhl/latest/8480865.png' }
-  ]
-};
-
-function getMatchupSkaterComparison(awayAbbr: string, homeAbbr: string) {
-  const awayKey = awayAbbr.trim().toUpperCase();
-  const homeKey = homeAbbr.trim().toUpperCase();
-  const awaySkaters = TEAM_KEY_SKATERS[awayKey] || [
-    { name: `${awayKey} Top Scorer`, category: 'POINTS', value: '75 Pts' },
-    { name: `${awayKey} Top Sniper`, category: 'GOALS', value: '30 G' },
-    { name: `${awayKey} Playmaker`, category: 'ASSISTS', value: '45 A' }
-  ];
-  const homeSkaters = TEAM_KEY_SKATERS[homeKey] || [
-    { name: `${homeKey} Top Scorer`, category: 'POINTS', value: '72 Pts' },
-    { name: `${homeKey} Top Sniper`, category: 'GOALS', value: '28 G' },
-    { name: `${homeKey} Playmaker`, category: 'ASSISTS', value: '44 A' }
-  ];
-
-  return [
-    {
-      category: 'POINTS',
-      awayLeader: { name: awaySkaters[0]?.name || `${awayKey} Leader`, value: awaySkaters[0]?.value ?? '--', headshot: awaySkaters[0]?.headshot },
-      homeLeader: { name: homeSkaters[0]?.name || `${homeKey} Leader`, value: homeSkaters[0]?.value ?? '--', headshot: homeSkaters[0]?.headshot }
-    },
-    {
-      category: 'GOALS',
-      awayLeader: { name: awaySkaters[1]?.name || `${awayKey} Sniper`, value: awaySkaters[1]?.value ?? '--', headshot: awaySkaters[1]?.headshot },
-      homeLeader: { name: homeSkaters[1]?.name || `${homeKey} Sniper`, value: homeSkaters[1]?.value ?? '--', headshot: homeSkaters[1]?.headshot }
-    },
-    {
-      category: 'ASSISTS',
-      awayLeader: { name: awaySkaters[2]?.name || `${awayKey} Playmaker`, value: awaySkaters[2]?.value ?? '--', headshot: awaySkaters[2]?.headshot },
-      homeLeader: { name: homeSkaters[2]?.name || `${homeKey} Playmaker`, value: homeSkaters[2]?.value ?? '--', headshot: homeSkaters[2]?.headshot }
-    }
-  ];
-}
-
-function getDynamicTeamStats(abbrev: string, id: number): TeamProfile {
-  const clean = abbrev.trim().toUpperCase();
-  if (REAL_NHL_TEAMS_DATA[clean]) return REAL_NHL_TEAMS_DATA[clean];
-  
-  // Deterministic fallback based on team abbreviation and game ID
-  const hash = clean.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) + (id % 13);
-  const avgGoals = (2.6 + (hash % 15) * 0.11).toFixed(2);
-  const ppPercent = (15.5 + (hash % 18) * 0.9).toFixed(1);
-  
-  const styles = [
-    "Fast transition style focusing on rush attacks and aggressive board play.",
-    "Balanced forecheck generating deep scoring chances off continuous cycle lines.",
-    "Counter-punch offense relying on tight neutral zone defensive pressure.",
-    "High shot volume strategy focusing on traffic screens and loose blue line shots."
-  ];
-  
-  const injuriesList = [
-    "No major injuries reported; core lineup is fully active.",
-    "Minor day-to-day lower body injury reported for second-line winger.",
-    "Starting goalie is probable; backup defender out (Day-to-day - Upper Body).",
-    "Starting forward is day-to-day with a lower body strain."
-  ];
-
-  return {
-    trend: `Projected at ${avgGoals} goals/game baseline. ${styles[hash % styles.length]} Power play efficiency rated at ${ppPercent}%.`,
-    gpg: avgGoals,
-    ppPct: `${ppPercent}%`,
-    injuries: injuriesList[hash % injuriesList.length]
-  };
-}
-
 const extractString = (val: any): string => {
   if (!val) return '';
   if (typeof val === 'string') return val;
@@ -546,6 +117,134 @@ const extractString = (val: any): string => {
   return String(val);
 };
 
+export const NHL_TEAM_VENUES: Record<string, { arena: string; city: string }> = {
+  ANA: { arena: 'Honda Center', city: 'Anaheim, CA' },
+  BOS: { arena: 'TD Garden', city: 'Boston, MA' },
+  BUF: { arena: 'KeyBank Center', city: 'Buffalo, NY' },
+  CAR: { arena: 'Lenovo Center', city: 'Raleigh, NC' },
+  CBJ: { arena: 'Nationwide Arena', city: 'Columbus, OH' },
+  CGY: { arena: 'Scotiabank Saddledome', city: 'Calgary, AB' },
+  CHI: { arena: 'United Center', city: 'Chicago, IL' },
+  COL: { arena: 'Ball Arena', city: 'Denver, CO' },
+  DAL: { arena: 'American Airlines Center', city: 'Dallas, TX' },
+  DET: { arena: 'Little Caesars Arena', city: 'Detroit, MI' },
+  EDM: { arena: 'Rogers Place', city: 'Edmonton, AB' },
+  FLA: { arena: 'Amerant Bank Arena', city: 'Sunrise, FL' },
+  LAK: { arena: 'Crypto.com Arena', city: 'Los Angeles, CA' },
+  MIN: { arena: 'Xcel Energy Center', city: 'Saint Paul, MN' },
+  MTL: { arena: 'Bell Centre', city: 'Montreal, QC' },
+  NJD: { arena: 'Prudential Center', city: 'Newark, NJ' },
+  NSH: { arena: 'Bridgestone Arena', city: 'Nashville, TN' },
+  NYI: { arena: 'UBS Arena', city: 'Elmont, NY' },
+  NYR: { arena: 'Madison Square Garden', city: 'New York, NY' },
+  OTT: { arena: 'Canadian Tire Centre', city: 'Ottawa, ON' },
+  PHI: { arena: 'Wells Fargo Center', city: 'Philadelphia, PA' },
+  PIT: { arena: 'PPG Paints Arena', city: 'Pittsburgh, PA' },
+  SEA: { arena: 'Climate Pledge Arena', city: 'Seattle, WA' },
+  SJS: { arena: 'SAP Center', city: 'San Jose, CA' },
+  STL: { arena: 'Enterprise Center', city: 'St. Louis, MO' },
+  TBL: { arena: 'Amalie Arena', city: 'Tampa, FL' },
+  TOR: { arena: 'Scotiabank Arena', city: 'Toronto, ON' },
+  UTA: { arena: 'Delta Center', city: 'Salt Lake City, UT' },
+  VAN: { arena: 'Rogers Arena', city: 'Vancouver, BC' },
+  VGK: { arena: 'T-Mobile Arena', city: 'Las Vegas, NV' },
+  WPG: { arena: 'Canada Life Centre', city: 'Winnipeg, MB' },
+  WSH: { arena: 'Capital One Arena', city: 'Washington, D.C.' }
+};
+
+export function getGameVenueInfo(game: NHLGame, gameDetails?: any) {
+  const homeAbbr = (game.homeTeam?.abbrev || '').toUpperCase().trim();
+  const fallback = NHL_TEAM_VENUES[homeAbbr] || { arena: 'NHL Arena', city: 'Host City' };
+
+  const rawVenue = extractString(gameDetails?.venue?.default) || extractString((game as any).venue?.default);
+  const rawCity = extractString(gameDetails?.venueLocation?.default);
+
+  const arena = rawVenue || fallback.arena;
+  const location = rawCity || fallback.city;
+
+  return {
+    arena,
+    location,
+    homeTeam: game.homeTeam?.abbrev || 'HOME',
+    awayTeam: game.awayTeam?.abbrev || 'AWAY'
+  };
+}
+
+export function NHLGameVenueCard({ 
+  game, 
+  gameDetails 
+}: { 
+  game: NHLGame; 
+  gameDetails?: any;
+}) {
+  const venue = getGameVenueInfo(game, gameDetails);
+  const startTime = new Date(game.startTimeUTC);
+  const formattedTime = startTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  const formattedDate = startTime.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+
+  return (
+    <div className="bg-slate-950 border border-slate-800/80 rounded-xl p-3 sm:p-4 space-y-3 shadow-md font-mono h-full flex flex-col justify-between">
+      <div>
+        {/* Header with Arena & Home Ice Badge */}
+        <div className="flex items-center justify-between gap-2 border-b border-slate-900 pb-2.5">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            <div className="w-8 h-8 rounded-lg bg-emerald-950/80 border border-emerald-800/70 flex items-center justify-center shrink-0 shadow-sm">
+              <MapPin className="w-4 h-4 text-emerald-400" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <span className="text-[7.5px] uppercase tracking-widest block font-bold text-slate-500">
+                Where Game Is Being Played
+              </span>
+              <h4 className="text-[12px] sm:text-[13px] font-black text-white leading-tight truncate" title={venue.arena}>
+                {venue.arena}
+              </h4>
+            </div>
+          </div>
+
+          <span className="text-[7.5px] px-2 py-0.5 rounded border border-emerald-800/60 bg-emerald-950/40 text-emerald-400 uppercase font-black tracking-wider shrink-0">
+            Home Ice
+          </span>
+        </div>
+
+        {/* Location & Scheduled Puck Drop */}
+        <div className="grid grid-cols-2 gap-2 bg-slate-900/40 p-2.5 rounded-lg border border-slate-900 mt-3">
+          <div className="min-w-0">
+            <span className="text-[7px] text-slate-500 uppercase tracking-wider block mb-0.5">Location</span>
+            <span className="text-[10px] font-bold text-slate-200 flex items-center gap-1 truncate" title={venue.location}>
+              {venue.location}
+            </span>
+          </div>
+          <div className="border-l border-slate-900 pl-2.5 min-w-0">
+            <span className="text-[7px] text-slate-500 uppercase tracking-wider block mb-0.5">Scheduled Puck Drop</span>
+            <span className="text-[10px] font-bold text-cyan-400 flex items-center gap-1.5 truncate">
+              <Clock className="w-3 h-3 text-cyan-400 shrink-0" />
+              <span>{formattedTime}</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Host Banner & Surface */}
+      <div className="pt-2 border-t border-slate-900/60 flex items-center justify-between text-[8px] text-slate-400">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <img 
+            src={game.homeTeam.logo} 
+            alt={game.homeTeam.abbrev}
+            className="w-4 h-4 object-contain shrink-0"
+            referrerPolicy="no-referrer"
+          />
+          <span className="truncate">
+            Host: <strong className="text-white">{game.homeTeam.abbrev}</strong> ({venue.arena})
+          </span>
+        </div>
+        <span className="text-slate-500 font-medium shrink-0">
+          {formattedDate}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export function NHLPreGameMatchupInsights({ 
   game, 
   gameDetails 
@@ -553,244 +252,13 @@ export function NHLPreGameMatchupInsights({
   game: NHLGame; 
   gameDetails?: any;
 }) {
-  const awayStats = getDynamicTeamStats(game.awayTeam.abbrev, game.id);
-  const homeStats = getDynamicTeamStats(game.homeTeam.abbrev, game.id);
-  const venueName = gameDetails?.venue?.default || (game as any).venue?.default || 'NHL Arena';
-  const venueLocation = gameDetails?.venueLocation?.default || '';
-  const rawLeaders = gameDetails?.matchup?.skaterComparison?.leaders || [];
-  const leaders = rawLeaders.length > 0 ? rawLeaders : getMatchupSkaterComparison(game.awayTeam.abbrev, game.homeTeam.abbrev);
-
   return (
     <div className="space-y-4">
-      {/* Venue & Slate Header */}
-      <div className="flex items-center justify-between bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/60 text-[9px] font-mono">
-        <span className="text-slate-400 flex items-center gap-1.5 truncate">
-          <CalendarRange className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-          <span className="text-white font-bold truncate">{venueName}</span>
-          {venueLocation && <span className="text-slate-500 hidden sm:inline">({venueLocation})</span>}
-        </span>
-        <span className="text-cyan-400 uppercase tracking-widest font-black text-[8px] bg-cyan-950 border border-cyan-800/80 px-2 py-0.5 rounded shrink-0">
-          2026-27 Opener
-        </span>
-      </div>
-
-      {/* Head-to-Head Skater Leaders if available from official API */}
-      {leaders && leaders.length > 0 && (
-        <div className="bg-slate-950/50 p-2.5 sm:p-3 rounded-lg border border-slate-800/60 space-y-2.5">
-          <div className="flex items-center justify-between border-b border-slate-800/50 pb-1.5">
-            <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest font-black">
-              Key Players & Matchup Leaders
-            </span>
-            <div className="flex items-center gap-2 text-[8px] font-mono">
-              <span className="text-slate-300 font-bold">{game.awayTeam.abbrev}</span>
-              <span className="text-slate-600">vs</span>
-              <span className="text-slate-300 font-bold">{game.homeTeam.abbrev}</span>
-            </div>
-          </div>
-
-          {/* Mobile View: Dedicated cards ensuring full player names fit with zero truncation */}
-          <div className="block sm:hidden space-y-2">
-            {leaders.map((leader: any, idx: number) => {
-              const catName = leader.category ? leader.category.toUpperCase() : 'LEADER';
-              const awayName = extractString(leader.awayLeader?.name) || `${leader.awayLeader?.firstName?.default || ''} ${leader.awayLeader?.lastName?.default || ''}`.trim() || 'Leader';
-              const homeName = extractString(leader.homeLeader?.name) || `${leader.homeLeader?.firstName?.default || ''} ${leader.homeLeader?.lastName?.default || ''}`.trim() || 'Leader';
-              const awayVal = leader.awayLeader?.value ?? '--';
-              const homeVal = leader.homeLeader?.value ?? '--';
-
-              return (
-                <div key={idx} className="bg-slate-900/70 p-2 rounded-lg border border-slate-800/60 space-y-1.5 font-mono">
-                  {/* Category Header */}
-                  <div className="flex items-center justify-between border-b border-slate-800/40 pb-1">
-                    <span className="text-[7.5px] uppercase tracking-wider text-cyan-400 font-black bg-cyan-950/80 border border-cyan-800/60 px-1.5 py-0.5 rounded">
-                      {catName === 'POINTS' ? '⚡ POINTS LEADER' : catName === 'GOALS' ? '🎯 GOALS LEADER' : catName === 'ASSISTS' ? '🏒 ASSISTS LEADER' : `${catName} LEADER`}
-                    </span>
-                    <span className="text-[7px] text-slate-500 font-bold uppercase tracking-wider">
-                      {game.awayTeam.abbrev} vs {game.homeTeam.abbrev}
-                    </span>
-                  </div>
-
-                  {/* 2-Column Responsive Player Grid */}
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {/* Away Player */}
-                    <div className="bg-slate-950/80 p-1.5 rounded border border-slate-800/50 flex items-center gap-2 min-w-0">
-                      {leader.awayLeader?.headshot ? (
-                        <img 
-                          src={leader.awayLeader.headshot} 
-                          alt={awayName} 
-                          className="w-7 h-7 rounded-full object-cover border border-slate-700 bg-slate-800 shrink-0" 
-                          referrerPolicy="no-referrer"
-                        />
-                      ) : (
-                        <div className="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[7.5px] font-black text-slate-400 shrink-0">
-                          {game.awayTeam.abbrev}
-                        </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <div className="text-white font-bold text-[9.5px] leading-tight break-words tracking-tight" title={awayName}>
-                          {awayName}
-                        </div>
-                        <div className="flex items-center gap-1 mt-0.5">
-                          <span className="text-[7px] text-slate-400 font-bold uppercase">{game.awayTeam.abbrev}</span>
-                          <span className="text-cyan-400 font-black text-[8.5px]">{awayVal}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Home Player */}
-                    <div className="bg-slate-950/80 p-1.5 rounded border border-slate-800/50 flex items-center gap-2 min-w-0">
-                      {leader.homeLeader?.headshot ? (
-                        <img 
-                          src={leader.homeLeader.headshot} 
-                          alt={homeName} 
-                          className="w-7 h-7 rounded-full object-cover border border-slate-700 bg-slate-800 shrink-0" 
-                          referrerPolicy="no-referrer"
-                        />
-                      ) : (
-                        <div className="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[7.5px] font-black text-slate-400 shrink-0">
-                          {game.homeTeam.abbrev}
-                        </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <div className="text-white font-bold text-[9.5px] leading-tight break-words tracking-tight" title={homeName}>
-                          {homeName}
-                        </div>
-                        <div className="flex items-center gap-1 mt-0.5">
-                          <span className="text-[7px] text-slate-400 font-bold uppercase">{game.homeTeam.abbrev}</span>
-                          <span className="text-cyan-400 font-black text-[8.5px]">{homeVal}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Desktop / Tablet View (sm:block): Sleek horizontal comparison rows */}
-          <div className="hidden sm:block space-y-2">
-            {leaders.map((leader: any, idx: number) => {
-              const catName = leader.category ? leader.category.toUpperCase() : 'LEADER';
-              const awayName = extractString(leader.awayLeader?.name) || `${leader.awayLeader?.firstName?.default || ''} ${leader.awayLeader?.lastName?.default || ''}`.trim() || 'Leader';
-              const homeName = extractString(leader.homeLeader?.name) || `${leader.homeLeader?.firstName?.default || ''} ${leader.homeLeader?.lastName?.default || ''}`.trim() || 'Leader';
-              const awayVal = leader.awayLeader?.value ?? '--';
-              const homeVal = leader.homeLeader?.value ?? '--';
-
-              return (
-                <div key={idx} className="flex items-center justify-between text-[9px] font-mono bg-slate-900/60 px-2.5 py-1.5 rounded border border-slate-800/40">
-                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                    {leader.awayLeader?.headshot && (
-                      <img 
-                        src={leader.awayLeader.headshot} 
-                        alt={awayName} 
-                        className="w-5 h-5 rounded-full object-cover border border-slate-700 bg-slate-800 shrink-0" 
-                        referrerPolicy="no-referrer"
-                      />
-                    )}
-                    <span className="text-slate-200 font-semibold truncate text-[8.5px] sm:text-[9.5px]" title={awayName}>{awayName}</span>
-                    <span className="text-cyan-400 font-black shrink-0">{awayVal}</span>
-                  </div>
-
-                  <span className="text-[7.5px] uppercase tracking-wider text-slate-500 font-black px-1.5 py-0.5 rounded bg-slate-950 border border-slate-800 shrink-0 mx-2">
-                    {catName}
-                  </span>
-
-                  <div className="flex items-center gap-2 justify-end min-w-0 flex-1">
-                    <span className="text-cyan-400 font-black shrink-0">{homeVal}</span>
-                    <span className="text-slate-200 font-semibold truncate text-right text-[8.5px] sm:text-[9.5px]" title={homeName}>{homeName}</span>
-                    {leader.homeLeader?.headshot && (
-                      <img 
-                        src={leader.homeLeader.headshot} 
-                        alt={homeName} 
-                        className="w-5 h-5 rounded-full object-cover border border-slate-700 bg-slate-800 shrink-0" 
-                        referrerPolicy="no-referrer"
-                      />
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Away Team Breakdown */}
-      <div className="space-y-2.5 bg-slate-950/40 p-3 rounded-lg border border-slate-800/60">
-        <div className="flex items-center justify-between mb-1">
-          <div className="flex items-center gap-2 min-w-0">
-            <img 
-              src={game.awayTeam.logo} 
-              alt={game.awayTeam.abbrev}
-              className="w-4 h-4 object-contain shrink-0"
-              referrerPolicy="no-referrer"
-            />
-            <span className="font-mono text-[9px] font-black text-white uppercase tracking-wider truncate">
-              {game.awayTeam.abbrev} Offensive Profile
-            </span>
-          </div>
-          <div className="flex items-center gap-2 text-[8px] font-mono shrink-0">
-            <span className="text-slate-400"><strong className="text-white">{awayStats.gpg}</strong> GPG</span>
-            <span className="text-slate-600">•</span>
-            <span className="text-slate-400"><strong className="text-cyan-400">{awayStats.ppPct}</strong> PP</span>
-          </div>
-        </div>
-        <div className="space-y-1.5 text-[9px] font-mono leading-relaxed">
-          <div>
-            <span className="text-blue-400 font-bold uppercase tracking-wider text-[8px] block mb-0.5">
-              Offensive Outlook & System
-            </span>
-            <p className="text-slate-300">{awayStats.trend}</p>
-          </div>
-          <div className="pt-1.5 border-t border-slate-800/40">
-            <span className="text-red-400 font-bold uppercase tracking-wider text-[8px] block mb-0.5">
-              Notable Injuries / Status
-            </span>
-            <p className={awayStats.injuries.includes("No major") ? "text-slate-500 font-medium italic" : "text-amber-400 font-semibold"}>
-              {awayStats.injuries}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Home Team Breakdown */}
-      <div className="space-y-2.5 bg-slate-950/40 p-3 rounded-lg border border-slate-800/60">
-        <div className="flex items-center justify-between mb-1">
-          <div className="flex items-center gap-2 min-w-0">
-            <img 
-              src={game.homeTeam.logo} 
-              alt={game.homeTeam.abbrev}
-              className="w-4 h-4 object-contain shrink-0"
-              referrerPolicy="no-referrer"
-            />
-            <span className="font-mono text-[9px] font-black text-white uppercase tracking-wider truncate">
-              {game.homeTeam.abbrev} Offensive Profile
-            </span>
-          </div>
-          <div className="flex items-center gap-2 text-[8px] font-mono shrink-0">
-            <span className="text-slate-400"><strong className="text-white">{homeStats.gpg}</strong> GPG</span>
-            <span className="text-slate-600">•</span>
-            <span className="text-slate-400"><strong className="text-cyan-400">{homeStats.ppPct}</strong> PP</span>
-          </div>
-        </div>
-        <div className="space-y-1.5 text-[9px] font-mono leading-relaxed">
-          <div>
-            <span className="text-blue-400 font-bold uppercase tracking-wider text-[8px] block mb-0.5">
-              Offensive Outlook & System
-            </span>
-            <p className="text-slate-300">{homeStats.trend}</p>
-          </div>
-          <div className="pt-1.5 border-t border-slate-800/40">
-            <span className="text-red-400 font-bold uppercase tracking-wider text-[8px] block mb-0.5">
-              Notable Injuries / Status
-            </span>
-            <p className={homeStats.injuries.includes("No major") ? "text-slate-500 font-medium italic" : "text-amber-400 font-semibold"}>
-              {homeStats.injuries}
-            </p>
-          </div>
-        </div>
-      </div>
+      {/* Where The Game Is Being Played */}
+      <NHLGameVenueCard game={game} gameDetails={gameDetails} />
 
       <p className="text-[8px] font-mono text-slate-500 uppercase tracking-tighter leading-relaxed">
-        Pre-game matchup intelligence verified for 2026-27 season opener. Checked relative to official NHL roster feeds.
+        Pre-game matchup intelligence focused on starting netminders and venue location.
       </p>
     </div>
   );
@@ -1318,6 +786,8 @@ export function NHLGameLog({
                     }
 
                     
+                    const venue = getGameVenueInfo(game, gameDetailsCache[game.id]);
+
                     return (
                       <motion.div
                         key={game.id}
@@ -1342,9 +812,18 @@ export function NHLGameLog({
                             <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500/80" />
                           )}
 
-                          <div className="flex items-center justify-between">
+                          <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-2">
                                {renderNHLStatusBadge(game)}
+                            </div>
+                            <div 
+                              className="flex items-center gap-1.5 text-[8.5px] font-mono text-slate-300 bg-slate-900/90 px-2.5 py-1 rounded-md border border-slate-800 shadow-sm max-w-[62%]"
+                              title={`${venue.arena} • ${venue.location}`}
+                            >
+                              <MapPin className="w-3 h-3 text-emerald-400 shrink-0" />
+                              <span className="font-bold truncate text-slate-200">
+                                {venue.arena}
+                              </span>
                             </div>
                           </div>
 
@@ -1406,10 +885,14 @@ export function NHLGameLog({
 
                           {(game.gameState === 'PRE' || game.gameState === 'FUT') && (
                             <div className="pt-2 border-t border-slate-800/50 flex justify-between items-center text-[10px] font-mono text-slate-400">
-                              <span className="flex items-center gap-1.5 text-slate-300 font-semibold">
-                                <Clock className="w-3.5 h-3.5 text-cyan-400" />
-                                {new Date(game.startTimeUTC).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-                              </span>
+                              <div className="flex items-center gap-1.5 text-slate-300 font-semibold min-w-0">
+                                <Clock className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                                <span>{new Date(game.startTimeUTC).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
+                                <span className="text-slate-600 shrink-0">•</span>
+                                <span className="text-slate-400 truncate text-[8.5px]">
+                                  {venue.location}
+                                </span>
+                              </div>
                               <button
                                 type="button"
                                 onClick={(e) => {
@@ -1423,7 +906,7 @@ export function NHLGameLog({
                                     : "bg-slate-900 border-slate-700/80 text-slate-300 hover:text-white hover:border-slate-600 hover:bg-slate-800"
                                 )}
                               >
-                                <span>{isExpanded ? 'Close Menu' : 'Pre-Game Menu'}</span>
+                                <span>{isExpanded ? 'Hide Matchup' : 'Goalie Matchup'}</span>
                                 <ChevronDown className={cn("w-3 h-3 transition-transform duration-200", isExpanded && "rotate-180 text-cyan-400")} />
                               </button>
                             </div>
@@ -1498,97 +981,46 @@ export function NHLGameLog({
                             >
                               <div className="p-4 space-y-6">
                                 {(game.gameState === 'PRE' || game.gameState === 'FUT') ? (
-                                  <>
-                                    {/* Quick Matchup Snapshot inside dropdown menu */}
-                                    {(() => {
-                                      const awayStats = getDynamicTeamStats(game.awayTeam.abbrev, game.id);
-                                      const homeStats = getDynamicTeamStats(game.homeTeam.abbrev, game.id);
-                                      const awayGoalie = getGoalieData(false, game);
-                                      const homeGoalie = getGoalieData(true, game);
-                                      const awayGoalieName = awayGoalie?.lastName || awayGoalie?.name || 'TBD';
-                                      const homeGoalieName = homeGoalie?.lastName || homeGoalie?.name || 'TBD';
-
-                                      const skaterComp = getMatchupSkaterComparison(game.awayTeam.abbrev, game.homeTeam.abbrev);
-                                      const awayTopSkater = skaterComp[0]?.awayLeader?.name || `${game.awayTeam.abbrev} Leader`;
-                                      const homeTopSkater = skaterComp[0]?.homeLeader?.name || `${game.homeTeam.abbrev} Leader`;
-
-                                      return (
-                                        <div className="bg-slate-950/80 rounded-lg p-2.5 border border-slate-800/80 space-y-2 font-mono text-[8.5px]">
-                                          {/* Team Offensive Output Comparison */}
-                                          <div className="flex items-center justify-between text-slate-400">
-                                            <div className="flex items-center gap-1 text-slate-300">
-                                              <span className="font-bold text-white">{awayStats.gpg}</span>
-                                              <span className="text-slate-500">GPG</span>
-                                              <span className="text-slate-600">({awayStats.ppPct} PP)</span>
-                                            </div>
-                                            <span className="text-[7.5px] uppercase tracking-widest text-slate-500 font-black">OFFENSE</span>
-                                            <div className="flex items-center gap-1 text-slate-300">
-                                              <span className="text-slate-600">({homeStats.ppPct} PP)</span>
-                                              <span className="font-bold text-white">{homeStats.gpg}</span>
-                                              <span className="text-slate-500">GPG</span>
-                                            </div>
-                                          </div>
-
-                                          {/* Key Starting Goalies */}
-                                          <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-800/50 text-[8px] text-slate-400">
-                                            <div className="flex items-center gap-1 min-w-0 flex-1 text-slate-300">
-                                              <span className="shrink-0 text-[9px]">🥅</span>
-                                              <strong className="text-cyan-400 font-bold truncate text-[8.5px]" title={awayGoalieName}>
-                                                {awayGoalieName}
-                                              </strong>
-                                            </div>
-                                            <span className="text-slate-600 font-black shrink-0 text-[7px]">GOALIES</span>
-                                            <div className="flex items-center justify-end gap-1 min-w-0 flex-1 text-right text-slate-300">
-                                              <strong className="text-cyan-400 font-bold truncate text-[8.5px]" title={homeGoalieName}>
-                                                {homeGoalieName}
-                                              </strong>
-                                              <span className="shrink-0 text-[9px]">🥅</span>
-                                            </div>
-                                          </div>
-
-                                          {/* Key Skaters */}
-                                          <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-800/40 text-[8px] text-slate-400">
-                                            <div className="flex items-center gap-1 min-w-0 flex-1 text-slate-300">
-                                              <span className="shrink-0 text-[9px]">⚡</span>
-                                              <span className="text-white font-bold truncate text-[8.5px]" title={awayTopSkater}>
-                                                {awayTopSkater}
-                                              </span>
-                                            </div>
-                                            <span className="text-slate-600 font-black shrink-0 text-[7px]">KEY SKATERS</span>
-                                            <div className="flex items-center justify-end gap-1 min-w-0 flex-1 text-right text-slate-300">
-                                              <span className="text-white font-bold truncate text-[8.5px]" title={homeTopSkater}>
-                                                {homeTopSkater}
-                                              </span>
-                                              <span className="shrink-0 text-[9px]">⚡</span>
-                                            </div>
-                                          </div>
-                                        </div>
-                                      );
-                                    })()}
-
-                                    <div className="space-y-4">
+                                  <div className="space-y-4 font-mono">
+                                    {/* Goalie Matchup Header */}
+                                    <div className="flex items-center justify-between border-b border-slate-800/80 pb-2.5">
                                       <div className="flex items-center gap-2">
-                                        <ShieldCheck className="w-4 h-4 text-cyan-400" />
-                                        <h4 className="text-[10px] font-black text-white uppercase tracking-widest">
-                                          Probable Starting Netminders
-                                        </h4>
+                                        <div className="w-7 h-7 rounded-lg bg-cyan-950/80 border border-cyan-800/70 flex items-center justify-center shrink-0">
+                                          <ShieldCheck className="w-4 h-4 text-cyan-400" />
+                                        </div>
+                                        <div>
+                                          <h4 className="text-[11px] font-black text-white uppercase tracking-wider">
+                                            Starting Goalie Matchup
+                                          </h4>
+                                          <span className="text-[8.5px] text-slate-400">
+                                            {game.awayTeam.abbrev} at {game.homeTeam.abbrev} • Netminder Duel
+                                          </span>
+                                        </div>
                                       </div>
-                                      
-                                      <div className="space-y-3">
+                                      <span className="text-[8px] text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800 font-bold shrink-0">
+                                        {venue.arena}
+                                      </span>
+                                    </div>
+
+                                    {/* Goalie Duel Cards */}
+                                    <div className="space-y-3">
+                                      <div className="space-y-1">
+                                        <div className="flex items-center justify-between text-[8px] uppercase tracking-wider text-slate-400 px-1 font-bold">
+                                          <span>{game.awayTeam.abbrev} Starting Netminder</span>
+                                          <span className="text-cyan-400">Away</span>
+                                        </div>
                                         <NHLGoalieStatsCard game={game} isHome={false} goalieData={getGoalieData(false, game)} />
+                                      </div>
+
+                                      <div className="space-y-1">
+                                        <div className="flex items-center justify-between text-[8px] uppercase tracking-wider text-slate-400 px-1 font-bold">
+                                          <span>{game.homeTeam.abbrev} Starting Netminder</span>
+                                          <span className="text-emerald-400">Home Ice</span>
+                                        </div>
                                         <NHLGoalieStatsCard game={game} isHome={true} goalieData={getGoalieData(true, game)} />
                                       </div>
                                     </div>
-
-                                    {/* Full Pre-Game Matchup Insights Visible on Mobile */}
-                                    <div className="bg-slate-900 rounded-xl border border-slate-800 p-3 sm:p-4">
-                                      <div className="flex items-center gap-2 mb-3">
-                                        <BarChart3 className="w-4 h-4 text-blue-400" />
-                                        <h4 className="text-[10px] font-black text-white uppercase tracking-widest">Pre-Game Matchup Insights</h4>
-                                      </div>
-                                      <NHLPreGameMatchupInsights game={game} gameDetails={gameDetailsCache[game.id]} />
-                                    </div>
-                                  </>
+                                  </div>
                                 ) : (
                                   <>
                                     <NHLPowerPlayTracker game={game} />
@@ -1640,6 +1072,7 @@ export function NHLGameLog({
                 <thead>
                   <tr className="bg-slate-900/50 border-b border-slate-800">
                     <th className="px-6 py-3 data-label">Matchup</th>
+                    <th className="px-6 py-3 data-label">Home Stadium</th>
                     <th className="px-6 py-3 data-label text-center">Period</th>
                     <th className="px-6 py-3 data-label text-center">SOG</th>
                     <th className="px-6 py-3 data-label text-right">Status</th>
@@ -1649,6 +1082,7 @@ export function NHLGameLog({
                   {filteredGames.map((game, index) => {
                     const totalScore = (game.awayTeam.score || 0) + (game.homeTeam.score || 0);
                     const isExpanded = expandedGameId === game.id;
+                    const venue = getGameVenueInfo(game, gameDetailsCache[game.id]);
                     // Dynamic skater-strength calculation
                     let skAway = game.situation?.awayTeam?.strength || 5;
                     let skHome = game.situation?.homeTeam?.strength || 5;
@@ -1816,6 +1250,21 @@ export function NHLGameLog({
                               </div>
                             </div>
                           </td>
+                          <td className="px-6 py-5 whitespace-nowrap">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-7 h-7 rounded-lg bg-emerald-950/60 border border-emerald-800/60 flex items-center justify-center shrink-0 shadow-sm">
+                                <MapPin className="w-3.5 h-3.5 text-emerald-400" />
+                              </div>
+                              <div className="flex flex-col min-w-0">
+                                <span className="text-[11px] font-bold text-slate-200 font-mono leading-tight truncate max-w-[190px]" title={venue.arena}>
+                                  {venue.arena}
+                                </span>
+                                <span className="text-[8.5px] font-mono text-slate-500">
+                                  {venue.location}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
                           <td className="px-6 py-5 text-center bg-slate-900/30">
                             {(game.gameState === 'LIVE' || game.gameState === 'CRIT') ? (
                               <div className="inline-flex flex-col items-center">
@@ -1947,13 +1396,13 @@ export function NHLGameLog({
                                       toggleGame(game.id);
                                     }}
                                     className={cn(
-                                      "mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[7.5px] font-mono font-black uppercase tracking-wider transition-all cursor-pointer",
+                                      "mt-1 inline-flex items-center gap-1 px-2.5 py-1 rounded border text-[7.5px] font-mono font-black uppercase tracking-wider transition-all cursor-pointer",
                                       isExpanded
                                         ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-400 shadow-sm"
                                         : "bg-slate-900 border-slate-700/80 text-slate-300 hover:text-white hover:border-slate-600 hover:bg-slate-800"
                                     )}
                                   >
-                                    <span>{isExpanded ? 'Close Menu' : 'Pre-Game Menu'}</span>
+                                    <span>{isExpanded ? 'Hide Matchup' : 'Goalie Matchup'}</span>
                                     <ChevronDown className={cn("w-2.5 h-2.5 transition-transform duration-200", isExpanded && "rotate-180 text-cyan-400")} />
                                   </button>
                                 )}
@@ -1974,32 +1423,50 @@ export function NHLGameLog({
                                 >
                                   <div className="px-3 py-4 sm:px-6 sm:py-6 border-b border-slate-800/50">
                                     {(game.gameState === 'PRE' || game.gameState === 'FUT') ? (
-                                      /* Pre-game expanded layout: 2-column wide Pre-Game Matchup Insights + 1-column Probable Netminders */
-                                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-                                        <div className="lg:col-span-2 bg-slate-900 rounded-xl border border-slate-800 p-3 sm:p-4">
-                                          <div className="flex items-center gap-2 mb-4">
-                                            <BarChart3 className="w-4 h-4 text-cyan-400" />
-                                            <h4 className="text-[10px] font-black text-white uppercase tracking-widest">
-                                              Pre-Game Matchup Insights & Skater Leaders
-                                            </h4>
+                                      /* Pre-game expanded layout: Dedicated 2-Column Goalie Matchup Duel */
+                                      <div className="space-y-4 font-mono">
+                                        <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
+                                          <div className="flex items-center gap-2.5">
+                                            <div className="w-8 h-8 rounded-lg bg-cyan-950/80 border border-cyan-800/70 flex items-center justify-center shrink-0 shadow-sm">
+                                              <ShieldCheck className="w-4 h-4 text-cyan-400" />
+                                            </div>
+                                            <div>
+                                              <h4 className="text-[12px] font-black text-white uppercase tracking-wider">
+                                                Probable Starting Goalie Matchup
+                                              </h4>
+                                              <span className="text-[9px] text-slate-400">
+                                                {game.awayTeam.abbrev} at {game.homeTeam.abbrev} • Netminder Duel
+                                              </span>
+                                            </div>
                                           </div>
-                                          <NHLPreGameMatchupInsights game={game} gameDetails={gameDetailsCache[game.id]} />
+                                          <div className="flex items-center gap-2 text-[9px] font-mono text-slate-400">
+                                            <span className="bg-slate-900 px-3 py-1 rounded border border-slate-800 flex items-center gap-1.5">
+                                              <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                                              <span>Home Stadium: <strong className="text-white">{venue.arena}</strong> • {venue.location}</span>
+                                            </span>
+                                          </div>
                                         </div>
 
-                                        <div className="bg-slate-900 rounded-xl border border-slate-800 p-3 sm:p-4 space-y-3 sm:space-y-4">
-                                          <div className="flex items-center gap-2 mb-1">
-                                            <ShieldCheck className="w-4 h-4 text-cyan-400" />
-                                            <h4 className="text-[10px] font-black text-white uppercase tracking-widest">
-                                              Probable Starting Netminders
-                                            </h4>
-                                          </div>
-                                          
-                                          <div className="space-y-4 border-none">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                                          {/* Column 1: Away Starting Goalie */}
+                                          <div className="bg-slate-900 rounded-xl border border-slate-800 p-3 sm:p-4 space-y-2">
+                                            <div className="flex items-center justify-between text-[8px] font-mono uppercase tracking-wider text-slate-400 pb-1.5 border-b border-slate-800/60">
+                                              <span className="font-bold text-slate-300">{game.awayTeam.abbrev} Starting Netminder</span>
+                                              <span className="text-cyan-400 font-bold bg-cyan-950/60 px-1.5 py-0.5 rounded border border-cyan-800/60">Away</span>
+                                            </div>
                                             <NHLGoalieStatsCard 
                                               game={game}
                                               isHome={false}
                                               goalieData={getGoalieData(false, game)}
                                             />
+                                          </div>
+
+                                          {/* Column 2: Home Starting Goalie */}
+                                          <div className="bg-slate-900 rounded-xl border border-slate-800 p-3 sm:p-4 space-y-2">
+                                            <div className="flex items-center justify-between text-[8px] font-mono uppercase tracking-wider text-slate-400 pb-1.5 border-b border-slate-800/60">
+                                              <span className="font-bold text-slate-300">{game.homeTeam.abbrev} Starting Netminder</span>
+                                              <span className="text-emerald-400 font-bold bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800/60">Home Ice</span>
+                                            </div>
                                             <NHLGoalieStatsCard 
                                               game={game}
                                               isHome={true}
