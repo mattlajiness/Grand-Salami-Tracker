@@ -2,6 +2,7 @@ import { format } from 'date-fns';
 
 export interface NHLGame {
   id: number;
+  gameType?: number;
   gameState: 'PRE' | 'LIVE' | 'OFF' | 'FINAL' | 'CRIT' | 'FUT' | 'OVER' | string;
   startTimeUTC: string;
   gameDate: string;

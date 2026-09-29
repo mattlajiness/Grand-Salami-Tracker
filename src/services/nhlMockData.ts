@@ -426,13 +426,48 @@ export const SIMULATED_DETAILS: Record<number, any> = {
   },
   9996: {
     id: 9996,
+    venue: { default: 'Climate Pledge Arena' },
+    venueLocation: { default: 'Seattle, WA' },
     awayTeam: {
       abbrev: 'VAN',
-      probableStartingGoalie: { lastName: 'Demko', savePctg: 0.917, record: '32-13-2', gaa: '2.45' }
+      probableStartingGoalie: { lastName: 'Silovs', firstName: 'Arturs', savePctg: 0.908, record: '13-5-2', gaa: '2.61' }
     },
     homeTeam: {
       abbrev: 'SEA',
-      probableStartingGoalie: { lastName: 'Daccord', savePctg: 0.914, record: '18-14-10', gaa: '2.52' }
+      probableStartingGoalie: { lastName: 'Daccord', firstName: 'Joey', savePctg: 0.914, record: '18-14-10', gaa: '2.52' }
+    },
+    matchup: {
+      skaterComparison: {
+        leaders: [
+          {
+            category: 'Points',
+            awayLeader: { name: 'J.T. Miller', value: 103, headshot: 'https://assets.nhle.com/mugs/nhl/latest/8476468.png' },
+            homeLeader: { name: 'Jared McCann', value: 62, headshot: 'https://assets.nhle.com/mugs/nhl/latest/8477955.png' }
+          },
+          {
+            category: 'Goals',
+            awayLeader: { name: 'Brock Boeser', value: 40, headshot: 'https://assets.nhle.com/mugs/nhl/latest/8478444.png' },
+            homeLeader: { name: 'Jared McCann', value: 29, headshot: 'https://assets.nhle.com/mugs/nhl/latest/8477955.png' }
+          },
+          {
+            category: 'Assists',
+            awayLeader: { name: 'Quinn Hughes', value: 75, headshot: 'https://assets.nhle.com/mugs/nhl/latest/8480800.png' },
+            homeLeader: { name: 'Vince Dunn', value: 35, headshot: 'https://assets.nhle.com/mugs/nhl/latest/8478469.png' }
+          }
+        ]
+      },
+      goalieComparison: {
+        awayTeam: {
+          leaders: [
+            { lastName: 'Silovs', firstName: 'Arturs', savePctg: 0.908, record: '13-5-2', gaa: '2.61' }
+          ]
+        },
+        homeTeam: {
+          leaders: [
+            { lastName: 'Daccord', firstName: 'Joey', savePctg: 0.914, record: '18-14-10', gaa: '2.52' }
+          ]
+        }
+      }
     },
     summary: {
       scoring: [],

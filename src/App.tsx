@@ -820,6 +820,9 @@ export default function App() {
     const uniqueNhlGames = historicalNhlGames.filter(g => {
       if (!g.id || seenGames.has(g.id)) return false;
       seenGames.add(g.id);
+      // Filter out pre-season games (gameType 1 or date before 2026-09-29 regular season start)
+      const date = g.gameDate ? g.gameDate.split('T')[0] : '';
+      if (g.gameType === 1 || (date && date < '2026-09-29')) return false;
       return true;
     });
 

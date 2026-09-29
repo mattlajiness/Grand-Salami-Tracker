@@ -41,7 +41,9 @@ const SEASON_BASELINES: Record<string, { savePctg: number; gaa: string; record: 
   'Talbot': { savePctg: 0.883, gaa: '3.19', record: '12-9-6', playerId: 8475660 },
   'Jarry': { savePctg: 0.903, gaa: '2.91', record: '19-25-5', playerId: 8477465 },
   'Lindgren': { savePctg: 0.911, gaa: '2.67', record: '25-16-7', playerId: 8479292 },
-  'Ersson': { savePctg: 0.898, gaa: '2.82', record: '23-19-7', playerId: 8481035 }
+  'Ersson': { savePctg: 0.898, gaa: '2.82', record: '23-19-7', playerId: 8481035 },
+  'Silovs': { savePctg: 0.908, gaa: '2.61', record: '13-5-2', playerId: 8481617 },
+  'Merzlikins': { savePctg: 0.897, gaa: '3.45', record: '13-17-8', playerId: 8478007 }
 };
 
 // Fallback lookup of primary starting netminders by team abbreviation
@@ -56,15 +58,15 @@ const TEAM_PRIMARY_GOALIES: Record<string, { name: string; lastName: string; pla
   VGK: { name: 'Adin Hill', lastName: 'Hill', playerId: 8478499, savePctg: 0.915, gaa: '2.71', record: '19-12-2' },
   CHI: { name: 'Petr Mrazek', lastName: 'Mrazek', playerId: 8475852, savePctg: 0.904, gaa: '3.05', record: '18-31-4' },
   DET: { name: 'Cam Talbot', lastName: 'Talbot', playerId: 8475660, savePctg: 0.913, gaa: '2.50', record: '27-20-6' },
-  VAN: { name: 'Thatcher Demko', lastName: 'Demko', playerId: 8477967, savePctg: 0.917, gaa: '2.45', record: '32-13-2' },
+  VAN: { name: 'Arturs Silovs', lastName: 'Silovs', playerId: 8481617, savePctg: 0.908, gaa: '2.61', record: '13-5-2' },
   SEA: { name: 'Joey Daccord', lastName: 'Daccord', playerId: 8478916, savePctg: 0.914, gaa: '2.52', record: '18-14-10' },
   TBL: { name: 'Andrei Vasilevskiy', lastName: 'Vasilevskiy', playerId: 8476883, savePctg: 0.900, gaa: '2.90', record: '30-20-2' },
   FLA: { name: 'Sergei Bobrovsky', lastName: 'Bobrovsky', playerId: 8475683, savePctg: 0.913, gaa: '2.37', record: '36-17-4' },
   DAL: { name: 'Jake Oettinger', lastName: 'Oettinger', playerId: 8479979, savePctg: 0.905, gaa: '2.72', record: '35-14-4' },
   WPG: { name: 'Connor Hellebuyck', lastName: 'Hellebuyck', playerId: 8476945, savePctg: 0.921, gaa: '2.39', record: '37-19-4' },
-  BUF: { name: 'Alex Lyon', lastName: 'Lyon', playerId: 8479312, savePctg: 0.907, gaa: '2.77', record: '20-10-4' },
-  CBJ: { name: 'Jet Greaves', lastName: 'Greaves', playerId: 8482982, savePctg: 0.908, gaa: '2.60', record: '26-19-9' },
-  PIT: { name: 'Sergei Murashov', lastName: 'Murashov', playerId: 8483703, savePctg: 0.915, gaa: '2.20', record: '8-3-1' },
+  BUF: { name: 'Ukko-Pekka Luukkonen', lastName: 'Luukkonen', playerId: 8480045, savePctg: 0.910, gaa: '2.57', record: '27-22-4' },
+  CBJ: { name: 'Elvis Merzlikins', lastName: 'Merzlikins', playerId: 8478007, savePctg: 0.897, gaa: '3.45', record: '13-17-8' },
+  PIT: { name: 'Tristan Jarry', lastName: 'Jarry', playerId: 8477465, savePctg: 0.903, gaa: '2.91', record: '19-25-5' },
   WSH: { name: 'Charlie Lindgren', lastName: 'Lindgren', playerId: 8479292, savePctg: 0.911, gaa: '2.67', record: '25-16-7' },
   PHI: { name: 'Samuel Ersson', lastName: 'Ersson', playerId: 8481035, savePctg: 0.898, gaa: '2.82', record: '23-19-7' },
   CAR: { name: 'Pyotr Kochetkov', lastName: 'Kochetkov', playerId: 8481611, savePctg: 0.911, gaa: '2.33', record: '23-13-4' },
