@@ -80,36 +80,36 @@ const NHL_ALL_TEAMS = [
   'STL', 'TBL', 'TOR', 'UTA', 'VAN', 'VGK', 'WPG', 'WSH'
 ];
 
-// Verified 2026-2027 primary starting goalies (e.g. Igor Shesterkin for NYR)
+// Verified 2026-2027 primary starting goalies (e.g. Igor Shesterkin for NYR, Bobrovsky for FLA, etc.)
 const NHL_PRIMARY_STARTERS: Record<string, { id: number; firstName: string; lastName: string }> = {
   ANA: { id: 8480843, firstName: 'Lukas', lastName: 'Dostal' },
   BOS: { id: 8480280, firstName: 'Jeremy', lastName: 'Swayman' },
   BUF: { id: 8480045, firstName: 'Ukko-Pekka', lastName: 'Luukkonen' },
-  CAR: { id: 8483548, firstName: 'Brandon', lastName: 'Bussi' },
-  CBJ: { id: 8482982, firstName: 'Jet', lastName: 'Greaves' },
+  CAR: { id: 8481611, firstName: 'Pyotr', lastName: 'Kochetkov' },
+  CBJ: { id: 8477992, firstName: 'Elvis', lastName: 'Merzlikins' },
   CGY: { id: 8481692, firstName: 'Dustin', lastName: 'Wolf' },
-  CHI: { id: 8481519, firstName: 'Spencer', lastName: 'Knight' },
-  COL: { id: 8478406, firstName: 'Mackenzie', lastName: 'Blackwood' },
+  CHI: { id: 8475852, firstName: 'Petr', lastName: 'Mrazek' },
+  COL: { id: 8480382, firstName: 'Alexandar', lastName: 'Georgiev' },
   DAL: { id: 8479979, firstName: 'Jake', lastName: 'Oettinger' },
-  DET: { id: 8476434, firstName: 'John', lastName: 'Gibson' },
-  EDM: { id: 8477465, firstName: 'Tristan', lastName: 'Jarry' },
-  FLA: { id: 8474593, firstName: 'Jacob', lastName: 'Markstrom' },
+  DET: { id: 8475660, firstName: 'Cam', lastName: 'Talbot' },
+  EDM: { id: 8480947, firstName: 'Kevin', lastName: 'Lankinen' },
+  FLA: { id: 8475683, firstName: 'Sergei', lastName: 'Bobrovsky' },
   LAK: { id: 8475311, firstName: 'Darcy', lastName: 'Kuemper' },
-  MIN: { id: 8482661, firstName: 'Jesper', lastName: 'Wallstedt' },
-  MTL: { id: 8478470, firstName: 'Samuel', lastName: 'Montembeault' },
-  NJD: { id: 8474596, firstName: 'Jake', lastName: 'Allen' },
+  MIN: { id: 8479406, firstName: 'Filip', lastName: 'Gustavsson' },
+  MTL: { id: 8482487, firstName: 'Jakub', lastName: 'Dobes' },
+  NJD: { id: 8474593, firstName: 'Jacob', lastName: 'Markstrom' },
   NSH: { id: 8477424, firstName: 'Juuse', lastName: 'Saros' },
   NYI: { id: 8478009, firstName: 'Ilya', lastName: 'Sorokin' },
   NYR: { id: 8478048, firstName: 'Igor', lastName: 'Shesterkin' },
   OTT: { id: 8476999, firstName: 'Linus', lastName: 'Ullmark' },
-  PHI: { id: 8479361, firstName: 'Joseph', lastName: 'Woll' },
-  PIT: { id: 8483703, firstName: 'Sergei', lastName: 'Murashov' },
+  PHI: { id: 8481035, firstName: 'Samuel', lastName: 'Ersson' },
+  PIT: { id: 8477465, firstName: 'Tristan', lastName: 'Jarry' },
   SEA: { id: 8478916, firstName: 'Joey', lastName: 'Daccord' },
-  SJS: { id: 8482137, firstName: 'Yaroslav', lastName: 'Askarov' },
+  SJS: { id: 8478406, firstName: 'Mackenzie', lastName: 'Blackwood' },
   STL: { id: 8476412, firstName: 'Jordan', lastName: 'Binnington' },
   TBL: { id: 8476883, firstName: 'Andrei', lastName: 'Vasilevskiy' },
-  TOR: { id: 8475683, firstName: 'Sergei', lastName: 'Bobrovsky' },
-  UTA: { id: 8478872, firstName: 'Karel', lastName: 'Vejmelka' },
+  TOR: { id: 8479361, firstName: 'Joseph', lastName: 'Woll' },
+  UTA: { id: 8479312, firstName: 'Connor', lastName: 'Ingram' },
   VAN: { id: 8477967, firstName: 'Thatcher', lastName: 'Demko' },
   VGK: { id: 8478499, firstName: 'Adin', lastName: 'Hill' },
   WPG: { id: 8476945, firstName: 'Connor', lastName: 'Hellebuyck' },
@@ -152,14 +152,27 @@ async function fetchTeamGoaliesFromNHL(teamAbbrev: string) {
       teamAbbrev
     }));
 
-    // Ensure the known primary starter (e.g. Igor Shesterkin for NYR) is always sorted to index 0
+    // Ensure the known primary starter (e.g. Igor Shesterkin for NYR, Jakub Dobes for MTL, Kevin Lankinen for EDM) is always index 0
     const primaryStarter = NHL_PRIMARY_STARTERS[teamAbbrev.toUpperCase()];
     if (primaryStarter) {
-      list.sort((a: any, b: any) => {
-        if (a.id === primaryStarter.id || a.lastName?.toLowerCase() === primaryStarter.lastName.toLowerCase()) return -1;
-        if (b.id === primaryStarter.id || b.lastName?.toLowerCase() === primaryStarter.lastName.toLowerCase()) return 1;
-        return 0;
-      });
+      const found = list.some((g: any) => g.id === primaryStarter.id || g.lastName?.toLowerCase() === primaryStarter.lastName.toLowerCase());
+      if (!found) {
+        list.unshift({
+          playerId: primaryStarter.id,
+          id: primaryStarter.id,
+          firstName: primaryStarter.firstName,
+          lastName: primaryStarter.lastName,
+          sweaterNumber: 32,
+          headshot: `https://assets.nhle.com/mugs/nhl/20262027/${teamAbbrev}/${primaryStarter.id}.png`,
+          teamAbbrev
+        });
+      } else {
+        list.sort((a: any, b: any) => {
+          if (a.id === primaryStarter.id || a.lastName?.toLowerCase() === primaryStarter.lastName.toLowerCase()) return -1;
+          if (b.id === primaryStarter.id || b.lastName?.toLowerCase() === primaryStarter.lastName.toLowerCase()) return 1;
+          return 0;
+        });
+      }
     }
 
     return list;
