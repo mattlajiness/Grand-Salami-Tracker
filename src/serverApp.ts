@@ -88,27 +88,27 @@ const NHL_PRIMARY_STARTERS: Record<string, { id: number; firstName: string; last
   CAR: { id: 8481611, firstName: 'Pyotr', lastName: 'Kochetkov' },
   CBJ: { id: 8477992, firstName: 'Elvis', lastName: 'Merzlikins' },
   CGY: { id: 8481692, firstName: 'Dustin', lastName: 'Wolf' },
-  CHI: { id: 8475852, firstName: 'Petr', lastName: 'Mrazek' },
-  COL: { id: 8480382, firstName: 'Alexandar', lastName: 'Georgiev' },
+  CHI: { id: 8481519, firstName: 'Spencer', lastName: 'Knight' },
+  COL: { id: 8475809, firstName: 'Scott', lastName: 'Wedgewood' },
   DAL: { id: 8479979, firstName: 'Jake', lastName: 'Oettinger' },
-  DET: { id: 8475660, firstName: 'Cam', lastName: 'Talbot' },
+  DET: { id: 8476434, firstName: 'John', lastName: 'Gibson' },
   EDM: { id: 8480947, firstName: 'Kevin', lastName: 'Lankinen' },
-  FLA: { id: 8475683, firstName: 'Sergei', lastName: 'Bobrovsky' },
+  FLA: { id: 8474593, firstName: 'Jacob', lastName: 'Markstrom' },
   LAK: { id: 8475311, firstName: 'Darcy', lastName: 'Kuemper' },
-  MIN: { id: 8479406, firstName: 'Filip', lastName: 'Gustavsson' },
+  MIN: { id: 8475717, firstName: 'Calvin', lastName: 'Pickard' },
   MTL: { id: 8482487, firstName: 'Jakub', lastName: 'Dobes' },
-  NJD: { id: 8474593, firstName: 'Jacob', lastName: 'Markstrom' },
+  NJD: { id: 8474596, firstName: 'Jake', lastName: 'Allen' },
   NSH: { id: 8477424, firstName: 'Juuse', lastName: 'Saros' },
   NYI: { id: 8478009, firstName: 'Ilya', lastName: 'Sorokin' },
   NYR: { id: 8478048, firstName: 'Igor', lastName: 'Shesterkin' },
   OTT: { id: 8476999, firstName: 'Linus', lastName: 'Ullmark' },
-  PHI: { id: 8481035, firstName: 'Samuel', lastName: 'Ersson' },
-  PIT: { id: 8477465, firstName: 'Tristan', lastName: 'Jarry' },
+  PHI: { id: 8478435, firstName: 'Dan', lastName: 'Vladar' },
+  PIT: { id: 8481668, firstName: 'Arturs', lastName: 'Silovs' },
   SEA: { id: 8478916, firstName: 'Joey', lastName: 'Daccord' },
   SJS: { id: 8478406, firstName: 'Mackenzie', lastName: 'Blackwood' },
   STL: { id: 8476412, firstName: 'Jordan', lastName: 'Binnington' },
   TBL: { id: 8476883, firstName: 'Andrei', lastName: 'Vasilevskiy' },
-  TOR: { id: 8479361, firstName: 'Joseph', lastName: 'Woll' },
+  TOR: { id: 8475683, firstName: 'Sergei', lastName: 'Bobrovsky' },
   UTA: { id: 8479312, firstName: 'Connor', lastName: 'Ingram' },
   VAN: { id: 8477967, firstName: 'Thatcher', lastName: 'Demko' },
   VGK: { id: 8478499, firstName: 'Adin', lastName: 'Hill' },
@@ -310,11 +310,12 @@ app.get("/api/nhl/game/:gameId", async (req, res) => {
       data.homeTeam.goalies = homeBoxGoalies;
     }
 
+    const awayAbbrev = (data.awayTeam?.abbrev || '').toUpperCase();
+    const homeAbbrev = (data.homeTeam?.abbrev || '').toUpperCase();
+
     // 2. Check matchup leaders (source for upcoming pre-season & regular season games)
     const matchupAwayLeaders = data.matchup?.goalieComparison?.awayTeam?.leaders || [];
     const matchupHomeLeaders = data.matchup?.goalieComparison?.homeTeam?.leaders || [];
-    const awayAbbrev = (data.awayTeam?.abbrev || '').toUpperCase();
-    const homeAbbrev = (data.homeTeam?.abbrev || '').toUpperCase();
     const awayStarter = NHL_PRIMARY_STARTERS[awayAbbrev];
     const homeStarter = NHL_PRIMARY_STARTERS[homeAbbrev];
 
@@ -332,7 +333,7 @@ app.get("/api/nhl/game/:gameId", async (req, res) => {
         data.awayTeam.probableStartingGoalie = matchupAwayLeaders[0];
       }
     } else if (awayStarter && !data.awayTeam.probableStartingGoalie.confirmed) {
-      // If unconfirmed backup was set, ensure primary starter (like Shesterkin for NYR) is probable
+      // If unconfirmed backup was set, ensure primary starter is probable
       if (data.awayTeam.probableStartingGoalie.playerId !== awayStarter.id && data.awayTeam.probableStartingGoalie.lastName !== awayStarter.lastName) {
         data.awayTeam.probableStartingGoalie = {
           playerId: awayStarter.id,
@@ -358,7 +359,7 @@ app.get("/api/nhl/game/:gameId", async (req, res) => {
         data.homeTeam.probableStartingGoalie = matchupHomeLeaders[0];
       }
     } else if (homeStarter && !data.homeTeam.probableStartingGoalie.confirmed) {
-      // If unconfirmed backup was set, ensure primary starter (like Shesterkin for NYR) is probable
+      // If unconfirmed backup was set, ensure primary starter is probable
       if (data.homeTeam.probableStartingGoalie.playerId !== homeStarter.id && data.homeTeam.probableStartingGoalie.lastName !== homeStarter.lastName) {
         data.homeTeam.probableStartingGoalie = {
           playerId: homeStarter.id,

@@ -80,27 +80,27 @@ const NHL_PRIMARY_GOALIES: Record<string, { lastName: string; firstName?: string
   CAR: { lastName: 'Kochetkov', firstName: 'Pyotr', playerId: 8481611, savePctg: 0.911, gaa: '2.33', record: '23-13-4' },
   CBJ: { lastName: 'Merzlikins', firstName: 'Elvis', playerId: 8477992, savePctg: 0.897, gaa: '3.45', record: '13-17-8' },
   CGY: { lastName: 'Wolf', firstName: 'Dustin', playerId: 8481692, savePctg: 0.899, gaa: '3.01', record: '23-29-3' },
-  CHI: { lastName: 'Mrazek', firstName: 'Petr', playerId: 8475852, savePctg: 0.907, gaa: '3.05', record: '18-31-4' },
-  COL: { lastName: 'Georgiev', firstName: 'Alexandar', playerId: 8480382, savePctg: 0.897, gaa: '3.02', record: '38-18-5' },
+  CHI: { lastName: 'Knight', firstName: 'Spencer', playerId: 8481519, savePctg: 0.904, gaa: '2.88', record: '15-18-4' },
+  COL: { lastName: 'Wedgewood', firstName: 'Scott', playerId: 8475809, savePctg: 0.905, gaa: '2.85', record: '16-7-5' },
   DAL: { lastName: 'Oettinger', firstName: 'Jake', playerId: 8479979, savePctg: 0.899, gaa: '2.59', record: '35-12-6' },
-  DET: { lastName: 'Talbot', firstName: 'Cam', playerId: 8475660, savePctg: 0.913, gaa: '2.50', record: '27-20-6' },
+  DET: { lastName: 'Gibson', firstName: 'John', playerId: 8476434, savePctg: 0.902, gaa: '2.95', record: '14-22-3' },
   EDM: { lastName: 'Lankinen', firstName: 'Kevin', playerId: 8480947, savePctg: 0.902, gaa: '2.85', record: '14-9-4' },
-  FLA: { lastName: 'Bobrovsky', firstName: 'Sergei', playerId: 8475683, savePctg: 0.915, gaa: '2.37', record: '36-17-4' },
+  FLA: { lastName: 'Markstrom', firstName: 'Jacob', playerId: 8474593, savePctg: 0.905, gaa: '2.78', record: '23-23-2' },
   LAK: { lastName: 'Kuemper', firstName: 'Darcy', playerId: 8475311, savePctg: 0.891, gaa: '2.78', record: '19-14-15' },
-  MIN: { lastName: 'Gustavsson', firstName: 'Filip', playerId: 8479406, savePctg: 0.910, gaa: '2.58', record: '20-18-4' },
+  MIN: { lastName: 'Pickard', firstName: 'Calvin', playerId: 8475717, savePctg: 0.909, gaa: '2.60', record: '12-7-1' },
   MTL: { lastName: 'Dobes', firstName: 'Jakub', playerId: 8482487, savePctg: 0.902, gaa: '2.85', record: '9-11-2' },
-  NJD: { lastName: 'Markstrom', firstName: 'Jacob', playerId: 8474593, savePctg: 0.905, gaa: '2.78', record: '23-23-2' },
+  NJD: { lastName: 'Allen', firstName: 'Jake', playerId: 8474596, savePctg: 0.900, gaa: '2.95', record: '12-18-4' },
   NSH: { lastName: 'Saros', firstName: 'Juuse', playerId: 8477424, savePctg: 0.906, gaa: '2.86', record: '35-24-5' },
   NYI: { lastName: 'Sorokin', firstName: 'Ilya', playerId: 8478009, savePctg: 0.909, gaa: '2.99', record: '25-19-12' },
   NYR: { lastName: 'Shesterkin', firstName: 'Igor', playerId: 8478048, savePctg: 0.913, gaa: '2.58', record: '36-17-2' },
   OTT: { lastName: 'Ullmark', firstName: 'Linus', playerId: 8476999, savePctg: 0.915, gaa: '2.57', record: '22-10-7' },
-  PHI: { lastName: 'Ersson', firstName: 'Samuel', playerId: 8481035, savePctg: 0.898, gaa: '2.82', record: '23-19-7' },
-  PIT: { lastName: 'Jarry', firstName: 'Tristan', playerId: 8477465, savePctg: 0.903, gaa: '2.91', record: '19-25-5' },
+  PHI: { lastName: 'Vladar', firstName: 'Dan', playerId: 8478435, savePctg: 0.900, gaa: '2.95', record: '11-13-4' },
+  PIT: { lastName: 'Silovs', firstName: 'Arturs', playerId: 8481668, savePctg: 0.902, gaa: '2.80', record: '10-6-3' },
   SEA: { lastName: 'Daccord', firstName: 'Joey', playerId: 8478916, savePctg: 0.916, gaa: '2.46', record: '19-18-11' },
   SJS: { lastName: 'Blackwood', firstName: 'Mackenzie', playerId: 8478406, savePctg: 0.899, gaa: '3.45', record: '10-25-4' },
   STL: { lastName: 'Binnington', firstName: 'Jordan', playerId: 8476412, savePctg: 0.913, gaa: '2.84', record: '28-21-4' },
   TBL: { lastName: 'Vasilevskiy', firstName: 'Andrei', playerId: 8476883, savePctg: 0.900, gaa: '2.90', record: '30-20-2' },
-  TOR: { lastName: 'Woll', firstName: 'Joseph', playerId: 8479361, savePctg: 0.907, gaa: '2.94', record: '12-11-1' },
+  TOR: { lastName: 'Bobrovsky', firstName: 'Sergei', playerId: 8475683, savePctg: 0.915, gaa: '2.37', record: '36-17-4' },
   UTA: { lastName: 'Ingram', firstName: 'Connor', playerId: 8479312, savePctg: 0.907, gaa: '2.91', record: '23-21-3' },
   VAN: { lastName: 'Demko', firstName: 'Thatcher', playerId: 8477967, savePctg: 0.918, gaa: '2.45', record: '35-14-2' },
   VGK: { lastName: 'Hill', firstName: 'Adin', playerId: 8478499, savePctg: 0.909, gaa: '2.71', record: '19-12-2' },
@@ -389,19 +389,19 @@ function NHLLiveAnalytics({
       </div>
 
       {/* Shot Differential Analytics */}
-      {gameDetails.summary?.teamStats && (
+      {gameDetails?.summary?.teamStats && (
         <div className="space-y-3 pt-2 border-t border-slate-800/50">
           <div className="flex flex-col gap-1">
             <div className="flex justify-between text-[8px] font-mono text-slate-500 uppercase tracking-widest mb-1">
               <span>Offensive Volume (SOG)</span>
               <span className="text-white">
-                {gameDetails.awayTeam?.abbrev} {gameDetails.summary.teamStats.find((s: any) => s.category === 'sog')?.awayValue} 
+                {gameDetails?.awayTeam?.abbrev} {gameDetails?.summary?.teamStats?.find((s: any) => s.category === 'sog')?.awayValue} 
                 • 
-                {gameDetails.homeTeam?.abbrev} {gameDetails.summary.teamStats.find((s: any) => s.category === 'sog')?.homeValue}
+                {gameDetails?.homeTeam?.abbrev} {gameDetails?.summary?.teamStats?.find((s: any) => s.category === 'sog')?.homeValue}
               </span>
             </div>
             {(() => {
-              const sogStat = gameDetails.summary.teamStats.find((s: any) => s.category === 'sog');
+              const sogStat = gameDetails?.summary?.teamStats?.find((s: any) => s.category === 'sog');
               if (!sogStat) return null;
               const awayVal = parseInt(sogStat.awayValue);
               const homeVal = parseInt(sogStat.homeValue);
