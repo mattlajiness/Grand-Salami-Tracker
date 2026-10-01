@@ -48,6 +48,32 @@ app.get("/api/nhl/scores/:date", async (req, res) => {
 
     const data = await response.json();
     console.log(`[NHL Proxy] Successfully fetched ${data.games?.length || 0} games.`);
+
+    // Augment with live confirmed goalies
+    try {
+      const confirmedMap = await getLiveConfirmedGoalies();
+      if (data.games && Array.isArray(data.games)) {
+        data.games.forEach((g: any) => {
+          const awayAbbr = g.awayTeam?.abbrev?.toUpperCase();
+          const homeAbbr = g.homeTeam?.abbrev?.toUpperCase();
+          if (awayAbbr && confirmedMap[awayAbbr]) {
+            g.awayGoalie = {
+              ...confirmedMap[awayAbbr],
+              starter: confirmedMap[awayAbbr].confirmed
+            };
+          }
+          if (homeAbbr && confirmedMap[homeAbbr]) {
+            g.homeGoalie = {
+              ...confirmedMap[homeAbbr],
+              starter: confirmedMap[homeAbbr].confirmed
+            };
+          }
+        });
+      }
+    } catch (confErr) {
+      console.warn("[NHL Proxy] Error augmenting confirmed goalies:", confErr);
+    }
+
     res.json(data);
   } catch (error: any) {
     console.error("NHL Proxy Error:", error);
@@ -212,6 +238,72 @@ app.get("/api/nhl/rosters/goalies", async (req, res) => {
   }
 });
 
+// ESPN Confirmed Goalies Sync
+interface ConfirmedGoalieInfo {
+  name: string;
+  firstName?: string;
+  lastName?: string;
+  sweaterNumber?: number;
+  headshot?: string;
+  status: string;
+  confirmed: boolean;
+  espnId?: string;
+}
+
+let espnGoaliesCache: { goalies: Record<string, ConfirmedGoalieInfo>; timestamp: number } | null = null;
+
+async function getLiveConfirmedGoalies(): Promise<Record<string, ConfirmedGoalieInfo>> {
+  const now = Date.now();
+  if (espnGoaliesCache && now - espnGoaliesCache.timestamp < 60000) {
+    return espnGoaliesCache.goalies;
+  }
+
+  try {
+    const res = await fetch("https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/scoreboard", {
+      headers: { "User-Agent": "Mozilla/5.0" }
+    });
+    if (!res.ok) throw new Error(`ESPN responded with ${res.status}`);
+    const data = await res.json();
+    const espnGoalies: Record<string, ConfirmedGoalieInfo> = {};
+    const normalizeAbbrev = (abbr: string) => {
+      const map: Record<string, string> = { "NJ": "NJD", "TB": "TBL", "SJ": "SJS", "LA": "LAK", "MON": "MTL" };
+      return map[abbr] || abbr;
+    };
+
+    data.events?.forEach((e: any) => {
+      e.competitions?.[0]?.competitors?.forEach((c: any) => {
+        const teamAbbr = normalizeAbbrev(c.team?.abbreviation);
+        const p = c.probables?.[0];
+        if (p?.athlete) {
+          const isConfirmed = p.status?.type === "confirmed" || (p.status?.name || "").toLowerCase() === "confirmed";
+          espnGoalies[teamAbbr] = {
+            name: p.athlete.displayName,
+            firstName: p.athlete.displayName?.split(" ")[0],
+            lastName: p.athlete.displayName?.split(" ").slice(1).join(" "),
+            sweaterNumber: parseInt(p.athlete.jersey) || undefined,
+            headshot: p.athlete.headshot,
+            status: p.status?.name || (isConfirmed ? "Confirmed" : "Probable"),
+            confirmed: isConfirmed,
+            espnId: p.athlete.id
+          };
+        }
+      });
+    });
+
+    espnGoaliesCache = { goalies: espnGoalies, timestamp: now };
+    return espnGoalies;
+  } catch (err) {
+    console.error("[ESPN Goalie Confirmation Sync] Failed:", err);
+    return espnGoaliesCache?.goalies || {};
+  }
+}
+
+// Endpoint to get confirmed starting goalies across today's games
+app.get("/api/nhl/confirmed-goalies", async (req, res) => {
+  const goalies = await getLiveConfirmedGoalies();
+  res.json(goalies);
+});
+
 // Route to get current roster for a single team
 app.get("/api/nhl/roster/:team", async (req, res) => {
   const team = (req.params.team || '').toUpperCase();
@@ -369,6 +461,49 @@ app.get("/api/nhl/game/:gameId", async (req, res) => {
           headshot: `https://assets.nhle.com/mugs/nhl/20262027/${homeAbbrev}/${homeStarter.id}.png`
         };
       }
+    }
+
+    // Merge live confirmed starting goalies from ESPN
+    try {
+      const confirmedMap = await getLiveConfirmedGoalies();
+      const awayConfirmed = confirmedMap[awayAbbrev];
+      const homeConfirmed = confirmedMap[homeAbbrev];
+
+      if (awayConfirmed) {
+        data.awayTeam.probableStartingGoalie = {
+          ...(data.awayTeam.probableStartingGoalie || {}),
+          name: awayConfirmed.name,
+          firstName: awayConfirmed.firstName || data.awayTeam.probableStartingGoalie?.firstName,
+          lastName: awayConfirmed.lastName || data.awayTeam.probableStartingGoalie?.lastName,
+          sweaterNumber: awayConfirmed.sweaterNumber || data.awayTeam.probableStartingGoalie?.sweaterNumber,
+          headshot: data.awayTeam.probableStartingGoalie?.headshot || awayConfirmed.headshot,
+          confirmed: awayConfirmed.confirmed,
+          status: awayConfirmed.status,
+          starter: awayConfirmed.confirmed
+        };
+        if (awayConfirmed.confirmed && !data.awayTeam.goaltender) {
+          data.awayTeam.goaltender = data.awayTeam.probableStartingGoalie;
+        }
+      }
+
+      if (homeConfirmed) {
+        data.homeTeam.probableStartingGoalie = {
+          ...(data.homeTeam.probableStartingGoalie || {}),
+          name: homeConfirmed.name,
+          firstName: homeConfirmed.firstName || data.homeTeam.probableStartingGoalie?.firstName,
+          lastName: homeConfirmed.lastName || data.homeTeam.probableStartingGoalie?.lastName,
+          sweaterNumber: homeConfirmed.sweaterNumber || data.homeTeam.probableStartingGoalie?.sweaterNumber,
+          headshot: data.homeTeam.probableStartingGoalie?.headshot || homeConfirmed.headshot,
+          confirmed: homeConfirmed.confirmed,
+          status: homeConfirmed.status,
+          starter: homeConfirmed.confirmed
+        };
+        if (homeConfirmed.confirmed && !data.homeTeam.goaltender) {
+          data.homeTeam.goaltender = data.homeTeam.probableStartingGoalie;
+        }
+      }
+    } catch (confErr) {
+      console.warn("[NHL Proxy] Error merging confirmed goalies in game details:", confErr);
     }
 
     if (!data.awayTeam.goaltender && data.awayTeam.probableStartingGoalie) {

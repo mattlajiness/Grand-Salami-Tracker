@@ -251,12 +251,27 @@ export function NHLGoalieStatsCard({ game, isHome, goalieData }: NHLGoalieStatsC
     return 'text-rose-500';
   }, [liveStats]);
 
+  const isConfirmed = Boolean(
+    goalieData?.confirmed || 
+    goalieData?.starter || 
+    (typeof goalieData?.status === 'string' && goalieData.status.toLowerCase() === 'confirmed')
+  );
+
+  const isExpected = Boolean(
+    typeof goalieData?.status === 'string' && (
+      goalieData.status.toLowerCase() === 'expected' || 
+      goalieData.status.toLowerCase() === 'likely'
+    )
+  );
+
   const badgeText = isLive 
     ? 'In Net' 
     : isFinal 
     ? 'Final Stats' 
-    : (goalieData?.confirmed || goalieData?.starter) 
+    : isConfirmed
     ? 'Confirmed' 
+    : isExpected
+    ? 'Expected'
     : (goalieData ? 'Probable' : 'Projected');
 
   return (
@@ -287,7 +302,7 @@ export function NHLGoalieStatsCard({ game, isHome, goalieData }: NHLGoalieStatsC
           </div>
         </div>
 
-        {/* Goalie Status Badge (In Net vs Probable) */}
+        {/* Goalie Status Badge (In Net vs Confirmed vs Expected vs Probable) */}
         <span className={cn(
           "text-[7px] px-1.5 py-0.5 rounded border tracking-widest uppercase font-black shrink-0",
           isLive
@@ -295,7 +310,9 @@ export function NHLGoalieStatsCard({ game, isHome, goalieData }: NHLGoalieStatsC
             : isFinal 
             ? "bg-slate-800 border-slate-700 text-slate-300"
             : badgeText === 'Confirmed'
-            ? "bg-emerald-950/30 border-emerald-800/50 text-emerald-400"
+            ? "bg-emerald-950/40 border-emerald-500/60 text-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.2)]"
+            : badgeText === 'Expected'
+            ? "bg-amber-950/40 border-amber-500/50 text-amber-400"
             : "bg-blue-950/40 border-blue-900/40 text-blue-400"
         )}>
           {badgeText}

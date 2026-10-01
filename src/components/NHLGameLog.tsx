@@ -466,8 +466,27 @@ export function NHLGameLog({
   const [expandedGameId, setExpandedGameId] = useState<number | null>(null);
   const [gameDetailsCache, setGameDetailsCache] = useState<Record<number, any>>({});
   const [liveGoalieRosters, setLiveGoalieRosters] = useState<Record<string, any[]>>({});
+  const [confirmedGoaliesMap, setConfirmedGoaliesMap] = useState<Record<string, any>>({});
   const [filter, setFilter] = useState<'All' | 'LIVE' | 'FINAL' | 'PRE'>('All');
   const fetchingIdsRef = useRef<Set<number>>(new Set());
+
+  // Dynamically load confirmed starting goalies and live rosters
+  useEffect(() => {
+    const loadConfirmedGoalies = () => {
+      fetch('/api/nhl/confirmed-goalies')
+        .then(res => res.json())
+        .then(data => {
+          if (data && typeof data === 'object') {
+            setConfirmedGoaliesMap(data);
+          }
+        })
+        .catch(() => {});
+    };
+
+    loadConfirmedGoalies();
+    const intervalConfirmed = setInterval(loadConfirmedGoalies, 30 * 1000); // 30s heartbeat for live confirmations
+    return () => clearInterval(intervalConfirmed);
+  }, []);
 
   // Dynamically load goalies pulled from nhl.com with periodic refresh
   useEffect(() => {
@@ -624,6 +643,7 @@ export function NHLGameLog({
     const isLiveType = game.gameState === 'LIVE' || game.gameState === 'CRIT' || game.gameState === 'OFF' || game.gameState === 'FINAL' || game.gameState === 'OVER';
     const abbrev = ((isHome ? game.homeTeam?.abbrev : game.awayTeam?.abbrev) || '').toUpperCase();
     const primaryStarter = abbrev ? NHL_PRIMARY_GOALIES[abbrev] : null;
+    const confirmedInfo = confirmedGoaliesMap[abbrev];
     
     if (details && !details._empty) {
       const teamDetails = isHome ? details.homeTeam : details.awayTeam;
@@ -653,6 +673,9 @@ export function NHLGameLog({
       if (teamDetails?.probableStartingGoalie) {
         const prob = teamDetails.probableStartingGoalie;
         if (prob.confirmed || prob.starter) return prob;
+        if (confirmedInfo?.confirmed) {
+          return { ...prob, ...confirmedInfo, confirmed: true, starter: true };
+        }
         // If team has verified primary starter (e.g. Shesterkin for NYR), prioritize them over unconfirmed backups
         if (primaryStarter) {
           const probLast = extractString(prob.lastName || prob.name || '').toLowerCase();
@@ -664,6 +687,7 @@ export function NHLGameLog({
         return prob;
       }
 
+      if (confirmedInfo) return confirmedInfo;
       if (primaryStarter) return primaryStarter;
       if (teamDetails?.goaltender) return teamDetails.goaltender;
       if (matchupLeaders && matchupLeaders.length > 0) return matchupLeaders[0];
@@ -671,6 +695,7 @@ export function NHLGameLog({
       if (teamDetails?.goalies && teamDetails.goalies.length > 0) return selectActiveGoalie(teamDetails.goalies);
     }
 
+    if (confirmedInfo) return confirmedInfo;
     // Fallback to game object goalies if available
     if (isHome && game.homeGoalie) return game.homeGoalie;
     if (!isHome && game.awayGoalie) return game.awayGoalie;
