@@ -195,7 +195,7 @@ export function WagerHistory({
                     <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 w-full sm:w-auto border-t border-slate-900/60 pt-3 sm:border-0 sm:pt-0">
                       <a
                         href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
-                          `I am currently on a ${currentStreak.count}-game ${currentStreak.type} streak on Grand Salami Tracker! ${currentStreak.type === 'WIN' ? '🔥🏆' : currentStreak.type === 'LOSS' ? '📉' : '🔄'} Track daily Grand Salami total runs line in real-time https://grandsalami.bet via @Salamipace #GrandSalami #SalamiStreak`
+                          `I am currently on a ${currentStreak.count}-game ${currentStreak.type} streak on Grand Salami Tracker! ${currentStreak.type === 'WIN' ? '🔥🏆' : currentStreak.type === 'LOSS' ? '📉' : '🔄'} Track daily Grand Salami total ${sport === 'NHL' ? 'goals' : 'runs'} in real-time https://grandsalami.bet via @Salamipace #GrandSalami #SalamiStreak`
                         )}`}
                         target="_blank"
                         rel="noreferrer"

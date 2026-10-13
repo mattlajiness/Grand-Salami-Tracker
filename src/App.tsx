@@ -1589,11 +1589,12 @@ export default function App() {
 
           {/* Hidden SEO Text for Search Indexing */}
           <div className="sr-only">
-            <h2>MLB Grand Salami Betting Tracker & Predictive Model</h2>
+            <h2>MLB &amp; NHL Grand Salami Betting Tracker &amp; Predictive Model</h2>
             <p>
-              Track the daily MLB Grand Salami total runs line in real-time. Our advanced predictive model analyzes game pace, bullpen depth, 
-              and ballpark factors to provide automated pace tracking and score projections for every MLB slate. 
-              Compare live grand salami betting lines across major sportsbooks and identify high-value total run picks.
+              Track daily MLB baseball and NHL hockey Grand Salami total run and goal lines in real-time. 
+              Our advanced predictive model analyzes game pace, bullpen depth, power play situations, 
+              and ballpark weather to provide automated pace tracking and score projections for every MLB and NHL slate. 
+              Compare live grand salami betting lines across major sportsbooks and identify high-value total run and goal picks.
             </p>
           </div>
 
@@ -1634,7 +1635,9 @@ export default function App() {
             <span className="text-slate-700">v1.4.1</span>
           </div>
           <p className="text-[10px] text-slate-600 font-mono tracking-widest">
-            DATA PROVIDED BY MLB STATS API • UPDATES EVERY 60S
+            {activeSport === 'MLB' 
+              ? 'DATA PROVIDED BY MLB STATS API • UPDATES EVERY 60S'
+              : 'DATA PROVIDED BY NHL STATS API • UPDATES EVERY 60S'}
           </p>
           <p className="text-[9px] text-slate-700 font-mono mt-2">
             © {new Date().getFullYear()} GRAND SALAMI TRACKER • FOR ENTERTAINMENT PURPOSES ONLY

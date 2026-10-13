@@ -1,5 +1,5 @@
 import { useState, Fragment, useEffect, useRef } from 'react';
-import { NHLGame, fetchNHLGameDetails, NHLGoalie, fetchNHLCurrentGoalies } from '../services/nhlService';
+import { NHLGame, fetchNHLGameDetails } from '../services/nhlService';
 import { SIMULATED_DETAILS } from '../services/nhlMockData';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -69,42 +69,6 @@ export const renderNHLStatusBadge = (game: NHLGame) => {
       {game.gameState === 'CRIT' ? 'CRIT' : game.gameState === 'OFF' ? 'OFF-ICE' : game.gameState}
     </div>
   );
-};
-
-
-const NHL_PRIMARY_GOALIES: Record<string, { lastName: string; firstName?: string; record?: string; savePctg?: number; gaa?: string; playerId?: number }> = {
-  ANA: { lastName: 'Dostal', firstName: 'Lukas', playerId: 8480843, savePctg: 0.888, gaa: '3.10', record: '30-20-4' },
-  BOS: { lastName: 'Swayman', firstName: 'Jeremy', playerId: 8480280, savePctg: 0.908, gaa: '2.71', record: '31-18-4' },
-  BUF: { lastName: 'Luukkonen', firstName: 'Ukko-Pekka', playerId: 8480045, savePctg: 0.910, gaa: '2.52', record: '22-9-3' },
-  CAR: { lastName: 'Kochetkov', firstName: 'Pyotr', playerId: 8481611, savePctg: 0.911, gaa: '2.33', record: '23-13-4' },
-  CBJ: { lastName: 'Merzlikins', firstName: 'Elvis', playerId: 8477992, savePctg: 0.897, gaa: '3.45', record: '13-17-8' },
-  CGY: { lastName: 'Wolf', firstName: 'Dustin', playerId: 8481692, savePctg: 0.899, gaa: '3.01', record: '23-29-3' },
-  CHI: { lastName: 'Knight', firstName: 'Spencer', playerId: 8481519, savePctg: 0.904, gaa: '2.88', record: '15-18-4' },
-  COL: { lastName: 'Wedgewood', firstName: 'Scott', playerId: 8475809, savePctg: 0.905, gaa: '2.85', record: '16-7-5' },
-  DAL: { lastName: 'Oettinger', firstName: 'Jake', playerId: 8479979, savePctg: 0.899, gaa: '2.59', record: '35-12-6' },
-  DET: { lastName: 'Gibson', firstName: 'John', playerId: 8476434, savePctg: 0.902, gaa: '2.95', record: '14-22-3' },
-  EDM: { lastName: 'Lankinen', firstName: 'Kevin', playerId: 8480947, savePctg: 0.902, gaa: '2.85', record: '14-9-4' },
-  FLA: { lastName: 'Markstrom', firstName: 'Jacob', playerId: 8474593, savePctg: 0.905, gaa: '2.78', record: '23-23-2' },
-  LAK: { lastName: 'Kuemper', firstName: 'Darcy', playerId: 8475311, savePctg: 0.891, gaa: '2.78', record: '19-14-15' },
-  MIN: { lastName: 'Pickard', firstName: 'Calvin', playerId: 8475717, savePctg: 0.909, gaa: '2.60', record: '12-7-1' },
-  MTL: { lastName: 'Dobes', firstName: 'Jakub', playerId: 8482487, savePctg: 0.902, gaa: '2.85', record: '9-11-2' },
-  NJD: { lastName: 'Allen', firstName: 'Jake', playerId: 8474596, savePctg: 0.900, gaa: '2.95', record: '12-18-4' },
-  NSH: { lastName: 'Saros', firstName: 'Juuse', playerId: 8477424, savePctg: 0.906, gaa: '2.86', record: '35-24-5' },
-  NYI: { lastName: 'Sorokin', firstName: 'Ilya', playerId: 8478009, savePctg: 0.909, gaa: '2.99', record: '25-19-12' },
-  NYR: { lastName: 'Shesterkin', firstName: 'Igor', playerId: 8478048, savePctg: 0.913, gaa: '2.58', record: '36-17-2' },
-  OTT: { lastName: 'Ullmark', firstName: 'Linus', playerId: 8476999, savePctg: 0.915, gaa: '2.57', record: '22-10-7' },
-  PHI: { lastName: 'Vladar', firstName: 'Dan', playerId: 8478435, savePctg: 0.900, gaa: '2.95', record: '11-13-4' },
-  PIT: { lastName: 'Silovs', firstName: 'Arturs', playerId: 8481668, savePctg: 0.902, gaa: '2.80', record: '10-6-3' },
-  SEA: { lastName: 'Daccord', firstName: 'Joey', playerId: 8478916, savePctg: 0.916, gaa: '2.46', record: '19-18-11' },
-  SJS: { lastName: 'Blackwood', firstName: 'Mackenzie', playerId: 8478406, savePctg: 0.899, gaa: '3.45', record: '10-25-4' },
-  STL: { lastName: 'Binnington', firstName: 'Jordan', playerId: 8476412, savePctg: 0.913, gaa: '2.84', record: '28-21-4' },
-  TBL: { lastName: 'Vasilevskiy', firstName: 'Andrei', playerId: 8476883, savePctg: 0.900, gaa: '2.90', record: '30-20-2' },
-  TOR: { lastName: 'Bobrovsky', firstName: 'Sergei', playerId: 8475683, savePctg: 0.915, gaa: '2.37', record: '36-17-4' },
-  UTA: { lastName: 'Ingram', firstName: 'Connor', playerId: 8479312, savePctg: 0.907, gaa: '2.91', record: '23-21-3' },
-  VAN: { lastName: 'Demko', firstName: 'Thatcher', playerId: 8477967, savePctg: 0.918, gaa: '2.45', record: '35-14-2' },
-  VGK: { lastName: 'Hill', firstName: 'Adin', playerId: 8478499, savePctg: 0.909, gaa: '2.71', record: '19-12-2' },
-  WPG: { lastName: 'Hellebuyck', firstName: 'Connor', playerId: 8476945, savePctg: 0.921, gaa: '2.39', record: '37-19-4' },
-  WSH: { lastName: 'Lindgren', firstName: 'Charlie', playerId: 8479292, savePctg: 0.911, gaa: '2.67', record: '25-16-7' }
 };
 
 const extractString = (val: any): string => {
@@ -464,47 +428,8 @@ export function NHLGameLog({
   
   const [expandedGameId, setExpandedGameId] = useState<number | null>(null);
   const [gameDetailsCache, setGameDetailsCache] = useState<Record<number, any>>({});
-  const [liveGoalieRosters, setLiveGoalieRosters] = useState<Record<string, any[]>>({});
-  const [confirmedGoaliesMap, setConfirmedGoaliesMap] = useState<Record<string, any>>({});
   const [filter, setFilter] = useState<'All' | 'LIVE' | 'FINAL' | 'PRE'>('All');
   const fetchingIdsRef = useRef<Set<number>>(new Set());
-
-  // Dynamically load confirmed starting goalies and live rosters
-  useEffect(() => {
-    const loadConfirmedGoalies = () => {
-      const dateParam = selectedDate ? `?date=${encodeURIComponent(selectedDate)}` : '';
-      fetch(`/api/nhl/confirmed-goalies${dateParam}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data && typeof data === 'object') {
-            setConfirmedGoaliesMap(data);
-          }
-        })
-        .catch(() => {});
-    };
-
-    loadConfirmedGoalies();
-    const intervalConfirmed = setInterval(loadConfirmedGoalies, 30 * 1000); // 30s heartbeat for live confirmations
-    return () => clearInterval(intervalConfirmed);
-  }, [selectedDate]);
-
-  // Dynamically load goalies pulled from nhl.com with periodic refresh
-  useEffect(() => {
-    const loadGoalies = () => {
-      fetchNHLCurrentGoalies()
-        .then(rosters => {
-          if (rosters && Object.keys(rosters).length > 0) {
-            setLiveGoalieRosters(rosters);
-          }
-        })
-        .catch(() => {});
-    };
-
-    loadGoalies();
-    // Daily/hourly heartbeat to ensure goalie rosters stay fresh
-    const interval = setInterval(loadGoalies, 30 * 60 * 1000); // every 30 minutes
-    return () => clearInterval(interval);
-  }, []);
 
   // Helper check for team on a back-to-back (B2B) night
   const isTeamB2B = (teamAbbrev: string, gameDateStr: string) => {
@@ -640,89 +565,6 @@ export function NHLGameLog({
       return;
     }
     setExpandedGameId(expandedGameId === gameId ? null : gameId);
-  };
-
-  const getGoalieData = (isHome: boolean, game: NHLGame) => {
-    const details = gameDetailsCache[game.id];
-    const isLiveType = game.gameState === 'LIVE' || game.gameState === 'CRIT' || game.gameState === 'OFF' || game.gameState === 'FINAL' || game.gameState === 'OVER';
-    const abbrev = ((isHome ? game.homeTeam?.abbrev : game.awayTeam?.abbrev) || '').toUpperCase();
-    const primaryStarter = abbrev ? NHL_PRIMARY_GOALIES[abbrev] : null;
-    const confirmedInfo = confirmedGoaliesMap[abbrev];
-    
-    if (details && !details._empty) {
-      const teamDetails = isHome ? details.homeTeam : details.awayTeam;
-      const boxGoalies = isHome 
-        ? details.playerByGameStats?.homeTeam?.goalies 
-        : details.playerByGameStats?.awayTeam?.goalies;
-      const matchupLeaders = isHome 
-        ? details.matchup?.goalieComparison?.homeTeam?.leaders 
-        : details.matchup?.goalieComparison?.awayTeam?.leaders;
-
-      // Helper to find the netminder with actual ice time, shots faced, or decision
-      const selectActiveGoalie = (goalies: any[]) => {
-        if (!goalies || goalies.length === 0) return null;
-        const active = goalies.find((g: any) => {
-          const toi = g.toi || '';
-          return (toi && toi !== '00:00' && toi !== '0:00') || (typeof g.shotsAgainst === 'number' && g.shotsAgainst > 0) || !!g.decision;
-        });
-        return active || goalies[0];
-      };
-
-      if (isLiveType) {
-        if (teamDetails?.goaltender) return teamDetails.goaltender;
-        if (boxGoalies && boxGoalies.length > 0) return selectActiveGoalie(boxGoalies);
-      }
-      
-      // Probable / starter sources for pre-game
-      if (teamDetails?.probableStartingGoalie) {
-        const prob = teamDetails.probableStartingGoalie;
-        if (prob.confirmed || prob.starter) return prob;
-        if (confirmedInfo?.confirmed) {
-          return { ...prob, ...confirmedInfo, confirmed: true, starter: true };
-        }
-        // If team has verified primary starter (e.g. Shesterkin for NYR), prioritize them over unconfirmed backups
-        if (primaryStarter) {
-          const probLast = extractString(prob.lastName || prob.name || '').toLowerCase();
-          if (probLast && probLast === primaryStarter.lastName.toLowerCase()) {
-            return { ...primaryStarter, ...prob };
-          }
-          return primaryStarter;
-        }
-        return prob;
-      }
-
-      if (confirmedInfo) return confirmedInfo;
-      if (primaryStarter) return primaryStarter;
-      if (teamDetails?.goaltender) return teamDetails.goaltender;
-      if (matchupLeaders && matchupLeaders.length > 0) return matchupLeaders[0];
-      if (boxGoalies && boxGoalies.length > 0) return selectActiveGoalie(boxGoalies);
-      if (teamDetails?.goalies && teamDetails.goalies.length > 0) return selectActiveGoalie(teamDetails.goalies);
-    }
-
-    if (confirmedInfo) return confirmedInfo;
-    // Fallback to game object goalies if available
-    if (isHome && game.homeGoalie) return game.homeGoalie;
-    if (!isHome && game.awayGoalie) return game.awayGoalie;
-
-    // Check dynamic 2026-2027 roster pulled from nhl.com
-    if (abbrev && liveGoalieRosters[abbrev]?.length) {
-      const roster = liveGoalieRosters[abbrev];
-      if (primaryStarter) {
-        const matchingStarter = roster.find((g: any) => 
-          (primaryStarter.playerId && g.playerId === primaryStarter.playerId) ||
-          (primaryStarter.lastName && g.lastName?.toLowerCase() === primaryStarter.lastName.toLowerCase())
-        );
-        if (matchingStarter) return { ...primaryStarter, ...matchingStarter };
-      }
-      return roster[0];
-    }
-
-    // Fallback to verified primary starting netminder by team (e.g. Shesterkin for NYR)
-    if (primaryStarter) {
-      return primaryStarter;
-    }
-
-    return null;
   };
 
   const filteredGames = games.filter(game => {

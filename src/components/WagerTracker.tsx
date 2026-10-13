@@ -728,7 +728,7 @@ export function WagerTracker({
                     
                     <a
                       href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
-                        `I am currently on a ${currentStreak.count}-game ${currentStreak.type} streak on Grand Salami Tracker! ${currentStreak.type === 'WIN' ? '🔥🏆' : currentStreak.type === 'LOSS' ? '📉' : '🔄'} Track daily Grand Salami total runs line in real-time https://grandsalami.bet via @Salamipace #GrandSalami #SalamiStreak`
+                        `I am currently on a ${currentStreak.count}-game ${currentStreak.type} streak on Grand Salami Tracker! ${currentStreak.type === 'WIN' ? '🔥🏆' : currentStreak.type === 'LOSS' ? '📉' : '🔄'} Track daily Grand Salami total ${unitName} in real-time https://grandsalami.bet via @Salamipace #GrandSalami #SalamiStreak`
                       )}`}
                       target="_blank"
                       rel="noreferrer"

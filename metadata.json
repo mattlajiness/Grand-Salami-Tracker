@@ -1,6 +1,6 @@
 {
   "name": "MLB & NHL Grand Salami Tracker",
-  "description": "The only live Grand Salami tracker for MLB & NHL. Weather impact, bullpen fatigue, umpire tendencies, line tracking, and saved wagers. Free, all season",
+  "description": "Live Grand Salami tracker for MLB baseball and NHL hockey. Real-time run and goal pace projections, live betting lines, ballpark weather, and saved wagers.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

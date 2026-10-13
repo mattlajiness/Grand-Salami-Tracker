@@ -1,6 +1,7 @@
 {
   "short_name": "Salami Tracker",
   "name": "MLB & NHL Grand Salami Tracker",
+  "description": "Live Grand Salami tracker for MLB baseball and NHL hockey. Real-time run and goal pace projections, live betting lines, ballpark weather, and saved wagers.",
   "icons": [
     {
       "src": "/icon-192.png?v=6",

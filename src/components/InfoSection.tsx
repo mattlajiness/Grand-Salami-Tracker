@@ -231,12 +231,12 @@ export function InfoSection({ sport = 'MLB' }: { sport?: 'MLB' | 'NHL' }) {
 
             <div className="space-y-2">
               <div className={cn("flex items-center gap-2 font-mono text-[10px] font-black uppercase tracking-widest", accentColor)}>
-                <Zap className="w-3 h-3" /> {isMLB ? 'Weather & Parks' : 'Goalie Matchups'}
+                <Zap className="w-3 h-3" /> {isMLB ? 'Weather & Parks' : 'Offensive Matchups'}
               </div>
               <p className="text-xs text-slate-400 leading-relaxed">
                 {isMLB
                   ? "The Grand Salami is heavily influenced by 'Coors Field' games or high-wind days. We use live daily weather and park factor data right from Ballpark Pal to track these outliers in real-time."
-                  : "NHL totals swing wildly based on backup goalies or high-octane offenses like Edmonton or Florida. Verify starting goalies before locking in your slate total."
+                  : "NHL totals swing wildly based on fast-paced offenses like Edmonton, Colorado, or Florida. Watch for high shot-volume matchups and pace trends before locking in your slate total."
                 }
               </p>
             </div>
