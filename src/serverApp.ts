@@ -74,15 +74,6 @@ app.get("/api/nhl/scores/:date", async (req, res) => {
       console.warn("[NHL Proxy] Error augmenting confirmed goalies:", confErr);
     }
 
-    // Background warm team offense trends for slate teams so cards open instantly
-    if (data.games && Array.isArray(data.games)) {
-      const slateTeams = Array.from(new Set(data.games.flatMap((g: any) => [
-        g.awayTeam?.abbrev?.toUpperCase(),
-        g.homeTeam?.abbrev?.toUpperCase()
-      ]).filter(Boolean))) as string[];
-      warmTeamsRecentOffense(slateTeams).catch(() => {});
-    }
-
     res.json(data);
   } catch (error: any) {
     console.error("NHL Proxy Error:", error);
@@ -1080,12 +1071,5 @@ app.get("/api/mlb/game/:gamePk/contextMetrics", async (req, res) => {
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });
 });
-
-// Warm cache for all NHL teams on startup
-setTimeout(() => {
-  warmTeamsRecentOffense(NHL_ALL_TEAMS).catch(err => {
-    console.warn("[Team Offense Trends] Initial warming error:", err);
-  });
-}, 1000);
 
 export default app;

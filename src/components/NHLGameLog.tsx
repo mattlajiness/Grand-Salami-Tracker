@@ -9,7 +9,6 @@ import { db, handleFirestoreError, OperationType } from '../firebase';
 import { Timestamp, doc, setDoc } from 'firebase/firestore';
 import { toast } from 'sonner';
 import { NHLPowerPlayTracker } from './NHLPowerPlayTracker';
-import { NHLOffenseTrendsCard, TeamRecentOffense } from './NHLOffenseTrendsCard';
 import { OULineBadge } from './OULineBadge';
 
 export const renderNHLStatusBadge = (game: NHLGame) => {
@@ -467,32 +466,8 @@ export function NHLGameLog({
   const [gameDetailsCache, setGameDetailsCache] = useState<Record<number, any>>({});
   const [liveGoalieRosters, setLiveGoalieRosters] = useState<Record<string, any[]>>({});
   const [confirmedGoaliesMap, setConfirmedGoaliesMap] = useState<Record<string, any>>({});
-  const [slateOffenseTrends, setSlateOffenseTrends] = useState<Record<string, TeamRecentOffense>>({});
   const [filter, setFilter] = useState<'All' | 'LIVE' | 'FINAL' | 'PRE'>('All');
   const fetchingIdsRef = useRef<Set<number>>(new Set());
-
-  // Batch pre-fetch offensive trends for all teams playing in the slate so cards open instantaneously
-  useEffect(() => {
-    if (!games || games.length === 0) return;
-    const teamSet = new Set<string>();
-    games.forEach(g => {
-      if (g.awayTeam?.abbrev) teamSet.add(g.awayTeam.abbrev.toUpperCase());
-      if (g.homeTeam?.abbrev) teamSet.add(g.homeTeam.abbrev.toUpperCase());
-    });
-    const teamsList = Array.from(teamSet);
-    if (teamsList.length === 0) return;
-
-    fetch(`/api/nhl/teams-recent-offense?teams=${teamsList.join(',')}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data && typeof data === 'object') {
-          setSlateOffenseTrends(prev => ({ ...prev, ...data }));
-        }
-      })
-      .catch(err => {
-        console.warn('Failed to pre-fetch slate offense trends:', err);
-      });
-  }, [games]);
 
   // Dynamically load confirmed starting goalies and live rosters
   useEffect(() => {
@@ -660,6 +635,10 @@ export function NHLGameLog({
   };
 
   const toggleGame = (gameId: number) => {
+    const target = games.find(g => g.id === gameId);
+    if (target && (target.gameState === 'PRE' || target.gameState === 'FUT')) {
+      return;
+    }
     setExpandedGameId(expandedGameId === gameId ? null : gameId);
   };
 
@@ -884,6 +863,7 @@ export function NHLGameLog({
 
                     
                     const venue = getGameVenueInfo(game, gameDetailsCache[game.id]);
+                    const isPreGame = game.gameState === 'PRE' || game.gameState === 'FUT';
 
                     return (
                       <motion.div
@@ -895,12 +875,13 @@ export function NHLGameLog({
                       >
                         <div 
                           className={cn(
-                            "p-4 space-y-4 cursor-pointer transition-colors relative overflow-hidden",
-                            isExpanded ? "bg-slate-800/50" : "hover:bg-slate-800/30",
+                            "p-4 space-y-4 transition-colors relative overflow-hidden",
+                            isPreGame ? "cursor-default" : "cursor-pointer hover:bg-slate-800/30",
+                            isExpanded && !isPreGame ? "bg-slate-800/50" : "",
                             game.gameState === 'CRIT' && "bg-red-950/10",
                             game.gameState === 'OFF' && "bg-amber-950/5"
                           )}
-                          onClick={() => toggleGame(game.id)}
+                          onClick={isPreGame ? undefined : () => toggleGame(game.id)}
                         >
                           {game.gameState === 'CRIT' && (
                             <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500 animate-pulse shadow-[0_0_10px_#ef4444]" />
@@ -990,22 +971,6 @@ export function NHLGameLog({
                                   {venue.location}
                                 </span>
                               </div>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleGame(game.id);
-                                }}
-                                className={cn(
-                                  "inline-flex items-center gap-1 px-2.5 py-1 rounded border text-[8px] font-mono font-black uppercase tracking-wider transition-all cursor-pointer",
-                                  isExpanded
-                                    ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-400 shadow-sm"
-                                    : "bg-slate-900 border-slate-700/80 text-slate-300 hover:text-white hover:border-slate-600 hover:bg-slate-800"
-                                )}
-                              >
-                                <span>{isExpanded ? 'Hide Trends' : 'Offense Trends (L3)'}</span>
-                                <ChevronDown className={cn("w-3 h-3 transition-transform duration-200", isExpanded && "rotate-180 text-cyan-400")} />
-                              </button>
                             </div>
                           )}
 
@@ -1069,7 +1034,7 @@ export function NHLGameLog({
 
                         {/* Expanded details */}
                         <AnimatePresence>
-                          {isExpanded && (
+                          {isExpanded && !isPreGame && (
                             <motion.div
                               initial={{ height: 0, opacity: 0 }}
                               animate={{ height: 'auto', opacity: 1 }}
@@ -1077,44 +1042,25 @@ export function NHLGameLog({
                               className="overflow-hidden bg-slate-950/50 border-t border-slate-800"
                             >
                               <div className="p-4 space-y-5">
-                                {(game.gameState === 'PRE' || game.gameState === 'FUT') ? (
-                                  <NHLOffenseTrendsCard 
-                                    game={game} 
-                                    preloadedAwayTrends={slateOffenseTrends[game.awayTeam?.abbrev?.toUpperCase() || '']}
-                                    preloadedHomeTrends={slateOffenseTrends[game.homeTeam?.abbrev?.toUpperCase() || '']}
+                                {/* Live Power Play & Situation Room */}
+                                <NHLPowerPlayTracker game={game} />
+
+                                {/* Live Performance Analytics in Mobile View */}
+                                <div className="bg-slate-900 rounded-xl border border-slate-800 p-3 sm:p-4">
+                                  <div className="flex items-center gap-2 mb-3">
+                                    <Zap className="w-4 h-4 text-amber-500" />
+                                    <h4 className="text-[10px] font-black text-white uppercase tracking-widest">Live Performance Analytics</h4>
+                                  </div>
+                                  <NHLLiveAnalytics
+                                    game={game}
+                                    gameDetails={gameDetailsCache[game.id]}
+                                    isLive={isLive}
+                                    elapsedMins={elapsedMins}
+                                    projectedPace={projectedPace}
+                                    gpp={gpp}
+                                    paceHighlight={paceHighlight}
                                   />
-                                ) : (
-                                  <>
-                                    {/* Live Power Play & Situation Room */}
-                                    <NHLPowerPlayTracker game={game} />
-
-                                    {/* Live Performance Analytics in Mobile View */}
-                                    <div className="bg-slate-900 rounded-xl border border-slate-800 p-3 sm:p-4">
-                                      <div className="flex items-center gap-2 mb-3">
-                                        <Zap className="w-4 h-4 text-amber-500" />
-                                        <h4 className="text-[10px] font-black text-white uppercase tracking-widest">Live Performance Analytics</h4>
-                                      </div>
-                                      <NHLLiveAnalytics
-                                        game={game}
-                                        gameDetails={gameDetailsCache[game.id]}
-                                        isLive={isLive}
-                                        elapsedMins={elapsedMins}
-                                        projectedPace={projectedPace}
-                                        gpp={gpp}
-                                        paceHighlight={paceHighlight}
-                                      />
-                                    </div>
-
-                                    {/* Recent Offensive Trends Context */}
-                                    <div className="pt-2 border-t border-slate-800/80">
-                                      <NHLOffenseTrendsCard 
-                                        game={game} 
-                                        preloadedAwayTrends={slateOffenseTrends[game.awayTeam?.abbrev?.toUpperCase() || '']}
-                                        preloadedHomeTrends={slateOffenseTrends[game.homeTeam?.abbrev?.toUpperCase() || '']}
-                                      />
-                                    </div>
-                                  </>
-                                )}
+                                </div>
                               </div>
                             </motion.div>
                           )}
@@ -1208,6 +1154,8 @@ export function NHLGameLog({
                       }
                     }
 
+                    const isPreGame = game.gameState === 'PRE' || game.gameState === 'FUT';
+
                     return (
                       <Fragment key={game.id}>
                         <motion.tr
@@ -1215,12 +1163,13 @@ export function NHLGameLog({
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: index * 0.03 }}
                           className={cn(
-                            "hover:bg-slate-800/50 transition-colors group cursor-pointer relative",
-                            isExpanded && "bg-slate-800/50",
+                            "transition-colors group relative",
+                            isPreGame ? "cursor-default" : "hover:bg-slate-800/50 cursor-pointer",
+                            isExpanded && !isPreGame && "bg-slate-800/50",
                             game.gameState === 'CRIT' && "bg-red-950/10 hover:bg-red-950/20",
                             game.gameState === 'OFF' && "bg-amber-950/5 hover:bg-amber-950/10"
                           )}
-                          onClick={() => toggleGame(game.id)}
+                          onClick={isPreGame ? undefined : () => toggleGame(game.id)}
                         >
                           <td className="px-6 py-5 relative">
                             {game.gameState === 'CRIT' && (
@@ -1445,32 +1394,13 @@ export function NHLGameLog({
                                       )
                                     : "FINAL"}
                                 </div>
-
-                                {(game.gameState === 'PRE' || game.gameState === 'FUT') && (
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      toggleGame(game.id);
-                                    }}
-                                    className={cn(
-                                      "mt-1 inline-flex items-center gap-1 px-2.5 py-1 rounded border text-[7.5px] font-mono font-black uppercase tracking-wider transition-all cursor-pointer",
-                                      isExpanded
-                                        ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-400 shadow-sm"
-                                        : "bg-slate-900 border-slate-700/80 text-slate-300 hover:text-white hover:border-slate-600 hover:bg-slate-800"
-                                    )}
-                                  >
-                                    <span>{isExpanded ? 'Hide Trends' : 'Offense Trends (L3)'}</span>
-                                    <ChevronDown className={cn("w-2.5 h-2.5 transition-transform duration-200", isExpanded && "rotate-180 text-cyan-400")} />
-                                  </button>
-                                )}
                             </div>
                           </td>
                         </motion.tr>
 
                         {/* Expanded details row */}
                         <AnimatePresence>
-                          {isExpanded && (
+                          {isExpanded && !isPreGame && (
                             <tr>
                               <td colSpan={5} className="p-0 border-none relative">
                                 <motion.div
@@ -1480,50 +1410,30 @@ export function NHLGameLog({
                                   className="overflow-hidden bg-slate-950/50 sticky left-0 w-[calc(100vw-2rem)] lg:w-full lg:static"
                                 >
                                   <div className="px-3 py-4 sm:px-6 sm:py-6 border-b border-slate-800/50">
-                                    {(game.gameState === 'PRE' || game.gameState === 'FUT') ? (
-                                      /* Pre-game expanded layout: Dedicated Teams Recent Offense Trends */
-                                      <div className="max-w-4xl mx-auto">
-                                        <NHLOffenseTrendsCard 
-                                          game={game} 
-                                          preloadedAwayTrends={slateOffenseTrends[game.awayTeam?.abbrev?.toUpperCase() || '']}
-                                          preloadedHomeTrends={slateOffenseTrends[game.homeTeam?.abbrev?.toUpperCase() || '']}
-                                        />
-                                      </div>
-                                    ) : (
-                                      /* Live & Final in-game layout: Live Situation Tracker, Live Performance Analytics & Recent Offense Trends */
-                                      <div className="space-y-6">
-                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                                          {/* Live Power Play / Situation Monitor */}
-                                          <NHLPowerPlayTracker game={game} />
+                                    {/* Live & Final in-game layout: Live Situation Tracker & Live Performance Analytics */}
+                                    <div className="space-y-6">
+                                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                                        {/* Live Power Play / Situation Monitor */}
+                                        <NHLPowerPlayTracker game={game} />
 
-                                          {/* Live Performance Analytics */}
-                                          <div className="bg-slate-900 rounded-xl border border-slate-800 p-3 sm:p-4">
-                                            <div className="flex items-center gap-2 mb-4">
-                                              <Zap className="w-4 h-4 text-amber-500" />
-                                              <h4 className="text-[10px] font-black text-white uppercase tracking-widest">Live Performance Analytics</h4>
-                                            </div>
-                                            <NHLLiveAnalytics
-                                              game={game}
-                                              gameDetails={gameDetailsCache[game.id]}
-                                              isLive={isLive}
-                                              elapsedMins={elapsedMins}
-                                              projectedPace={projectedPace}
-                                              gpp={gpp}
-                                              paceHighlight={paceHighlight}
-                                            />
+                                        {/* Live Performance Analytics */}
+                                        <div className="bg-slate-900 rounded-xl border border-slate-800 p-3 sm:p-4">
+                                          <div className="flex items-center gap-2 mb-4">
+                                            <Zap className="w-4 h-4 text-amber-500" />
+                                            <h4 className="text-[10px] font-black text-white uppercase tracking-widest">Live Performance Analytics</h4>
                                           </div>
-                                        </div>
-
-                                        {/* Recent Offense Trends leading into game */}
-                                        <div className="pt-4 border-t border-slate-800/70">
-                                          <NHLOffenseTrendsCard 
-                                            game={game} 
-                                            preloadedAwayTrends={slateOffenseTrends[game.awayTeam?.abbrev?.toUpperCase() || '']}
-                                            preloadedHomeTrends={slateOffenseTrends[game.homeTeam?.abbrev?.toUpperCase() || '']}
+                                          <NHLLiveAnalytics
+                                            game={game}
+                                            gameDetails={gameDetailsCache[game.id]}
+                                            isLive={isLive}
+                                            elapsedMins={elapsedMins}
+                                            projectedPace={projectedPace}
+                                            gpp={gpp}
+                                            paceHighlight={paceHighlight}
                                           />
                                         </div>
                                       </div>
-                                    )}
+                                    </div>
                                   </div>
                                 </motion.div>
                               </td>
