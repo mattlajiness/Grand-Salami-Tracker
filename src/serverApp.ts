@@ -74,6 +74,15 @@ app.get("/api/nhl/scores/:date", async (req, res) => {
       console.warn("[NHL Proxy] Error augmenting confirmed goalies:", confErr);
     }
 
+    // Background warm team offense trends for slate teams so cards open instantly
+    if (data.games && Array.isArray(data.games)) {
+      const slateTeams = Array.from(new Set(data.games.flatMap((g: any) => [
+        g.awayTeam?.abbrev?.toUpperCase(),
+        g.homeTeam?.abbrev?.toUpperCase()
+      ]).filter(Boolean))) as string[];
+      warmTeamsRecentOffense(slateTeams).catch(() => {});
+    }
+
     res.json(data);
   } catch (error: any) {
     console.error("NHL Proxy Error:", error);
@@ -264,72 +273,9 @@ const teamRecentOffenseCache = new Map<string, { data: TeamRecentOffense; timest
 
 async function fetchTeamRecentOffense(teamAbbrev: string): Promise<TeamRecentOffense> {
   const team = (teamAbbrev || '').toUpperCase();
-  const now = Date.now();
-  const cached = teamRecentOffenseCache.get(team);
-  if (cached && now - cached.timestamp < 600000) { // 10 minutes cache
-    return cached.data;
-  }
-
-  try {
-    const res = await fetch(`https://api-web.nhle.com/v1/club-schedule-season/${team}/20262027`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json'
-      }
-    });
-    if (!res.ok) throw new Error(`Status ${res.status}`);
-    const data = await res.json();
-    const pastGames = (data.games || [])
-      .filter((g: any) => g.gameState === "OFF" || g.gameState === "FINAL")
-      .sort((a: any, b: any) => new Date(a.gameDate).getTime() - new Date(b.gameDate).getTime());
-
-    const recent = pastGames.slice(-3);
-    const last3 = recent.map((g: any) => {
-      const isHome = g.homeTeam?.abbrev === team;
-      const gf = isHome ? (g.homeTeam?.score ?? 0) : (g.awayTeam?.score ?? 0);
-      const ga = isHome ? (g.awayTeam?.score ?? 0) : (g.homeTeam?.score ?? 0);
-      const opp = isHome ? g.awayTeam?.abbrev : g.homeTeam?.abbrev;
-      const isOT = g.periodDescriptor?.periodType === "OT" || g.periodDescriptor?.periodType === "SO";
-      const result = gf > ga ? (isOT ? "OTW" : "W") : (isOT ? "OTL" : "L");
-      return {
-        gameId: g.id,
-        date: g.gameDate,
-        opponent: opp || '',
-        isHome,
-        goalsFor: gf,
-        goalsAgainst: ga,
-        result,
-        totalGoals: gf + ga
-      };
-    });
-
-    const totalGoalsFor = last3.reduce((sum: number, g: any) => sum + g.goalsFor, 0);
-    const totalGoalsAgainst = last3.reduce((sum: number, g: any) => sum + g.goalsAgainst, 0);
-    const sampleSize = last3.length;
-    const avgGoalsFor = sampleSize > 0 ? parseFloat((totalGoalsFor / sampleSize).toFixed(1)) : 0;
-    const avgGoalsAgainst = sampleSize > 0 ? parseFloat((totalGoalsAgainst / sampleSize).toFixed(1)) : 0;
-    const avgTotalGoals = sampleSize > 0 ? parseFloat(((totalGoalsFor + totalGoalsAgainst) / sampleSize).toFixed(1)) : 0;
-
-    const trend: 'HOT' | 'COLD' | 'STEADY' = avgGoalsFor >= 3.7 ? 'HOT' : (avgGoalsFor <= 2.3 ? 'COLD' : 'STEADY');
-
-    const resultObj: TeamRecentOffense = {
-      team,
-      totalGoalsFor,
-      totalGoalsAgainst,
-      avgGoalsFor,
-      avgGoalsAgainst,
-      avgTotalGoals,
-      sampleSize,
-      trend,
-      last3
-    };
-
-    teamRecentOffenseCache.set(team, { data: resultObj, timestamp: now });
-    return resultObj;
-  } catch (err) {
-    console.warn(`[Team Offense Trends] Error fetching for ${team}:`, err);
-    return cached?.data || {
-      team,
+  if (!team) {
+    return {
+      team: '',
       totalGoalsFor: 0,
       totalGoalsAgainst: 0,
       avgGoalsFor: 0,
@@ -340,6 +286,179 @@ async function fetchTeamRecentOffense(teamAbbrev: string): Promise<TeamRecentOff
       last3: []
     };
   }
+
+  const now = Date.now();
+  const cached = teamRecentOffenseCache.get(team);
+  if (cached && now - cached.timestamp < 900000 && cached.data.sampleSize > 0) { // 15 minutes cache
+    return cached.data;
+  }
+
+  // 1. Primary: Official NHL API schedule
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 6000);
+    const res = await fetch(`https://api-web.nhle.com/v1/club-schedule-season/${team}/20262027`, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json'
+      }
+    });
+    clearTimeout(timeout);
+
+    if (res.ok) {
+      const data = await res.json();
+      const pastGames = (data.games || [])
+        .filter((g: any) => g.gameState === "OFF" || g.gameState === "FINAL")
+        .sort((a: any, b: any) => new Date(a.gameDate).getTime() - new Date(b.gameDate).getTime());
+
+      if (pastGames.length > 0) {
+        const recent = pastGames.slice(-3);
+        const last3 = recent.map((g: any) => {
+          const isHome = g.homeTeam?.abbrev === team;
+          const gf = isHome ? (g.homeTeam?.score ?? 0) : (g.awayTeam?.score ?? 0);
+          const ga = isHome ? (g.awayTeam?.score ?? 0) : (g.homeTeam?.score ?? 0);
+          const opp = isHome ? g.awayTeam?.abbrev : g.homeTeam?.abbrev;
+          const isOT = g.periodDescriptor?.periodType === "OT" || g.periodDescriptor?.periodType === "SO";
+          const result = gf > ga ? (isOT ? "OTW" : "W") : (isOT ? "OTL" : "L");
+          return {
+            gameId: g.id,
+            date: g.gameDate,
+            opponent: opp || '',
+            isHome,
+            goalsFor: gf,
+            goalsAgainst: ga,
+            result,
+            totalGoals: gf + ga
+          };
+        });
+
+        const totalGoalsFor = last3.reduce((sum: number, g: any) => sum + g.goalsFor, 0);
+        const totalGoalsAgainst = last3.reduce((sum: number, g: any) => sum + g.goalsAgainst, 0);
+        const sampleSize = last3.length;
+        const avgGoalsFor = sampleSize > 0 ? parseFloat((totalGoalsFor / sampleSize).toFixed(1)) : 0;
+        const avgGoalsAgainst = sampleSize > 0 ? parseFloat((totalGoalsAgainst / sampleSize).toFixed(1)) : 0;
+        const avgTotalGoals = sampleSize > 0 ? parseFloat(((totalGoalsFor + totalGoalsAgainst) / sampleSize).toFixed(1)) : 0;
+        const trend: 'HOT' | 'COLD' | 'STEADY' = avgGoalsFor >= 3.7 ? 'HOT' : (avgGoalsFor <= 2.3 ? 'COLD' : 'STEADY');
+
+        const resultObj: TeamRecentOffense = {
+          team,
+          totalGoalsFor,
+          totalGoalsAgainst,
+          avgGoalsFor,
+          avgGoalsAgainst,
+          avgTotalGoals,
+          sampleSize,
+          trend,
+          last3
+        };
+
+        teamRecentOffenseCache.set(team, { data: resultObj, timestamp: now });
+        return resultObj;
+      }
+    }
+  } catch (err: any) {
+    console.warn(`[NHL Schedule] Primary fetch failed for ${team}: ${err?.message || err}`);
+  }
+
+  // 2. Secondary Fallback: ESPN Team Schedule API
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 6000);
+    const espnRes = await fetch(`https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/teams/${team.toLowerCase()}/schedule`, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json'
+      }
+    });
+    clearTimeout(timeout);
+
+    if (espnRes.ok) {
+      const espnData = await espnRes.json();
+      const pastEvents = (espnData.events || []).filter((e: any) => e.competitions?.[0]?.status?.type?.completed);
+
+      if (pastEvents.length > 0) {
+        const last3Events = pastEvents.slice(-3);
+        const last3 = last3Events.map((e: any) => {
+          const comp = e.competitions[0];
+          const teamCompetitor = comp.competitors.find((c: any) => (c.team?.abbreviation || "").toUpperCase() === team);
+          const oppCompetitor = comp.competitors.find((c: any) => (c.team?.abbreviation || "").toUpperCase() !== team);
+          const isHome = teamCompetitor?.homeAway === "home";
+          const gf = parseInt(teamCompetitor?.score?.value ?? "0", 10) || 0;
+          const ga = parseInt(oppCompetitor?.score?.value ?? "0", 10) || 0;
+          const opp = (oppCompetitor?.team?.abbreviation || "").toUpperCase();
+          const isWinner = Boolean(teamCompetitor?.winner);
+          const dateStr = (e.date || "").split("T")[0];
+          const isOT = comp.status?.type?.detail?.includes("OT") || comp.status?.type?.detail?.includes("SO");
+          const result = isWinner ? (isOT ? "OTW" : "W") : (isOT ? "OTL" : "L");
+          return {
+            gameId: parseInt(e.id, 10) || 0,
+            date: dateStr,
+            opponent: opp,
+            isHome,
+            goalsFor: gf,
+            goalsAgainst: ga,
+            result,
+            totalGoals: gf + ga
+          };
+        });
+
+        const totalGoalsFor = last3.reduce((s: number, g: any) => s + g.goalsFor, 0);
+        const totalGoalsAgainst = last3.reduce((s: number, g: any) => s + g.goalsAgainst, 0);
+        const sampleSize = last3.length;
+        const avgGoalsFor = sampleSize > 0 ? parseFloat((totalGoalsFor / sampleSize).toFixed(1)) : 0;
+        const avgGoalsAgainst = sampleSize > 0 ? parseFloat((totalGoalsAgainst / sampleSize).toFixed(1)) : 0;
+        const avgTotalGoals = sampleSize > 0 ? parseFloat(((totalGoalsFor + totalGoalsAgainst) / sampleSize).toFixed(1)) : 0;
+        const trend: 'HOT' | 'COLD' | 'STEADY' = avgGoalsFor >= 3.7 ? 'HOT' : (avgGoalsFor <= 2.3 ? 'COLD' : 'STEADY');
+
+        const resultObj: TeamRecentOffense = {
+          team,
+          totalGoalsFor,
+          totalGoalsAgainst,
+          avgGoalsFor,
+          avgGoalsAgainst,
+          avgTotalGoals,
+          sampleSize,
+          trend,
+          last3
+        };
+
+        teamRecentOffenseCache.set(team, { data: resultObj, timestamp: now });
+        return resultObj;
+      }
+    }
+  } catch (err: any) {
+    console.warn(`[ESPN Schedule Fallback] Failed for ${team}: ${err?.message || err}`);
+  }
+
+  // If both failed, return existing cached data if any
+  if (cached && cached.data.sampleSize > 0) {
+    return cached.data;
+  }
+
+  return {
+    team,
+    totalGoalsFor: 0,
+    totalGoalsAgainst: 0,
+    avgGoalsFor: 0,
+    avgGoalsAgainst: 0,
+    avgTotalGoals: 0,
+    sampleSize: 0,
+    trend: 'STEADY',
+    last3: []
+  };
+}
+
+// Background cache warming function
+async function warmTeamsRecentOffense(teams: string[]): Promise<void> {
+  const missing = teams.filter(t => {
+    const c = teamRecentOffenseCache.get(t);
+    return !c || c.data.sampleSize === 0 || Date.now() - c.timestamp > 900000;
+  });
+  if (missing.length === 0) return;
+  console.log(`[Team Offense Trends] Warming cache for ${missing.length} teams: ${missing.join(', ')}`);
+  await Promise.allSettled(missing.map(t => fetchTeamRecentOffense(t)));
 }
 
 // Routes for team recent offense trends
@@ -961,5 +1080,12 @@ app.get("/api/mlb/game/:gamePk/contextMetrics", async (req, res) => {
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });
 });
+
+// Warm cache for all NHL teams on startup
+setTimeout(() => {
+  warmTeamsRecentOffense(NHL_ALL_TEAMS).catch(err => {
+    console.warn("[Team Offense Trends] Initial warming error:", err);
+  });
+}, 1000);
 
 export default app;

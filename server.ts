@@ -5,18 +5,7 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 import app from "./src/serverApp";
 
-// Fix for CJS/ESM compatibility - using a safer approach
-const isESM = typeof import.meta !== 'undefined' && import.meta.url;
-let _filename = '';
-let _dirname = '';
-
-if (isESM) {
-  _filename = fileURLToPath(import.meta.url);
-  _dirname = path.dirname(_filename);
-} else {
-  _filename = typeof __filename !== 'undefined' ? __filename : '';
-  _dirname = typeof __dirname !== 'undefined' ? __dirname : '';
-}
+const _dirname = typeof __dirname !== 'undefined' ? __dirname : process.cwd();
 
 async function startServer() {
   const PORT = 3000;

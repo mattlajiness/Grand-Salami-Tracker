@@ -9,7 +9,7 @@ import { db, handleFirestoreError, OperationType } from '../firebase';
 import { Timestamp, doc, setDoc } from 'firebase/firestore';
 import { toast } from 'sonner';
 import { NHLPowerPlayTracker } from './NHLPowerPlayTracker';
-import { NHLOffenseTrendsCard } from './NHLOffenseTrendsCard';
+import { NHLOffenseTrendsCard, TeamRecentOffense } from './NHLOffenseTrendsCard';
 import { OULineBadge } from './OULineBadge';
 
 export const renderNHLStatusBadge = (game: NHLGame) => {
@@ -467,8 +467,32 @@ export function NHLGameLog({
   const [gameDetailsCache, setGameDetailsCache] = useState<Record<number, any>>({});
   const [liveGoalieRosters, setLiveGoalieRosters] = useState<Record<string, any[]>>({});
   const [confirmedGoaliesMap, setConfirmedGoaliesMap] = useState<Record<string, any>>({});
+  const [slateOffenseTrends, setSlateOffenseTrends] = useState<Record<string, TeamRecentOffense>>({});
   const [filter, setFilter] = useState<'All' | 'LIVE' | 'FINAL' | 'PRE'>('All');
   const fetchingIdsRef = useRef<Set<number>>(new Set());
+
+  // Batch pre-fetch offensive trends for all teams playing in the slate so cards open instantaneously
+  useEffect(() => {
+    if (!games || games.length === 0) return;
+    const teamSet = new Set<string>();
+    games.forEach(g => {
+      if (g.awayTeam?.abbrev) teamSet.add(g.awayTeam.abbrev.toUpperCase());
+      if (g.homeTeam?.abbrev) teamSet.add(g.homeTeam.abbrev.toUpperCase());
+    });
+    const teamsList = Array.from(teamSet);
+    if (teamsList.length === 0) return;
+
+    fetch(`/api/nhl/teams-recent-offense?teams=${teamsList.join(',')}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && typeof data === 'object') {
+          setSlateOffenseTrends(prev => ({ ...prev, ...data }));
+        }
+      })
+      .catch(err => {
+        console.warn('Failed to pre-fetch slate offense trends:', err);
+      });
+  }, [games]);
 
   // Dynamically load confirmed starting goalies and live rosters
   useEffect(() => {
@@ -1054,7 +1078,11 @@ export function NHLGameLog({
                             >
                               <div className="p-4 space-y-5">
                                 {(game.gameState === 'PRE' || game.gameState === 'FUT') ? (
-                                  <NHLOffenseTrendsCard game={game} />
+                                  <NHLOffenseTrendsCard 
+                                    game={game} 
+                                    preloadedAwayTrends={slateOffenseTrends[game.awayTeam?.abbrev?.toUpperCase() || '']}
+                                    preloadedHomeTrends={slateOffenseTrends[game.homeTeam?.abbrev?.toUpperCase() || '']}
+                                  />
                                 ) : (
                                   <>
                                     {/* Live Power Play & Situation Room */}
@@ -1079,7 +1107,11 @@ export function NHLGameLog({
 
                                     {/* Recent Offensive Trends Context */}
                                     <div className="pt-2 border-t border-slate-800/80">
-                                      <NHLOffenseTrendsCard game={game} />
+                                      <NHLOffenseTrendsCard 
+                                        game={game} 
+                                        preloadedAwayTrends={slateOffenseTrends[game.awayTeam?.abbrev?.toUpperCase() || '']}
+                                        preloadedHomeTrends={slateOffenseTrends[game.homeTeam?.abbrev?.toUpperCase() || '']}
+                                      />
                                     </div>
                                   </>
                                 )}
@@ -1451,7 +1483,11 @@ export function NHLGameLog({
                                     {(game.gameState === 'PRE' || game.gameState === 'FUT') ? (
                                       /* Pre-game expanded layout: Dedicated Teams Recent Offense Trends */
                                       <div className="max-w-4xl mx-auto">
-                                        <NHLOffenseTrendsCard game={game} />
+                                        <NHLOffenseTrendsCard 
+                                          game={game} 
+                                          preloadedAwayTrends={slateOffenseTrends[game.awayTeam?.abbrev?.toUpperCase() || '']}
+                                          preloadedHomeTrends={slateOffenseTrends[game.homeTeam?.abbrev?.toUpperCase() || '']}
+                                        />
                                       </div>
                                     ) : (
                                       /* Live & Final in-game layout: Live Situation Tracker, Live Performance Analytics & Recent Offense Trends */
@@ -1480,7 +1516,11 @@ export function NHLGameLog({
 
                                         {/* Recent Offense Trends leading into game */}
                                         <div className="pt-4 border-t border-slate-800/70">
-                                          <NHLOffenseTrendsCard game={game} />
+                                          <NHLOffenseTrendsCard 
+                                            game={game} 
+                                            preloadedAwayTrends={slateOffenseTrends[game.awayTeam?.abbrev?.toUpperCase() || '']}
+                                            preloadedHomeTrends={slateOffenseTrends[game.homeTeam?.abbrev?.toUpperCase() || '']}
+                                          />
                                         </div>
                                       </div>
                                     )}
