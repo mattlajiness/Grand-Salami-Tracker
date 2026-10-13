@@ -161,14 +161,19 @@ export function NHLGoalieStatsCard({ game, isHome, goalieData }: NHLGoalieStatsC
   // Lookup key for season baselines
   const lookupKey = rawLast || (name !== 'TBD' ? name.split(' ').pop() || name : '') || teamPrimary?.lastName || '';
 
-  // Extract player ID for headshot
+  // Extract player ID for clean maskless face shot (no goalie mask/helmet)
   const playerId = goalieData?.playerId 
+    || goalieData?.id
     || (lookupKey ? SEASON_BASELINES[lookupKey]?.playerId : undefined)
     || teamPrimary?.playerId;
 
-  const headshotUrl = goalieData?.headshot 
-    || (playerId && teamAbbrev ? `https://assets.nhle.com/mugs/nhl/20262027/${teamAbbrev}/${playerId}.png` : '')
-    || (playerId ? `https://assets.nhle.com/mugs/nhl/latest/${playerId}.png` : `https://assets.nhle.com/mugs/nhl/default-skater.png`);
+  // Always prioritize official NHL face portrait without mask (assets.nhle.com)
+  const headshotUrl = playerId 
+    ? `https://assets.nhle.com/mugs/nhl/latest/${playerId}.png`
+    : (goalieData?.headshot && goalieData.headshot.includes('assets.nhle.com') ? goalieData.headshot : '')
+    || (teamAbbrev && playerId ? `https://assets.nhle.com/mugs/nhl/20262027/${teamAbbrev}/${playerId}.png` : '')
+    || goalieData?.headshot
+    || `https://assets.nhle.com/mugs/nhl/default-skater.png`;
 
   // Retrieve base statistics
   const baseline = useMemo(() => {

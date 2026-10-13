@@ -49,9 +49,9 @@ app.get("/api/nhl/scores/:date", async (req, res) => {
     const data = await response.json();
     console.log(`[NHL Proxy] Successfully fetched ${data.games?.length || 0} games.`);
 
-    // Augment with live confirmed goalies
+    // Augment with live confirmed goalies for this target slate date
     try {
-      const confirmedMap = await getLiveConfirmedGoalies();
+      const confirmedMap = await getLiveConfirmedGoalies(date);
       if (data.games && Array.isArray(data.games)) {
         data.games.forEach((g: any) => {
           const awayAbbr = g.awayTeam?.abbrev?.toUpperCase();
@@ -238,7 +238,241 @@ app.get("/api/nhl/rosters/goalies", async (req, res) => {
   }
 });
 
-// ESPN Confirmed Goalies Sync
+// Team Recent Offense Trends (Last 3 Games)
+export interface TeamRecentOffense {
+  team: string;
+  totalGoalsFor: number;
+  totalGoalsAgainst: number;
+  avgGoalsFor: number;
+  avgGoalsAgainst: number;
+  avgTotalGoals: number;
+  sampleSize: number;
+  trend: 'HOT' | 'COLD' | 'STEADY';
+  last3: Array<{
+    gameId: number;
+    date: string;
+    opponent: string;
+    isHome: boolean;
+    goalsFor: number;
+    goalsAgainst: number;
+    result: string;
+    totalGoals: number;
+  }>;
+}
+
+const teamRecentOffenseCache = new Map<string, { data: TeamRecentOffense; timestamp: number }>();
+
+async function fetchTeamRecentOffense(teamAbbrev: string): Promise<TeamRecentOffense> {
+  const team = (teamAbbrev || '').toUpperCase();
+  const now = Date.now();
+  const cached = teamRecentOffenseCache.get(team);
+  if (cached && now - cached.timestamp < 600000) { // 10 minutes cache
+    return cached.data;
+  }
+
+  try {
+    const res = await fetch(`https://api-web.nhle.com/v1/club-schedule-season/${team}/20262027`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json'
+      }
+    });
+    if (!res.ok) throw new Error(`Status ${res.status}`);
+    const data = await res.json();
+    const pastGames = (data.games || [])
+      .filter((g: any) => g.gameState === "OFF" || g.gameState === "FINAL")
+      .sort((a: any, b: any) => new Date(a.gameDate).getTime() - new Date(b.gameDate).getTime());
+
+    const recent = pastGames.slice(-3);
+    const last3 = recent.map((g: any) => {
+      const isHome = g.homeTeam?.abbrev === team;
+      const gf = isHome ? (g.homeTeam?.score ?? 0) : (g.awayTeam?.score ?? 0);
+      const ga = isHome ? (g.awayTeam?.score ?? 0) : (g.homeTeam?.score ?? 0);
+      const opp = isHome ? g.awayTeam?.abbrev : g.homeTeam?.abbrev;
+      const isOT = g.periodDescriptor?.periodType === "OT" || g.periodDescriptor?.periodType === "SO";
+      const result = gf > ga ? (isOT ? "OTW" : "W") : (isOT ? "OTL" : "L");
+      return {
+        gameId: g.id,
+        date: g.gameDate,
+        opponent: opp || '',
+        isHome,
+        goalsFor: gf,
+        goalsAgainst: ga,
+        result,
+        totalGoals: gf + ga
+      };
+    });
+
+    const totalGoalsFor = last3.reduce((sum: number, g: any) => sum + g.goalsFor, 0);
+    const totalGoalsAgainst = last3.reduce((sum: number, g: any) => sum + g.goalsAgainst, 0);
+    const sampleSize = last3.length;
+    const avgGoalsFor = sampleSize > 0 ? parseFloat((totalGoalsFor / sampleSize).toFixed(1)) : 0;
+    const avgGoalsAgainst = sampleSize > 0 ? parseFloat((totalGoalsAgainst / sampleSize).toFixed(1)) : 0;
+    const avgTotalGoals = sampleSize > 0 ? parseFloat(((totalGoalsFor + totalGoalsAgainst) / sampleSize).toFixed(1)) : 0;
+
+    const trend: 'HOT' | 'COLD' | 'STEADY' = avgGoalsFor >= 3.7 ? 'HOT' : (avgGoalsFor <= 2.3 ? 'COLD' : 'STEADY');
+
+    const resultObj: TeamRecentOffense = {
+      team,
+      totalGoalsFor,
+      totalGoalsAgainst,
+      avgGoalsFor,
+      avgGoalsAgainst,
+      avgTotalGoals,
+      sampleSize,
+      trend,
+      last3
+    };
+
+    teamRecentOffenseCache.set(team, { data: resultObj, timestamp: now });
+    return resultObj;
+  } catch (err) {
+    console.warn(`[Team Offense Trends] Error fetching for ${team}:`, err);
+    return cached?.data || {
+      team,
+      totalGoalsFor: 0,
+      totalGoalsAgainst: 0,
+      avgGoalsFor: 0,
+      avgGoalsAgainst: 0,
+      avgTotalGoals: 0,
+      sampleSize: 0,
+      trend: 'STEADY',
+      last3: []
+    };
+  }
+}
+
+// Routes for team recent offense trends
+app.get("/api/nhl/team-recent-offense/:team", async (req, res) => {
+  const team = (req.params.team || '').toUpperCase();
+  const data = await fetchTeamRecentOffense(team);
+  res.json(data);
+});
+
+app.get("/api/nhl/teams-recent-offense", async (req, res) => {
+  const teamsParam = req.query.teams as string;
+  const teams = teamsParam 
+    ? teamsParam.split(',').map(t => t.trim().toUpperCase()).filter(Boolean)
+    : NHL_ALL_TEAMS;
+
+  const results = await Promise.all(teams.map(t => fetchTeamRecentOffense(t)));
+  const map: Record<string, TeamRecentOffense> = {};
+  for (const r of results) {
+    map[r.team] = r;
+  }
+  res.json(map);
+});
+
+const TEAM_NAME_TO_ABBREV: Record<string, string> = {
+  'anaheim ducks': 'ANA',
+  'boston bruins': 'BOS',
+  'buffalo sabres': 'BUF',
+  'carolina hurricanes': 'CAR',
+  'columbus blue jackets': 'CBJ',
+  'calgary flames': 'CGY',
+  'chicago blackhawks': 'CHI',
+  'colorado avalanche': 'COL',
+  'dallas stars': 'DAL',
+  'detroit red wings': 'DET',
+  'edmonton oilers': 'EDM',
+  'florida panthers': 'FLA',
+  'los angeles kings': 'LAK',
+  'minnesota wild': 'MIN',
+  'montreal canadiens': 'MTL',
+  'new jersey devils': 'NJD',
+  'nashville predators': 'NSH',
+  'new york islanders': 'NYI',
+  'new york rangers': 'NYR',
+  'ottawa senators': 'OTT',
+  'philadelphia flyers': 'PHI',
+  'pittsburgh penguins': 'PIT',
+  'seattle kraken': 'SEA',
+  'san jose sharks': 'SJS',
+  'st. louis blues': 'STL',
+  'st louis blues': 'STL',
+  'tampa bay lightning': 'TBL',
+  'toronto maple leafs': 'TOR',
+  'utah mammoth': 'UTA',
+  'utah hockey club': 'UTA',
+  'utah': 'UTA',
+  'vancouver canucks': 'VAN',
+  'vegas golden knights': 'VGK',
+  'winnipeg jets': 'WPG',
+  'washington capitals': 'WSH'
+};
+
+const GOALIE_NAME_TO_NHL_ID: Record<string, number> = {
+  'gibson': 8476434,
+  'tarasov': 8480193,
+  'daccord': 8478916,
+  'grubauer': 8475831,
+  'thompson': 8480313,
+  'lindgren': 8479292,
+  'shesterkin': 8478048,
+  'korpisalo': 8476914,
+  'silovs': 8481668,
+  'murashov': 8483703,
+  'greaves': 8482982,
+  'talbot': 8475660,
+  'skinner': 8479973,
+  'hellebuyck': 8476945,
+  'dostal': 8480843,
+  'brossoit': 8476316,
+  'husso': 8478024,
+  'swayman': 8480280,
+  'dipietro': 8480022,
+  'bobrovsky': 8475683,
+  'stolarz': 8476932,
+  'woll': 8479361,
+  'vladar': 8478435,
+  'markstrom': 8474593,
+  'schmid': 8481033,
+  'allen': 8474596,
+  'daws': 8482076,
+  'dobes': 8482487,
+  'montembeault': 8478470,
+  'fowler': 8484196,
+  'lankinen': 8480947,
+  'demko': 8477967,
+  'andersen': 8475883,
+  'jarry': 8477465,
+  'levi': 8482221,
+  'vasilevskiy': 8476883,
+  'hildeby': 8483710,
+  'saros': 8477424,
+  'annunen': 8481020,
+  'luukkonen': 8480045,
+  'lyon': 8479312,
+  'ellis': 8481551,
+  'wolf': 8481692,
+  'cooley': 8482445,
+  'wedgewood': 8475809,
+  'blackwood': 8478406,
+  'knight': 8481519,
+  'soderblom': 8482821,
+  'askarov': 8482137,
+  'nedeljkovic': 8477968,
+  'binnington': 8476412,
+  'hofer': 8480981,
+  'gustavsson': 8479406,
+  'wallstedt': 8482661,
+  'pickard': 8475717,
+  'kochetkov': 8481611,
+  'primeau': 8480051,
+  'bussi': 8483548,
+  'sorokin': 8478009,
+  'varlamov': 8473575,
+  'ullmark': 8476999,
+  'ersson': 8481035,
+  'oettinger': 8479979,
+  'desmith': 8479193,
+  'vejmelka': 8478872,
+  'cossa': 8482657,
+  'kuemper': 8475311,
+  'forsberg': 8476341
+};
+
+// ESPN & Daily Faceoff Confirmed Goalies Sync
 interface ConfirmedGoalieInfo {
   name: string;
   firstName?: string;
@@ -248,25 +482,38 @@ interface ConfirmedGoalieInfo {
   status: string;
   confirmed: boolean;
   espnId?: string;
+  playerId?: number;
 }
 
-let espnGoaliesCache: { goalies: Record<string, ConfirmedGoalieInfo>; timestamp: number } | null = null;
+const espnGoaliesCache = new Map<string, { goalies: Record<string, ConfirmedGoalieInfo>; timestamp: number }>();
 
-async function getLiveConfirmedGoalies(): Promise<Record<string, ConfirmedGoalieInfo>> {
+async function getLiveConfirmedGoalies(dateInput?: string): Promise<Record<string, ConfirmedGoalieInfo>> {
   const now = Date.now();
-  if (espnGoaliesCache && now - espnGoaliesCache.timestamp < 60000) {
-    return espnGoaliesCache.goalies;
+  let dateParam = '';
+  if (dateInput && dateInput !== 'now' && dateInput !== 'live' && dateInput !== 'demo' && dateInput !== 'pre-slate') {
+    dateParam = dateInput.replace(/[^0-9]/g, '');
+  } else {
+    dateParam = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  }
+
+  const cached = espnGoaliesCache.get(dateParam);
+  if (cached && now - cached.timestamp < 45000) {
+    return cached.goalies;
   }
 
   try {
-    const res = await fetch("https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/scoreboard", {
+    const url = dateParam
+      ? `https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/scoreboard?dates=${dateParam}`
+      : `https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/scoreboard`;
+
+    const res = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0" }
     });
     if (!res.ok) throw new Error(`ESPN responded with ${res.status}`);
     const data = await res.json();
     const espnGoalies: Record<string, ConfirmedGoalieInfo> = {};
     const normalizeAbbrev = (abbr: string) => {
-      const map: Record<string, string> = { "NJ": "NJD", "TB": "TBL", "SJ": "SJS", "LA": "LAK", "MON": "MTL" };
+      const map: Record<string, string> = { "NJ": "NJD", "TB": "TBL", "SJ": "SJS", "LA": "LAK", "MON": "MTL", "WAS": "WSH" };
       return map[abbr] || abbr;
     };
 
@@ -276,31 +523,97 @@ async function getLiveConfirmedGoalies(): Promise<Record<string, ConfirmedGoalie
         const p = c.probables?.[0];
         if (p?.athlete) {
           const isConfirmed = p.status?.type === "confirmed" || (p.status?.name || "").toLowerCase() === "confirmed";
+          const athleteLast = (p.athlete.displayName?.split(" ").slice(-1)[0] || "").toLowerCase();
+          const nhlId = GOALIE_NAME_TO_NHL_ID[athleteLast] || NHL_PRIMARY_STARTERS[teamAbbr]?.id;
+          const masklessHeadshot = nhlId 
+            ? `https://assets.nhle.com/mugs/nhl/latest/${nhlId}.png`
+            : p.athlete.headshot;
+
           espnGoalies[teamAbbr] = {
             name: p.athlete.displayName,
             firstName: p.athlete.displayName?.split(" ")[0],
             lastName: p.athlete.displayName?.split(" ").slice(1).join(" "),
             sweaterNumber: parseInt(p.athlete.jersey) || undefined,
-            headshot: p.athlete.headshot,
-            status: p.status?.name || (isConfirmed ? "Confirmed" : "Probable"),
+            headshot: masklessHeadshot,
+            status: p.status?.name || (isConfirmed ? "Confirmed" : "Expected"),
             confirmed: isConfirmed,
-            espnId: p.athlete.id
+            espnId: p.athlete.id,
+            playerId: nhlId
           };
         }
       });
     });
 
-    espnGoaliesCache = { goalies: espnGoalies, timestamp: now };
+    // Augment with Daily Faceoff (confirmed, likely, projected)
+    try {
+      const dfRes = await fetch("https://www.dailyfaceoff.com/starting-goalies", {
+        headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36" }
+      });
+      if (dfRes.ok) {
+        const html = await dfRes.text();
+        const nextDataMatch = html.match(/<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/);
+        if (nextDataMatch) {
+          const dfData = JSON.parse(nextDataMatch[1]);
+          const dfItems = dfData.props?.pageProps?.data || [];
+          dfItems.forEach((item: any) => {
+            const awayAbbr = TEAM_NAME_TO_ABBREV[item.awayTeamName?.toLowerCase()] || item.awayTeamSlug?.slice(0, 3)?.toUpperCase();
+            const homeAbbr = TEAM_NAME_TO_ABBREV[item.homeTeamName?.toLowerCase()] || item.homeTeamSlug?.slice(0, 3)?.toUpperCase();
+
+            if (awayAbbr && item.awayGoalieName) {
+              const dfConf = (item.awayNewsStrengthName || '').toLowerCase().includes('confirm');
+              const awayLast = (item.awayGoalieName.split(" ").slice(-1)[0] || "").toLowerCase();
+              const awayNhlId = GOALIE_NAME_TO_NHL_ID[awayLast] || NHL_PRIMARY_STARTERS[awayAbbr]?.id;
+              const awayMaskless = awayNhlId ? `https://assets.nhle.com/mugs/nhl/latest/${awayNhlId}.png` : undefined;
+
+              if (!espnGoalies[awayAbbr] || dfConf) {
+                espnGoalies[awayAbbr] = {
+                  name: item.awayGoalieName,
+                  firstName: item.awayGoalieName.split(" ")[0],
+                  lastName: item.awayGoalieName.split(" ").slice(1).join(" "),
+                  headshot: awayMaskless || espnGoalies[awayAbbr]?.headshot,
+                  status: item.awayNewsStrengthName || espnGoalies[awayAbbr]?.status || 'Expected',
+                  confirmed: dfConf || espnGoalies[awayAbbr]?.confirmed || false,
+                  playerId: awayNhlId || espnGoalies[awayAbbr]?.playerId
+                };
+              }
+            }
+            if (homeAbbr && item.homeGoalieName) {
+              const dfConf = (item.homeNewsStrengthName || '').toLowerCase().includes('confirm');
+              const homeLast = (item.homeGoalieName.split(" ").slice(-1)[0] || "").toLowerCase();
+              const homeNhlId = GOALIE_NAME_TO_NHL_ID[homeLast] || NHL_PRIMARY_STARTERS[homeAbbr]?.id;
+              const homeMaskless = homeNhlId ? `https://assets.nhle.com/mugs/nhl/latest/${homeNhlId}.png` : undefined;
+
+              if (!espnGoalies[homeAbbr] || dfConf) {
+                espnGoalies[homeAbbr] = {
+                  name: item.homeGoalieName,
+                  firstName: item.homeGoalieName.split(" ")[0],
+                  lastName: item.homeGoalieName.split(" ").slice(1).join(" "),
+                  headshot: homeMaskless || espnGoalies[homeAbbr]?.headshot,
+                  status: item.homeNewsStrengthName || espnGoalies[homeAbbr]?.status || 'Expected',
+                  confirmed: dfConf || espnGoalies[homeAbbr]?.confirmed || false,
+                  playerId: homeNhlId || espnGoalies[homeAbbr]?.playerId
+                };
+              }
+            }
+          });
+        }
+      }
+    } catch {
+      // Best-effort supplement
+    }
+
+    espnGoaliesCache.set(dateParam, { goalies: espnGoalies, timestamp: now });
     return espnGoalies;
   } catch (err) {
     console.error("[ESPN Goalie Confirmation Sync] Failed:", err);
-    return espnGoaliesCache?.goalies || {};
+    return espnGoaliesCache.get(dateParam)?.goalies || {};
   }
 }
 
-// Endpoint to get confirmed starting goalies across today's games
+// Endpoint to get confirmed starting goalies across target slate
 app.get("/api/nhl/confirmed-goalies", async (req, res) => {
-  const goalies = await getLiveConfirmedGoalies();
+  const date = (req.query.date as string) || '';
+  const goalies = await getLiveConfirmedGoalies(date);
   res.json(goalies);
 });
 
@@ -465,7 +778,8 @@ app.get("/api/nhl/game/:gameId", async (req, res) => {
 
     // Merge live confirmed starting goalies from ESPN
     try {
-      const confirmedMap = await getLiveConfirmedGoalies();
+      const gameDateStr = data.gameDate || (data.startTimeUTC ? data.startTimeUTC.slice(0, 10) : '');
+      const confirmedMap = await getLiveConfirmedGoalies(gameDateStr);
       const awayConfirmed = confirmedMap[awayAbbrev];
       const homeConfirmed = confirmedMap[homeAbbrev];
 

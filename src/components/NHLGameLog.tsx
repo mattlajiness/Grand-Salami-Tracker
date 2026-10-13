@@ -9,7 +9,7 @@ import { db, handleFirestoreError, OperationType } from '../firebase';
 import { Timestamp, doc, setDoc } from 'firebase/firestore';
 import { toast } from 'sonner';
 import { NHLPowerPlayTracker } from './NHLPowerPlayTracker';
-import { NHLGoalieStatsCard } from './NHLGoalieStatsCard';
+import { NHLOffenseTrendsCard } from './NHLOffenseTrendsCard';
 import { OULineBadge } from './OULineBadge';
 
 export const renderNHLStatusBadge = (game: NHLGame) => {
@@ -473,7 +473,8 @@ export function NHLGameLog({
   // Dynamically load confirmed starting goalies and live rosters
   useEffect(() => {
     const loadConfirmedGoalies = () => {
-      fetch('/api/nhl/confirmed-goalies')
+      const dateParam = selectedDate ? `?date=${encodeURIComponent(selectedDate)}` : '';
+      fetch(`/api/nhl/confirmed-goalies${dateParam}`)
         .then(res => res.json())
         .then(data => {
           if (data && typeof data === 'object') {
@@ -486,7 +487,7 @@ export function NHLGameLog({
     loadConfirmedGoalies();
     const intervalConfirmed = setInterval(loadConfirmedGoalies, 30 * 1000); // 30s heartbeat for live confirmations
     return () => clearInterval(intervalConfirmed);
-  }, []);
+  }, [selectedDate]);
 
   // Dynamically load goalies pulled from nhl.com with periodic refresh
   useEffect(() => {
@@ -978,7 +979,7 @@ export function NHLGameLog({
                                     : "bg-slate-900 border-slate-700/80 text-slate-300 hover:text-white hover:border-slate-600 hover:bg-slate-800"
                                 )}
                               >
-                                <span>{isExpanded ? 'Hide Matchup' : 'Goalie Matchup'}</span>
+                                <span>{isExpanded ? 'Hide Trends' : 'Offense Trends (L3)'}</span>
                                 <ChevronDown className={cn("w-3 h-3 transition-transform duration-200", isExpanded && "rotate-180 text-cyan-400")} />
                               </button>
                             </div>
@@ -1051,70 +1052,13 @@ export function NHLGameLog({
                               exit={{ height: 0, opacity: 0 }}
                               className="overflow-hidden bg-slate-950/50 border-t border-slate-800"
                             >
-                              <div className="p-4 space-y-6">
+                              <div className="p-4 space-y-5">
                                 {(game.gameState === 'PRE' || game.gameState === 'FUT') ? (
-                                  <div className="space-y-4 font-mono">
-                                    {/* Goalie Matchup Header */}
-                                    <div className="flex items-center justify-between border-b border-slate-800/80 pb-2.5">
-                                      <div className="flex items-center gap-2">
-                                        <div className="w-7 h-7 rounded-lg bg-cyan-950/80 border border-cyan-800/70 flex items-center justify-center shrink-0">
-                                          <ShieldCheck className="w-4 h-4 text-cyan-400" />
-                                        </div>
-                                        <div>
-                                          <h4 className="text-[11px] font-black text-white uppercase tracking-wider">
-                                            Starting Goalie Matchup
-                                          </h4>
-                                          <span className="text-[8.5px] text-slate-400">
-                                            {game.awayTeam.abbrev} at {game.homeTeam.abbrev}
-                                          </span>
-                                        </div>
-                                      </div>
-                                    </div>
-
-                                    {/* Goalie Cards with Team Logos */}
-                                    <div className="space-y-3">
-                                      <div className="space-y-2">
-                                        <div className="flex items-center justify-center py-2 px-3 bg-slate-900/80 rounded-lg border border-slate-800/70 shadow-inner">
-                                          <img 
-                                            src={game.awayTeam.logo} 
-                                            alt={game.awayTeam.abbrev} 
-                                            className="h-7 sm:h-8 w-auto max-w-[68px] sm:max-w-[76px] object-contain filter drop-shadow-md" 
-                                            referrerPolicy="no-referrer" 
-                                          />
-                                        </div>
-                                        <NHLGoalieStatsCard game={game} isHome={false} goalieData={getGoalieData(false, game)} />
-                                      </div>
-
-                                      <div className="space-y-2">
-                                        <div className="flex items-center justify-center py-2 px-3 bg-slate-900/80 rounded-lg border border-slate-800/70 shadow-inner">
-                                          <img 
-                                            src={game.homeTeam.logo} 
-                                            alt={game.homeTeam.abbrev} 
-                                            className="h-7 sm:h-8 w-auto max-w-[68px] sm:max-w-[76px] object-contain filter drop-shadow-md" 
-                                            referrerPolicy="no-referrer" 
-                                          />
-                                        </div>
-                                        <NHLGoalieStatsCard game={game} isHome={true} goalieData={getGoalieData(true, game)} />
-                                      </div>
-                                    </div>
-                                  </div>
+                                  <NHLOffenseTrendsCard game={game} />
                                 ) : (
                                   <>
+                                    {/* Live Power Play & Situation Room */}
                                     <NHLPowerPlayTracker game={game} />
-                                    
-                                    <div className="space-y-4">
-                                      <div className="flex items-center gap-2">
-                                        <ShieldCheck className="w-4 h-4 text-blue-400" />
-                                        <h4 className="text-[10px] font-black text-white uppercase tracking-widest">
-                                          {(game.gameState === 'FINAL' || game.gameState === 'OVER') ? 'Final Goalies' : 'In-Game Goalies'}
-                                        </h4>
-                                      </div>
-                                      
-                                      <div className="space-y-3">
-                                        <NHLGoalieStatsCard game={game} isHome={false} goalieData={getGoalieData(false, game)} />
-                                        <NHLGoalieStatsCard game={game} isHome={true} goalieData={getGoalieData(true, game)} />
-                                      </div>
-                                    </div>
 
                                     {/* Live Performance Analytics in Mobile View */}
                                     <div className="bg-slate-900 rounded-xl border border-slate-800 p-3 sm:p-4">
@@ -1131,6 +1075,11 @@ export function NHLGameLog({
                                         gpp={gpp}
                                         paceHighlight={paceHighlight}
                                       />
+                                    </div>
+
+                                    {/* Recent Offensive Trends Context */}
+                                    <div className="pt-2 border-t border-slate-800/80">
+                                      <NHLOffenseTrendsCard game={game} />
                                     </div>
                                   </>
                                 )}
@@ -1479,7 +1428,7 @@ export function NHLGameLog({
                                         : "bg-slate-900 border-slate-700/80 text-slate-300 hover:text-white hover:border-slate-600 hover:bg-slate-800"
                                     )}
                                   >
-                                    <span>{isExpanded ? 'Hide Matchup' : 'Goalie Matchup'}</span>
+                                    <span>{isExpanded ? 'Hide Trends' : 'Offense Trends (L3)'}</span>
                                     <ChevronDown className={cn("w-2.5 h-2.5 transition-transform duration-200", isExpanded && "rotate-180 text-cyan-400")} />
                                   </button>
                                 )}
@@ -1500,104 +1449,38 @@ export function NHLGameLog({
                                 >
                                   <div className="px-3 py-4 sm:px-6 sm:py-6 border-b border-slate-800/50">
                                     {(game.gameState === 'PRE' || game.gameState === 'FUT') ? (
-                                      /* Pre-game expanded layout: Dedicated 2-Column Goalie Matchup Duel */
-                                      <div className="space-y-4 font-mono">
-                                        <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-                                          <div className="flex items-center gap-2.5">
-                                            <div className="w-8 h-8 rounded-lg bg-cyan-950/80 border border-cyan-800/70 flex items-center justify-center shrink-0 shadow-sm">
-                                              <ShieldCheck className="w-4 h-4 text-cyan-400" />
-                                            </div>
-                                            <div>
-                                              <h4 className="text-[12px] font-black text-white uppercase tracking-wider">
-                                                Probable Starting Goalie Matchup
-                                              </h4>
-                                              <span className="text-[9px] text-slate-400">
-                                                {game.awayTeam.abbrev} at {game.homeTeam.abbrev}
-                                              </span>
-                                            </div>
-                                          </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                                          {/* Column 1: Away Goalie with Team Logo */}
-                                          <div className="bg-slate-900 rounded-xl border border-slate-800 p-3 sm:p-4 space-y-3">
-                                            <div className="flex items-center justify-center py-2.5 px-3 bg-slate-950/70 rounded-lg border border-slate-800/80 shadow-inner">
-                                              <img 
-                                                src={game.awayTeam.logo} 
-                                                alt={game.awayTeam.abbrev} 
-                                                className="h-8 sm:h-9 w-auto max-w-[76px] sm:max-w-[88px] object-contain filter drop-shadow-md transition-transform hover:scale-105" 
-                                                referrerPolicy="no-referrer" 
-                                              />
-                                            </div>
-                                            <NHLGoalieStatsCard 
-                                              game={game}
-                                              isHome={false}
-                                              goalieData={getGoalieData(false, game)}
-                                            />
-                                          </div>
-
-                                          {/* Column 2: Home Goalie with Team Logo */}
-                                          <div className="bg-slate-900 rounded-xl border border-slate-800 p-3 sm:p-4 space-y-3">
-                                            <div className="flex items-center justify-center py-2.5 px-3 bg-slate-950/70 rounded-lg border border-slate-800/80 shadow-inner">
-                                              <img 
-                                                src={game.homeTeam.logo} 
-                                                alt={game.homeTeam.abbrev} 
-                                                className="h-8 sm:h-9 w-auto max-w-[76px] sm:max-w-[88px] object-contain filter drop-shadow-md transition-transform hover:scale-105" 
-                                                referrerPolicy="no-referrer" 
-                                              />
-                                            </div>
-                                            <NHLGoalieStatsCard 
-                                              game={game}
-                                              isHome={true}
-                                              goalieData={getGoalieData(true, game)}
-                                            />
-                                          </div>
-                                        </div>
+                                      /* Pre-game expanded layout: Dedicated Teams Recent Offense Trends */
+                                      <div className="max-w-4xl mx-auto">
+                                        <NHLOffenseTrendsCard game={game} />
                                       </div>
                                     ) : (
-                                      /* Live & Final in-game layout: Pre-game info goes away completely for Live Situation Tracker, In-Game Goalies & Live Analytics */
-                                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                                        {/* Live Power Play / Situation Monitor */}
-                                        <NHLPowerPlayTracker game={game} />
+                                      /* Live & Final in-game layout: Live Situation Tracker, Live Performance Analytics & Recent Offense Trends */
+                                      <div className="space-y-6">
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                                          {/* Live Power Play / Situation Monitor */}
+                                          <NHLPowerPlayTracker game={game} />
 
-                                        {/* Starting & Live Goalie Performance Stats */}
-                                        <div className="bg-slate-900 rounded-xl border border-slate-800 p-3 sm:p-4 space-y-3 sm:space-y-4">
-                                          <div className="flex items-center gap-2 mb-1">
-                                            <ShieldCheck className="w-4 h-4 text-blue-400" />
-                                            <h4 className="text-[10px] font-black text-white uppercase tracking-widest">
-                                              {(game.gameState === 'FINAL' || game.gameState === 'OVER') ? 'Final Goalies' : 'Starting & In-Game Goalies'}
-                                            </h4>
-                                          </div>
-                                          
-                                          <div className="space-y-4 border-none">
-                                            <NHLGoalieStatsCard 
+                                          {/* Live Performance Analytics */}
+                                          <div className="bg-slate-900 rounded-xl border border-slate-800 p-3 sm:p-4">
+                                            <div className="flex items-center gap-2 mb-4">
+                                              <Zap className="w-4 h-4 text-amber-500" />
+                                              <h4 className="text-[10px] font-black text-white uppercase tracking-widest">Live Performance Analytics</h4>
+                                            </div>
+                                            <NHLLiveAnalytics
                                               game={game}
-                                              isHome={false}
-                                              goalieData={getGoalieData(false, game)}
-                                            />
-                                            <NHLGoalieStatsCard 
-                                              game={game}
-                                              isHome={true}
-                                              goalieData={getGoalieData(true, game)}
+                                              gameDetails={gameDetailsCache[game.id]}
+                                              isLive={isLive}
+                                              elapsedMins={elapsedMins}
+                                              projectedPace={projectedPace}
+                                              gpp={gpp}
+                                              paceHighlight={paceHighlight}
                                             />
                                           </div>
                                         </div>
 
-                                        {/* Live Performance Analytics */}
-                                        <div className="bg-slate-900 rounded-xl border border-slate-800 p-3 sm:p-4">
-                                          <div className="flex items-center gap-2 mb-4">
-                                            <Zap className="w-4 h-4 text-amber-500" />
-                                            <h4 className="text-[10px] font-black text-white uppercase tracking-widest">Live Performance Analytics</h4>
-                                          </div>
-                                          <NHLLiveAnalytics
-                                            game={game}
-                                            gameDetails={gameDetailsCache[game.id]}
-                                            isLive={isLive}
-                                            elapsedMins={elapsedMins}
-                                            projectedPace={projectedPace}
-                                            gpp={gpp}
-                                            paceHighlight={paceHighlight}
-                                          />
+                                        {/* Recent Offense Trends leading into game */}
+                                        <div className="pt-4 border-t border-slate-800/70">
+                                          <NHLOffenseTrendsCard game={game} />
                                         </div>
                                       </div>
                                     )}
