@@ -107,7 +107,11 @@ export async function fetchNHLGames(date?: string): Promise<NHLGame[]> {
     }
 
     const data: NHLScoreResponse = await response.json();
-    const games = data.games || [];
+    const rawGames = data.games || [];
+    const games = rawGames.map((g: any) => ({
+      ...g,
+      gameState: g.gameState === 'OFF' ? 'FINAL' : g.gameState
+    }));
     
     if (games.length > 0) {
       try {
@@ -180,6 +184,9 @@ export async function fetchNHLGameDetails(gameId: number): Promise<any> {
         throw new Error(`NHL Game Details Proxy Error: ${response.status}`);
       }
       const data = await response.json();
+      if (data && data.gameState === 'OFF') {
+        data.gameState = 'FINAL';
+      }
       
       // Store in caches
       clientGameDetailsCache.set(gameId, { data, timestamp: Date.now() });
@@ -208,16 +215,3 @@ export async function fetchNHLGameDetails(gameId: number): Promise<any> {
   inFlightGameDetailsRequests.set(gameId, requestPromise);
   return requestPromise;
 }
-
-// Fetch current 2026-2027 goalies pulled from nhl.com
-export async function fetchNHLCurrentGoalies(): Promise<Record<string, any[]>> {
-  try {
-    const res = await fetch('/api/nhl/rosters/goalies');
-    if (!res.ok) return {};
-    return await res.json();
-  } catch (e) {
-    console.warn("Could not fetch 2026-2027 goalies from nhl.com:", e);
-    return {};
-  }
-}
-

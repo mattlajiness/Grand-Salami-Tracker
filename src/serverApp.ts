@@ -38,6 +38,11 @@ app.get("/api/nhl/scores/:date", async (req, res) => {
       
       if (nowResponse.ok) {
         const nowData = await nowResponse.json();
+        if (nowData.games && Array.isArray(nowData.games)) {
+          nowData.games.forEach((g: any) => {
+            if (g.gameState === 'OFF') g.gameState = 'FINAL';
+          });
+        }
         console.log(`[NHL Proxy] Fallback 'now' successful.`);
         return res.json(nowData);
       }
@@ -72,6 +77,12 @@ app.get("/api/nhl/scores/:date", async (req, res) => {
       }
     } catch (confErr) {
       console.warn("[NHL Proxy] Error augmenting confirmed goalies:", confErr);
+    }
+
+    if (data.games && Array.isArray(data.games)) {
+      data.games.forEach((g: any) => {
+        if (g.gameState === 'OFF') g.gameState = 'FINAL';
+      });
     }
 
     res.json(data);
@@ -945,6 +956,11 @@ app.get("/api/nhl/game/:gameId", async (req, res) => {
       if (!data.homeTeam.goalies && homeAbbrev && nhlGoaliesCache.goaliesByTeam[homeAbbrev]) {
         data.homeTeam.goalies = nhlGoaliesCache.goaliesByTeam[homeAbbrev];
       }
+    }
+
+    // Normalize OFF-ICE straight to FINAL
+    if (data && data.gameState === 'OFF') {
+      data.gameState = 'FINAL';
     }
 
     // Update in-memory cache

@@ -42,7 +42,7 @@ export const SIMULATED_GAMES: NHLGame[] = [
   },
   {
     id: 9992,
-    gameState: 'OFF',
+    gameState: 'FINAL',
     startTimeUTC: new Date(Date.now() - 2.5 * 3600 * 1000).toISOString(),
     gameDate: new Date().toISOString().split('T')[0],
     venue: { default: 'Scotiabank Arena' },
@@ -606,10 +606,10 @@ export function tickSimulatedGames(games: NHLGame[]): NHLGame[] {
           }
         };
       } else if (game.gameState === 'CRIT') {
-        // Critical tight game, end regular time -> maybe OFF review or Overtime
+        // Critical tight game, end regular time -> straight to FINAL
         return {
           ...game,
-          gameState: 'OFF',
+          gameState: 'FINAL',
           clock: {
             timeRemaining: '00:00',
             secondsRemaining: 0,

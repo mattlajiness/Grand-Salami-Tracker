@@ -35,7 +35,7 @@ export const renderNHLStatusBadge = (game: NHLGame) => {
     );
   }
 
-  if (game.gameState === 'FINAL' || game.gameState === 'OVER') {
+  if (game.gameState === 'FINAL' || game.gameState === 'OVER' || game.gameState === 'OFF') {
     return (
       <div className={cn(baseClasses, "bg-emerald-600 text-white border border-emerald-500/30")}>
         <span>FINAL</span>
@@ -51,22 +51,18 @@ export const renderNHLStatusBadge = (game: NHLGame) => {
     );
   }
 
-  // Live / Off-ice
+  // Live
   return (
     <div className={cn(
       baseClasses,
       game.gameState === 'LIVE' ? "bg-red-600 text-white border border-red-500/30" :
       game.gameState === 'CRIT' ? "bg-red-700 text-white border border-red-400 animate-pulse shadow-[0_0_12px_rgba(220,38,38,0.6)]" :
-      game.gameState === 'OFF' ? "bg-amber-600/20 text-amber-400 border border-amber-500/50" :
       "bg-slate-800 text-slate-400 border border-slate-700"
     )}>
       {game.gameState === 'CRIT' && (
         <AlertTriangle className="w-2.5 h-2.5 text-white animate-bounce" />
       )}
-      {game.gameState === 'OFF' && (
-        <Clock className="w-2.5 h-2.5 text-amber-400" />
-      )}
-      {game.gameState === 'CRIT' ? 'CRIT' : game.gameState === 'OFF' ? 'OFF-ICE' : game.gameState}
+      {game.gameState === 'CRIT' ? 'CRIT' : game.gameState}
     </div>
   );
 };
@@ -208,25 +204,6 @@ export function NHLGameVenueCard({
   );
 }
 
-export function NHLPreGameMatchupInsights({ 
-  game, 
-  gameDetails 
-}: { 
-  game: NHLGame; 
-  gameDetails?: any;
-}) {
-  return (
-    <div className="space-y-4">
-      {/* Where The Game Is Being Played */}
-      <NHLGameVenueCard game={game} gameDetails={gameDetails} />
-
-      <p className="text-[8px] font-mono text-slate-500 uppercase tracking-tighter leading-relaxed">
-        Pre-game matchup intelligence focused on starting netminders and venue location.
-      </p>
-    </div>
-  );
-}
-
 interface NHLLiveAnalyticsProps {
   game: NHLGame;
   gameDetails?: any;
@@ -320,36 +297,7 @@ function NHLLiveAnalytics({
         </div>
       )}
 
-      {/* Scoring Summary */}
-      <div className="space-y-2">
-        <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest font-black">Recent Scoring</span>
-        <div className="space-y-2 max-h-32 overflow-y-auto pr-2 custom-scrollbar">
-          {gameDetails?.summary?.scoring?.length > 0 ? (
-            gameDetails.summary.scoring.map((period: any, pIdx: number) => (
-              <div key={pIdx} className="space-y-1">
-                {period.goals?.map((goal: any, gIdx: number) => (
-                  <div key={gIdx} className="flex items-center justify-between text-[9px] bg-slate-950 p-2 rounded border border-slate-800/50">
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 rounded-full bg-slate-800 flex items-center justify-center text-[7px] font-black">
-                        {goal.teamAbbrev}
-                      </div>
-                      <span className="text-white font-bold">{goal.name} ({goal.goalsToDate})</span>
-                    </div>
-                    <span className="font-mono text-slate-500">{goal.timeInPeriod} - P{period.period}</span>
-                  </div>
-                ))}
-              </div>
-            ))
-          ) : !gameDetails ? (
-            <div className="flex items-center gap-2 text-[9px] font-mono text-slate-500 italic py-2">
-              <div className="w-3 h-3 border-2 border-blue-500/20 border-t-blue-400 rounded-full animate-spin" />
-              Syncing live scoring plays...
-            </div>
-          ) : (
-            <div className="text-[9px] font-mono text-slate-600 italic py-2">No goals scored yet</div>
-          )}
-        </div>
-      </div>
+
 
       {/* Shot Differential Analytics */}
       {gameDetails?.summary?.teamStats && (
@@ -720,16 +668,12 @@ export function NHLGameLog({
                             "p-4 space-y-4 transition-colors relative overflow-hidden",
                             isPreGame ? "cursor-default" : "cursor-pointer hover:bg-slate-800/30",
                             isExpanded && !isPreGame ? "bg-slate-800/50" : "",
-                            game.gameState === 'CRIT' && "bg-red-950/10",
-                            game.gameState === 'OFF' && "bg-amber-950/5"
+                            game.gameState === 'CRIT' && "bg-red-950/10"
                           )}
                           onClick={isPreGame ? undefined : () => toggleGame(game.id)}
                         >
                           {game.gameState === 'CRIT' && (
                             <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500 animate-pulse shadow-[0_0_10px_#ef4444]" />
-                          )}
-                          {game.gameState === 'OFF' && (
-                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500/80" />
                           )}
 
                           <div className="flex items-center justify-between gap-2">
@@ -816,7 +760,7 @@ export function NHLGameLog({
                             </div>
                           )}
 
-                          {(isLive || game.gameState === 'LIVE' || game.gameState === 'CRIT' || game.gameState === 'OFF') && (
+                          {(isLive || game.gameState === 'LIVE' || game.gameState === 'CRIT') && (
                             <div className="pt-2 border-t border-slate-800/50 flex justify-between items-center">
                               <div className="flex items-center gap-2">
                                 <span className={cn(
@@ -1008,17 +952,13 @@ export function NHLGameLog({
                             "transition-colors group relative",
                             isPreGame ? "cursor-default" : "hover:bg-slate-800/50 cursor-pointer",
                             isExpanded && !isPreGame && "bg-slate-800/50",
-                            game.gameState === 'CRIT' && "bg-red-950/10 hover:bg-red-950/20",
-                            game.gameState === 'OFF' && "bg-amber-950/5 hover:bg-amber-950/10"
+                            game.gameState === 'CRIT' && "bg-red-950/10 hover:bg-red-950/20"
                           )}
                           onClick={isPreGame ? undefined : () => toggleGame(game.id)}
                         >
                           <td className="px-6 py-5 relative">
                             {game.gameState === 'CRIT' && (
                               <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500 animate-pulse shadow-[0_0_10px_#ef4444]" />
-                            )}
-                            {game.gameState === 'OFF' && (
-                              <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500/80" />
                             )}
                             <div className="flex flex-col gap-2">
                               <div className="flex items-center justify-between">
@@ -1168,24 +1108,12 @@ export function NHLGameLog({
                               <div className="inline-flex flex-col items-center">
                                 <span className={cn(
                                   "text-[10px] font-mono uppercase tracking-widest font-black",
-                                  ((game as any).gameScheduleState === 'PPD' || (game as any).gameScheduleState === 'CNCL') ? "text-amber-500 animate-pulse font-extrabold" :
-                                  game.gameState === 'OFF' ? "text-amber-500 animate-pulse" : "text-slate-500"
+                                  ((game as any).gameScheduleState === 'PPD' || (game as any).gameScheduleState === 'CNCL') ? "text-amber-500 animate-pulse font-extrabold" : "text-slate-500"
                                 )}>
                                   {(game as any).gameScheduleState === 'PPD' ? 'Postponed' :
                                    (game as any).gameScheduleState === 'CNCL' ? 'Cancelled' :
-                                   game.gameState === 'OFF' ? 'End on Ice' :
-                                   (game.gameState === 'FINAL' || game.gameState === 'OVER') ? 'Complete' : 'Scheduled'}
+                                   (game.gameState === 'FINAL' || game.gameState === 'OVER' || game.gameState === 'OFF') ? 'Complete' : 'Scheduled'}
                                 </span>
-                                
-                                {game.gameState === 'OFF' && (
-                                  <div 
-                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 mt-2 rounded border border-slate-800 bg-slate-950/80 text-slate-400 text-[6.5px] font-mono tracking-wider whitespace-nowrap uppercase font-black"
-                                    title={`Final Goals Per Period (GPP): ${gpp.toFixed(2)}. Total Goals: ${totalScore}.`}
-                                  >
-                                    <Activity className="w-2 h-2 text-slate-600" />
-                                    <span>{totalScore.toFixed(1)} Pace • {gpp.toFixed(2)} GPP</span>
-                                  </div>
-                                 )}
                               </div>
                             )}
                           </td>
@@ -1202,22 +1130,6 @@ export function NHLGameLog({
                           <td className="px-6 py-5 text-right">
                             <div className="flex flex-col items-end gap-2">
                                {renderNHLStatusBadge(game)}
-                               <div style={{ display: 'none' }} className={cn(
-                                  "text-[9px] font-mono font-black px-2 py-1 rounded inline-flex items-center gap-1 shadow-sm whitespace-nowrap transition-all duration-300",
-                                  game.gameState === 'LIVE' ? "bg-red-600 text-white border border-red-500/30" :
-                                  game.gameState === 'CRIT' ? "bg-red-700 text-white border border-red-400 animate-pulse shadow-[0_0_12px_rgba(220,38,38,0.6)]" :
-                                  game.gameState === 'OFF' ? "bg-amber-600/20 text-amber-400 border border-amber-500/50" :
-                                  game.gameState === 'FINAL' ? "bg-emerald-600 text-white border border-emerald-500/30" :
-                                  "bg-slate-800 text-slate-400 border border-slate-700"
-                                )}>
-                                  {game.gameState === 'CRIT' && (
-                                    <AlertTriangle className="w-2.5 h-2.5 text-white animate-bounce" />
-                                  )}
-                                  {game.gameState === 'OFF' && (
-                                    <Clock className="w-2.5 h-2.5 text-amber-400" />
-                                  )}
-                                  {game.gameState === 'CRIT' ? 'CRIT' : game.gameState === 'OFF' ? 'OFF-ICE' : game.gameState}
-                                </div>
                                 <div className="text-[9px] font-mono text-slate-400 font-bold whitespace-nowrap">
                                   {(game.gameState === 'PRE' || game.gameState === 'FUT') 
                                     ? new Date(game.startTimeUTC).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -1227,11 +1139,6 @@ export function NHLGameLog({
                                          game.gameState === 'CRIT' && "text-red-400 animate-pulse font-extrabold"
                                        )}>
                                          {game.clock?.timeRemaining || "LIVE"}
-                                       </span>
-                                      )
-                                    : game.gameState === 'OFF' ? (
-                                       <span className="text-amber-500 font-extrabold uppercase animate-pulse">
-                                         UNOFFICIAL
                                        </span>
                                       )
                                     : "FINAL"}
