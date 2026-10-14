@@ -10,6 +10,7 @@ import { Timestamp, doc, setDoc } from 'firebase/firestore';
 import { toast } from 'sonner';
 import { NHLPowerPlayTracker } from './NHLPowerPlayTracker';
 import { OULineBadge } from './OULineBadge';
+import { parseNHLSituation } from '../utils/nhlSituation';
 
 export const renderNHLStatusBadge = (game: NHLGame) => {
   const scheduleState = (game as any).gameScheduleState || '';
@@ -582,28 +583,12 @@ export function NHLGameLog({
             
             {/* Mobile View: Card List */}
             <div className="block md:hidden divide-y divide-slate-800">
-              {filteredGames.map((game, index) => {                    const totalScore = (game.awayTeam.score || 0) + (game.homeTeam.score || 0);
+              {filteredGames.map((game, index) => {
+                    const totalScore = (game.awayTeam.score || 0) + (game.homeTeam.score || 0);
                     const isExpanded = expandedGameId === game.id;
-                    // Dynamic skater-strength calculation
-                    let skAway = game.situation?.awayTeam?.strength || 5;
-                    let skHome = game.situation?.homeTeam?.strength || 5;
-
-                    if (game.situation?.situationCode && game.situation.situationCode.length === 4) {
-                      const code = game.situation.situationCode;
-                      const thirdDigitVal = parseInt(code[2], 10);
-                      const isCustomLayout = !isNaN(thirdDigitVal) && thirdDigitVal > 1;
-
-                      if (isCustomLayout) {
-                        skAway = parseInt(code[1], 10) || 5;
-                        skHome = parseInt(code[2], 10) || 5;
-                      } else {
-                        skAway = parseInt(code[1], 10) || 5;
-                        skHome = parseInt(code[3], 10) || 5;
-                      }
-                    }
-
-                    const awayPP = skAway > skHome;
-                    const homePP = skHome > skAway;
+                    const sit = parseNHLSituation(game);
+                    const awayPP = sit.hasPowerPlay && sit.powerPlayTeam === 'away';
+                    const homePP = sit.hasPowerPlay && sit.powerPlayTeam === 'home';
                     const isAwayB2B = isTeamB2B(game.awayTeam.abbrev, game.gameDate);
                     const isHomeB2B = isTeamB2B(game.homeTeam.abbrev, game.gameDate);
 
@@ -677,8 +662,14 @@ export function NHLGameLog({
                           )}
 
                           <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5 flex-wrap">
                                {renderNHLStatusBadge(game)}
+                               {sit.isEmptyNet && (
+                                 <span className="text-[8px] font-mono font-black px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 inline-flex items-center gap-1 animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.25)]">
+                                   <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+                                   EMPTY NET ({sit.emptyNetTeamAbbrev})
+                                 </span>
+                               )}
                             </div>
                             <div 
                               className="flex items-center gap-1.5 text-[8.5px] font-mono text-slate-300 bg-slate-900/90 px-2.5 py-1 rounded-md border border-slate-800 shadow-sm max-w-[62%]"
@@ -697,11 +688,19 @@ export function NHLGameLog({
                                 <div className="w-8 h-8 rounded bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-700 relative shrink-0">
                                   <img src={game.awayTeam.logo} alt={game.awayTeam.abbrev} className="w-6 h-6 object-contain" referrerPolicy="no-referrer" />
                                   {awayPP && <div className="absolute inset-0 bg-amber-500/20 border border-amber-500/50 animate-pulse" />}
+                                  {sit.isEmptyNet && sit.emptyNetTeam === 'away' && (
+                                    <div className="absolute inset-0 bg-amber-600/30 border border-amber-500 animate-pulse" />
+                                  )}
                                 </div>
                                 <div className="flex flex-col">
-                                  <span className="font-bold text-slate-200 tracking-tight leading-none uppercase flex items-center gap-1.5">
+                                  <span className="font-bold text-slate-200 tracking-tight leading-none uppercase flex items-center gap-1.5 flex-wrap">
                                     {game.awayTeam.abbrev}
                                     {awayPP && <Zap className="w-2 h-2 text-amber-500 fill-amber-500" />}
+                                    {sit.isEmptyNet && sit.emptyNetTeam === 'away' && (
+                                      <span className="px-1 py-0.2 text-[7px] font-black tracking-wider bg-amber-950/90 text-amber-300 border border-amber-500/50 rounded uppercase leading-none font-mono animate-pulse">
+                                        EMPTY NET
+                                      </span>
+                                    )}
                                   </span>
                                   <span className="text-[9px] font-mono font-medium text-slate-500 mt-0.5">
                                     {getNHLTeamRecordStr(game.awayTeam)}
@@ -724,11 +723,19 @@ export function NHLGameLog({
                                 <div className="w-8 h-8 rounded bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-700 relative shrink-0">
                                   <img src={game.homeTeam.logo} alt={game.homeTeam.abbrev} className="w-6 h-6 object-contain" referrerPolicy="no-referrer" />
                                   {homePP && <div className="absolute inset-0 bg-amber-500/20 border border-amber-500/50 animate-pulse" />}
+                                  {sit.isEmptyNet && sit.emptyNetTeam === 'home' && (
+                                    <div className="absolute inset-0 bg-amber-600/30 border border-amber-500 animate-pulse" />
+                                  )}
                                 </div>
                                 <div className="flex flex-col">
-                                  <span className="font-bold text-slate-200 tracking-tight leading-none uppercase flex items-center gap-1.5">
+                                  <span className="font-bold text-slate-200 tracking-tight leading-none uppercase flex items-center gap-1.5 flex-wrap">
                                     {game.homeTeam.abbrev}
                                     {homePP && <Zap className="w-2 h-2 text-amber-500 fill-amber-500" />}
+                                    {sit.isEmptyNet && sit.emptyNetTeam === 'home' && (
+                                      <span className="px-1 py-0.2 text-[7px] font-black tracking-wider bg-amber-950/90 text-amber-300 border border-amber-500/50 rounded uppercase leading-none font-mono animate-pulse">
+                                        EMPTY NET
+                                      </span>
+                                    )}
                                   </span>
                                   <span className="text-[9px] font-mono font-medium text-slate-500 mt-0.5">
                                     {getNHLTeamRecordStr(game.homeTeam)}
@@ -873,26 +880,9 @@ export function NHLGameLog({
                     const totalScore = (game.awayTeam.score || 0) + (game.homeTeam.score || 0);
                     const isExpanded = expandedGameId === game.id;
                     const venue = getGameVenueInfo(game, gameDetailsCache[game.id]);
-                    // Dynamic skater-strength calculation
-                    let skAway = game.situation?.awayTeam?.strength || 5;
-                    let skHome = game.situation?.homeTeam?.strength || 5;
-
-                    if (game.situation?.situationCode && game.situation.situationCode.length === 4) {
-                      const code = game.situation.situationCode;
-                      const thirdDigitVal = parseInt(code[2], 10);
-                      const isCustomLayout = !isNaN(thirdDigitVal) && thirdDigitVal > 1;
-
-                      if (isCustomLayout) {
-                        skAway = parseInt(code[1], 10) || 5;
-                        skHome = parseInt(code[2], 10) || 5;
-                      } else {
-                        skAway = parseInt(code[1], 10) || 5;
-                        skHome = parseInt(code[3], 10) || 5;
-                      }
-                    }
-
-                    const awayPP = skAway > skHome;
-                    const homePP = skHome > skAway;
+                    const sit = parseNHLSituation(game);
+                    const awayPP = sit.hasPowerPlay && sit.powerPlayTeam === 'away';
+                    const homePP = sit.hasPowerPlay && sit.powerPlayTeam === 'home';
                     const isAwayB2B = isTeamB2B(game.awayTeam.abbrev, game.gameDate);
                     const isHomeB2B = isTeamB2B(game.homeTeam.abbrev, game.gameDate);
 
@@ -973,6 +963,9 @@ export function NHLGameLog({
                                     {awayPP && (
                                       <div className="absolute inset-0 bg-amber-500/20 border border-amber-500/50 animate-pulse" />
                                     )}
+                                    {sit.isEmptyNet && sit.emptyNetTeam === 'away' && (
+                                      <div className="absolute inset-0 bg-amber-600/30 border border-amber-500 animate-pulse" />
+                                    )}
                                   </div>
                                   <div className="flex flex-col">
                                     <span className="font-bold text-slate-200 tracking-tight leading-none uppercase flex items-center gap-1.5 whitespace-nowrap">
@@ -981,6 +974,14 @@ export function NHLGameLog({
                                         {getNHLTeamRecordStr(game.awayTeam)}
                                       </span>
                                       {awayPP && <Zap className="w-2 h-2 text-amber-500 fill-amber-500" />}
+                                      {sit.isEmptyNet && sit.emptyNetTeam === 'away' && (
+                                        <span 
+                                          className="px-1 py-0.5 text-[7px] font-black tracking-widest bg-amber-950/90 text-amber-300 border border-amber-500/50 rounded uppercase leading-none font-mono animate-pulse shadow-[0_0_6px_rgba(245,158,11,0.3)]"
+                                          title={`${game.awayTeam.abbrev} Goaltender Pulled - Empty Net`}
+                                        >
+                                          EMPTY NET
+                                        </span>
+                                      )}
                                       {isAwayB2B && (
                                         <span 
                                           className="px-1 py-0.5 text-[7px] font-black tracking-widest bg-cyan-950/85 text-cyan-400 border border-cyan-800/40 rounded uppercase leading-none font-mono"
@@ -1011,6 +1012,9 @@ export function NHLGameLog({
                                     {homePP && (
                                       <div className="absolute inset-0 bg-amber-500/20 border border-amber-500/50 animate-pulse" />
                                     )}
+                                    {sit.isEmptyNet && sit.emptyNetTeam === 'home' && (
+                                      <div className="absolute inset-0 bg-amber-600/30 border border-amber-500 animate-pulse" />
+                                    )}
                                   </div>
                                   <div className="flex flex-col">
                                     <span className="font-bold text-slate-200 tracking-tight leading-none uppercase flex items-center gap-1.5 whitespace-nowrap">
@@ -1019,6 +1023,14 @@ export function NHLGameLog({
                                         {getNHLTeamRecordStr(game.homeTeam)}
                                       </span>
                                       {homePP && <Zap className="w-2 h-2 text-amber-500 fill-amber-500" />}
+                                      {sit.isEmptyNet && sit.emptyNetTeam === 'home' && (
+                                        <span 
+                                          className="px-1 py-0.5 text-[7px] font-black tracking-widest bg-amber-950/90 text-amber-300 border border-amber-500/50 rounded uppercase leading-none font-mono animate-pulse shadow-[0_0_6px_rgba(245,158,11,0.3)]"
+                                          title={`${game.homeTeam.abbrev} Goaltender Pulled - Empty Net`}
+                                        >
+                                          EMPTY NET
+                                        </span>
+                                      )}
                                       {isHomeB2B && (
                                         <span 
                                           className="px-1 py-0.5 text-[7px] font-black tracking-widest bg-cyan-950/85 text-cyan-400 border border-cyan-800/40 rounded uppercase leading-none font-mono"
@@ -1129,7 +1141,15 @@ export function NHLGameLog({
                           </td>
                           <td className="px-6 py-5 text-right">
                             <div className="flex flex-col items-end gap-2">
-                               {renderNHLStatusBadge(game)}
+                               <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                                 {sit.isEmptyNet && (
+                                   <span className="text-[7.5px] font-mono font-black px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/50 inline-flex items-center gap-1 animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.25)]">
+                                     <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+                                     EN: {sit.emptyNetTeamAbbrev}
+                                   </span>
+                                 )}
+                                 {renderNHLStatusBadge(game)}
+                               </div>
                                 <div className="text-[9px] font-mono text-slate-400 font-bold whitespace-nowrap">
                                   {(game.gameState === 'PRE' || game.gameState === 'FUT') 
                                     ? new Date(game.startTimeUTC).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })

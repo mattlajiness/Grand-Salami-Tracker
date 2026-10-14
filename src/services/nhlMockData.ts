@@ -690,6 +690,35 @@ export function tickSimulatedGames(games: NHLGame[]): NHLGame[] {
       }
     }
 
+    // Empty Net Logic: In late 3rd period (< 140s remaining), trailing team pulls goaltender for extra attacker
+    const isLate3rd = updatedGame.periodDescriptor?.number === 3 && sec < 140 && (updatedGame.gameState === 'LIVE' || updatedGame.gameState === 'CRIT');
+    if (isLate3rd && !isPPActive) {
+      const awayScore = updatedGame.awayTeam.score || 0;
+      const homeScore = updatedGame.homeTeam.score || 0;
+      const diff = awayScore - homeScore;
+
+      // Trailing by 1 or 2 goals triggers goalie pull
+      if (diff > 0 && diff <= 2) {
+        // Home team trailing -> pulls goalie: situationCode '1506' (away goalie 1, 5 skaters; home goalie 0, 6 skaters)
+        if (updatedGame.situation?.situationCode !== '1506') {
+          updatedGame.situation = {
+            homeTeam: { strength: 6 },
+            awayTeam: { strength: 5 },
+            situationCode: '1506'
+          };
+        }
+      } else if (diff < 0 && diff >= -2) {
+        // Away team trailing -> pulls goalie: situationCode '0615' (away goalie 0, 6 skaters; home goalie 1, 5 skaters)
+        if (updatedGame.situation?.situationCode !== '0615') {
+          updatedGame.situation = {
+            homeTeam: { strength: 5 },
+            awayTeam: { strength: 6 },
+            situationCode: '0615'
+          };
+        }
+      }
+    }
+
     // Random SOG addition (10% chance)
     if (Math.random() < 0.10) {
       const isHome = Math.random() < 0.5;
@@ -700,12 +729,18 @@ export function tickSimulatedGames(games: NHLGame[]): NHLGame[] {
       }
 
       // Very small chance of a Goal! (2.5% of a shot scoring)
-      // If we are on a PP, double the chance of scoring! (5% chance of goal on shot)
+      // If we are on a PP, double the chance of scoring! (6% chance of goal on shot)
+      // If shooting against an EMPTY NET, elevated chance (15% chance of goal on shot)
       const currentSits = updatedGame.situation;
       const isHomePPActive = currentSits?.situationCode === '1451';
       const isAwayPPActive = currentSits?.situationCode === '1541';
+      const isHomeNetEmpty = currentSits?.situationCode === '1506';
+      const isAwayNetEmpty = currentSits?.situationCode === '0615';
+
+      const isShootingAgainstEmptyNet = (isHome && isAwayNetEmpty) || (!isHome && isHomeNetEmpty);
       const isShootingPP = (isHome && isHomePPActive) || (!isHome && isAwayPPActive);
-      const goalChance = isShootingPP ? 0.06 : 0.025;
+      
+      const goalChance = isShootingAgainstEmptyNet ? 0.15 : (isShootingPP ? 0.06 : 0.025);
 
       if (Math.random() < goalChance) {
         if (isHome) {
@@ -714,7 +749,7 @@ export function tickSimulatedGames(games: NHLGame[]): NHLGame[] {
           updatedGame.awayTeam.score = (updatedGame.awayTeam.score || 0) + 1;
         }
 
-        // If goal was scored, penalty ends (Even Strength starts)
+        // If goal was scored, penalty or empty net ends
         updatedGame.situation = {
           homeTeam: { strength: 5 },
           awayTeam: { strength: 5 },

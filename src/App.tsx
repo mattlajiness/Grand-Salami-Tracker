@@ -8,6 +8,7 @@ import { GrandSalamiHeader } from './components/GrandSalamiHeader';
 import { NHLGrandSalamiHeader } from './components/NHLGrandSalamiHeader';
 import { NHLGameLog } from './components/NHLGameLog';
 import { cn } from './lib/utils';
+import { parseNHLSituation } from './utils/nhlSituation';
 import { calculateFatigueStats, calculateBullpenScore } from './lib/fatigueEngine';
 import { getParkFactor, getTeamOffensePower } from './lib/leagueConstants';
 import { GameLog } from './components/GameLog';
@@ -148,6 +149,7 @@ export default function App() {
   const prevMlbScoresRef = useRef<Record<number, { away: number; home: number }>>({});
   const isInitialMlbLoadRef = useRef(true);
   const prevNhlScoresRef = useRef<Record<number, { away: number; home: number }>>({});
+  const prevNhlEmptyNetsRef = useRef<Record<number, { isEmptyNet: boolean; emptyNetTeam?: 'home' | 'away' | null }>>({});
   const isInitialNhlLoadRef = useRef(true);
 
   useEffect(() => {
@@ -452,31 +454,76 @@ export default function App() {
     });
   }, [games]);
 
-  // NHL Live Goal Scored Alerts System
+  // NHL Live Goal Scored & Empty Net Alerts System
   useEffect(() => {
-    if (!nhlGames || nhlGames.length === 0 || selectedNhlDate === 'demo') return;
+    if (!nhlGames || nhlGames.length === 0) return;
 
     if (isInitialNhlLoadRef.current) {
       const initialScores: Record<number, { away: number; home: number }> = {};
+      const initialEmptyNets: Record<number, { isEmptyNet: boolean; emptyNetTeam?: 'home' | 'away' | null }> = {};
       nhlGames.forEach(g => {
         initialScores[g.id] = {
           away: g.awayTeam?.score || 0,
           home: g.homeTeam?.score || 0
         };
+        const sit = parseNHLSituation(g);
+        initialEmptyNets[g.id] = {
+          isEmptyNet: sit.isEmptyNet,
+          emptyNetTeam: sit.emptyNetTeam
+        };
       });
       prevNhlScoresRef.current = initialScores;
+      prevNhlEmptyNetsRef.current = initialEmptyNets;
       isInitialNhlLoadRef.current = false;
       return;
     }
 
     nhlGames.forEach(g => {
-      const prev = prevNhlScoresRef.current[g.id];
-      if (prev) {
+      const prevScore = prevNhlScoresRef.current[g.id];
+      const prevEmptyNet = prevNhlEmptyNetsRef.current[g.id];
+      const currentSit = parseNHLSituation(g);
+      const isLive = g.gameState === 'LIVE' || g.gameState === 'CRIT';
+
+      // 1. Empty Net Alert: Goalie pulled for extra attacker
+      if (isLive && currentSit.isEmptyNet && (!prevEmptyNet || !prevEmptyNet.isEmptyNet)) {
+        const pulledTeam = currentSit.emptyNetTeamAbbrev || 'Trailing team';
+        const clockTime = g.clock?.timeRemaining ? `${g.clock.timeRemaining} remaining` : 'late';
+        const periodStr = g.periodDescriptor?.number === 3 
+          ? 'in the 3rd period' 
+          : (g.periodDescriptor?.periodType === 'OT' ? 'in Overtime' : `in P${g.periodDescriptor?.number || 3}`);
+        
+        const title = `🥅 EMPTY NET ALERT: ${g.awayTeam.abbrev} @ ${g.homeTeam.abbrev}`;
+        const body = `GOALIE PULLED! ${pulledTeam} has pulled their goaltender! Net is EMPTY with ${clockTime} ${periodStr} (${g.awayTeam.abbrev} ${g.awayTeam.score ?? 0} - ${g.homeTeam.score ?? 0} ${g.homeTeam.abbrev})`;
+
+        if (activeSport === 'NHL') {
+          toast(body, {
+            icon: '🥅',
+            duration: 7000,
+            className: 'border-amber-500/50 bg-slate-900 text-slate-100 font-medium'
+          });
+        }
+
+        // Native Browser Notification
+        if ("Notification" in window && Notification.permission === "granted") {
+          try {
+            new Notification(title, {
+              body,
+              icon: 'https://cdn-icons-png.flaticon.com/512/3515/3515320.png',
+              tag: `nhl-empty-net-${g.id}-${Date.now()}`
+            });
+          } catch (err) {
+            console.warn('Browser empty net notification failed:', err);
+          }
+        }
+      }
+
+      // 2. Goal Scored Alert (with Empty Net distinction)
+      if (prevScore) {
         const currentAway = g.awayTeam?.score || 0;
         const currentHome = g.homeTeam?.score || 0;
 
-        const awayDiff = currentAway - prev.away;
-        const homeDiff = currentHome - prev.home;
+        const awayDiff = currentAway - prevScore.away;
+        const homeDiff = currentHome - prevScore.home;
 
         if (awayDiff > 0 || homeDiff > 0) {
           const scoringTeam = (awayDiff > 0 && homeDiff > 0)
@@ -485,23 +532,46 @@ export default function App() {
               ? g.awayTeam.abbrev
               : g.homeTeam.abbrev;
           
-          const body = `🚨 GOAL! ${scoringTeam} scored! It's now ${g.awayTeam.abbrev} ${currentAway} - ${currentHome} ${g.homeTeam.abbrev}`;
+          const wasEmptyNetGoal = prevEmptyNet?.isEmptyNet;
+          const title = wasEmptyNetGoal 
+            ? `🚨 EMPTY NET GOAL: ${g.awayTeam.abbrev} @ ${g.homeTeam.abbrev}`
+            : `🚨 NHL GOAL: ${g.awayTeam.abbrev} @ ${g.homeTeam.abbrev}`;
+          const body = wasEmptyNetGoal
+            ? `EMPTY NET GOAL! ${scoringTeam} seals it into the empty net! (${g.awayTeam.abbrev} ${currentAway} - ${currentHome} ${g.homeTeam.abbrev})`
+            : `GOAL! ${scoringTeam} scores! It's now ${g.awayTeam.abbrev} ${currentAway} - ${currentHome} ${g.homeTeam.abbrev}`;
           
           if (activeSport === 'NHL') {
             toast(body, {
-              icon: '🏒',
-              duration: 5000
+              icon: wasEmptyNetGoal ? '🥅' : '🏒',
+              duration: 6000
             });
+          }
+
+          if ("Notification" in window && Notification.permission === "granted") {
+            try {
+              new Notification(title, {
+                body,
+                icon: 'https://cdn-icons-png.flaticon.com/512/3515/3515320.png',
+                tag: `nhl-goal-${g.id}-${Date.now()}`
+              });
+            } catch (err) {
+              console.warn('Browser goal notification failed:', err);
+            }
           }
         }
       }
 
+      // Keep latest states in refs
       prevNhlScoresRef.current[g.id] = {
         away: g.awayTeam?.score || 0,
         home: g.homeTeam?.score || 0
       };
+      prevNhlEmptyNetsRef.current[g.id] = {
+        isEmptyNet: currentSit.isEmptyNet,
+        emptyNetTeam: currentSit.emptyNetTeam
+      };
     });
-  }, [nhlGames, selectedNhlDate, activeSport]);
+  }, [nhlGames, activeSport]);
 
   const [todayStr] = useState(() => format(new Date(), 'yyyy-MM-dd'));
 

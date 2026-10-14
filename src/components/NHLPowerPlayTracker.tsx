@@ -3,23 +3,10 @@ import { NHLGame } from '../services/nhlService';
 import { motion, AnimatePresence } from 'motion/react';
 import { Zap, ShieldAlert, Sparkles, AlertTriangle, Flame, Percent } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { parseNHLSituation, ParsedNHLSituation } from '../utils/nhlSituation';
 
 interface NHLPowerPlayTrackerProps {
   game: NHLGame;
-}
-
-interface ParsedSituation {
-  hasPowerPlay: boolean;
-  powerPlayTeam: 'home' | 'away' | null;
-  ppTeamAbbrev: string;
-  pkTeamAbbrev: string;
-  skatersAway: number;
-  skatersHome: number;
-  goalieAway: boolean;
-  goalieHome: boolean;
-  strengthLabel: string;
-  isEmptyNet: boolean;
-  emptyNetTeam: 'home' | 'away' | null;
 }
 
 // Real NHL Special Teams database (2024-25 season PP% and PK% metrics)
@@ -70,149 +57,9 @@ const LEAGUE_AVG_PP = 21.0;
 const LEAGUE_AVG_PK = 80.0;
 
 export function NHLPowerPlayTracker({ game }: NHLPowerPlayTrackerProps) {
-  // Parse the current strength situation
-  const situation: ParsedSituation = useMemo(() => {
-    const defaultSit: ParsedSituation = {
-      hasPowerPlay: false,
-      powerPlayTeam: null,
-      ppTeamAbbrev: '',
-      pkTeamAbbrev: '',
-      skatersAway: 5,
-      skatersHome: 5,
-      goalieAway: true,
-      goalieHome: true,
-      strengthLabel: 'Even Strength 5v5',
-      isEmptyNet: false,
-      emptyNetTeam: null
-    };
-
-    if (!game.situation) {
-      // Fallback detection from alternate properties
-      const awayStr = game.situation?.awayTeam?.strength || 5;
-      const homeStr = game.situation?.homeTeam?.strength || 5;
-      if (awayStr > homeStr) {
-        return {
-          ...defaultSit,
-          hasPowerPlay: true,
-          powerPlayTeam: 'away',
-          ppTeamAbbrev: game.awayTeam.abbrev,
-          pkTeamAbbrev: game.homeTeam.abbrev,
-          skatersAway: awayStr,
-          skatersHome: homeStr,
-          strengthLabel: `${awayStr} on ${homeStr} Power Play`
-        };
-      } else if (homeStr > awayStr) {
-        return {
-          ...defaultSit,
-          hasPowerPlay: true,
-          powerPlayTeam: 'home',
-          ppTeamAbbrev: game.homeTeam.abbrev,
-          pkTeamAbbrev: game.awayTeam.abbrev,
-          skatersAway: awayStr,
-          skatersHome: homeStr,
-          strengthLabel: `${homeStr} on ${awayStr} Power Play`
-        };
-      }
-      return defaultSit;
-    }
-
-    const { situationCode } = game.situation;
-    
-    // Default parser if situationCode is present (4-digit format: e.g. '1541' or '1551' or standard '1515')
-    if (situationCode && situationCode.length === 4) {
-      const thirdDigitVal = parseInt(situationCode[2], 10);
-      const isCustomLayout = !isNaN(thirdDigitVal) && thirdDigitVal > 1;
-
-      let gAway = false;
-      let skAway = 5;
-      let gHome = false;
-      let skHome = 5;
-
-      if (isCustomLayout) {
-        // [gAway, skAway, skHome, gHome]
-        gAway = situationCode[0] === '1';
-        skAway = parseInt(situationCode[1], 10) || 5;
-        skHome = parseInt(situationCode[2], 10) || 5;
-        gHome = situationCode[3] === '1';
-      } else {
-        // [gAway, skAway, gHome, skHome]
-        gAway = situationCode[0] === '1';
-        skAway = parseInt(situationCode[1], 10) || 5;
-        gHome = situationCode[2] === '1';
-        skHome = parseInt(situationCode[3], 10) || 5;
-      }
-
-      const emptyNet = !gAway || !gHome;
-      const emptyNetTeam = !gAway ? 'away' : (!gHome ? 'home' : null);
-
-      let ppTeam: 'home' | 'away' | null = null;
-      let ppAbbrev = '';
-      let pkAbbrev = '';
-      let isPP = false;
-
-      // Filter out empty net scenarios from standard power play unless team strength differs
-      if (skAway > skHome) {
-        ppTeam = 'away';
-        ppAbbrev = game.awayTeam.abbrev;
-        pkAbbrev = game.homeTeam.abbrev;
-        isPP = true;
-      } else if (skHome > skAway) {
-        ppTeam = 'home';
-        ppAbbrev = game.homeTeam.abbrev;
-        pkAbbrev = game.awayTeam.abbrev;
-        isPP = true;
-      }
-
-      let label = `${skAway}v${skHome}`;
-      if (skAway === skHome) {
-        label = `Even Strength ${skAway}v${skHome}`;
-      } else {
-        label = ppTeam === 'away' 
-          ? `${game.awayTeam.abbrev} Power Play ${skAway}v${skHome}` 
-          : `${game.homeTeam.abbrev} Power Play ${skHome}v${skAway}`;
-      }
-
-      if (emptyNet) {
-        const pulledAbbrev = emptyNetTeam === 'away' ? game.awayTeam.abbrev : game.homeTeam.abbrev;
-        label += ` • ${pulledAbbrev} Empty Net`;
-      }
-
-      return {
-        hasPowerPlay: isPP,
-        powerPlayTeam: ppTeam,
-        ppTeamAbbrev: ppAbbrev,
-        pkTeamAbbrev: pkAbbrev,
-        skatersAway: skAway,
-        skatersHome: skHome,
-        goalieAway: gAway,
-        goalieHome: gHome,
-        strengthLabel: label,
-        isEmptyNet: emptyNet,
-        emptyNetTeam
-      };
-    }
-
-    // Direct object properties fallback
-    const isAwayPP = (game.situation?.awayTeam?.strength || 5) > (game.situation?.homeTeam?.strength || 5);
-    const isHomePP = (game.situation?.homeTeam?.strength || 5) > (game.situation?.awayTeam?.strength || 5);
-    const sAway = game.situation?.awayTeam?.strength || 5;
-    const sHome = game.situation?.homeTeam?.strength || 5;
-
-    return {
-      hasPowerPlay: isAwayPP || isHomePP,
-      powerPlayTeam: isAwayPP ? 'away' : (isHomePP ? 'home' : null),
-      ppTeamAbbrev: isAwayPP ? game.awayTeam.abbrev : (isHomePP ? game.homeTeam.abbrev : ''),
-      pkTeamAbbrev: isAwayPP ? game.homeTeam.abbrev : (isHomePP ? game.awayTeam.abbrev : ''),
-      skatersAway: sAway,
-      skatersHome: sHome,
-      goalieAway: true,
-      goalieHome: true,
-      strengthLabel: isAwayPP 
-        ? `${game.awayTeam.abbrev} Power Play ${sAway}v${sHome}` 
-        : (isHomePP ? `${game.homeTeam.abbrev} Power Play ${sHome}v${sAway}` : 'Even Strength 5v5'),
-      isEmptyNet: false,
-      emptyNetTeam: null
-    };
+  // Parse the current strength situation using the centralized utility
+  const situation: ParsedNHLSituation = useMemo(() => {
+    return parseNHLSituation(game);
   }, [game]);
 
   // Seed countdown time realistically per game
